@@ -5,8 +5,13 @@ import {
   ArrowRight,
   CheckCircle2,
   CircleDot,
+  Copy,
   LoaderCircle,
   Search,
+  ShieldCheck,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
   UserRound,
   X,
 } from "lucide-react";
@@ -33,6 +38,8 @@ export function OperationsInbox() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [investigating, setInvestigating] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -89,6 +96,79 @@ export function OperationsInbox() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function generateInvestigation() {
+    if (!selected) return;
+    setInvestigating(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/cases/${selected.id}/investigations`,
+        { method: "POST" },
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setSelected(payload.case);
+      setCases((current) =>
+        current.map((item) =>
+          item.id === payload.case.id ? payload.case : item,
+        ),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Investigation generation failed.",
+      );
+    } finally {
+      setInvestigating(false);
+    }
+  }
+
+  async function updateInvestigation(
+    patch: {
+      approvalStatus?: "pending" | "approved" | "rejected";
+      feedbackRating?: "helpful" | "not_helpful";
+      feedbackNotes?: string;
+    },
+  ) {
+    const investigation = selected?.latestInvestigation;
+    if (!investigation) return;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/investigations/${investigation.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setSelected(payload.case);
+      setCases((current) =>
+        current.map((item) =>
+          item.id === payload.case.id ? payload.case : item,
+        ),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Feedback could not be saved.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function copyProviderMessage() {
+    const message = selected?.latestInvestigation?.providerMessage;
+    if (!message) return;
+    await navigator.clipboard.writeText(message);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
   }
 
   const visible = useMemo(() => {
@@ -305,6 +385,163 @@ export function OperationsInbox() {
                   </div>
                 ))}
               </div>
+
+              <section className="ai-investigation">
+                <div className="ai-investigation-head">
+                  <div>
+                    <p className="eyebrow">AI INVESTIGATION</p>
+                    <h3>Evidence-grounded assistant</h3>
+                  </div>
+                  <span>
+                    <ShieldCheck size={14} />
+                    Human approval required
+                  </span>
+                </div>
+
+                {selected.latestInvestigation ? (
+                  <div className="investigation-result">
+                    <div className="investigation-meta">
+                      <span
+                        className={`confidence ${selected.latestInvestigation.confidence}`}
+                      >
+                        {selected.latestInvestigation.confidence} confidence
+                      </span>
+                      <span>
+                        {selected.latestInvestigation.provider === "openai"
+                          ? selected.latestInvestigation.model
+                          : "Evidence rules · demo mode"}
+                      </span>
+                      <span
+                        className={`approval ${selected.latestInvestigation.approvalStatus}`}
+                      >
+                        {selected.latestInvestigation.approvalStatus}
+                      </span>
+                    </div>
+
+                    <div className="investigation-block">
+                      <span>LIKELY CAUSE</span>
+                      <p>{selected.latestInvestigation.likelyCause}</p>
+                    </div>
+
+                    <div className="investigation-block">
+                      <span>RECOMMENDED ACTIONS</span>
+                      <ol>
+                        {selected.latestInvestigation.recommendedActions.map(
+                          (action) => (
+                            <li key={action}>{action}</li>
+                          ),
+                        )}
+                      </ol>
+                    </div>
+
+                    <div className="investigation-block provider-draft">
+                      <div>
+                        <span>DRAFT PROVIDER MESSAGE</span>
+                        <button onClick={copyProviderMessage}>
+                          <Copy size={13} />
+                          {copied ? "Copied" : "Copy"}
+                        </button>
+                      </div>
+                      <pre>{selected.latestInvestigation.providerMessage}</pre>
+                    </div>
+
+                    <div className="limitations">
+                      <strong>What this analysis cannot confirm</strong>
+                      {selected.latestInvestigation.limitations.map(
+                        (limitation) => (
+                          <p key={limitation}>{limitation}</p>
+                        ),
+                      )}
+                    </div>
+
+                    <div className="approval-actions">
+                      <button
+                        className="approve-button"
+                        disabled={saving}
+                        onClick={() =>
+                          updateInvestigation({
+                            approvalStatus: "approved",
+                          })
+                        }
+                      >
+                        <CheckCircle2 size={15} /> Approve analysis
+                      </button>
+                      <button
+                        disabled={saving}
+                        onClick={() =>
+                          updateInvestigation({
+                            approvalStatus: "rejected",
+                          })
+                        }
+                      >
+                        Reject
+                      </button>
+                      <button
+                        disabled={investigating}
+                        onClick={generateInvestigation}
+                      >
+                        Regenerate
+                      </button>
+                    </div>
+
+                    <div className="feedback-box">
+                      <span>WAS THIS USEFUL?</span>
+                      <button
+                        className={
+                          selected.latestInvestigation.feedbackRating ===
+                          "helpful"
+                            ? "active"
+                            : ""
+                        }
+                        onClick={() =>
+                          updateInvestigation({
+                            feedbackRating: "helpful",
+                          })
+                        }
+                      >
+                        <ThumbsUp size={14} /> Yes
+                      </button>
+                      <button
+                        className={
+                          selected.latestInvestigation.feedbackRating ===
+                          "not_helpful"
+                            ? "active"
+                            : ""
+                        }
+                        onClick={() =>
+                          updateInvestigation({
+                            feedbackRating: "not_helpful",
+                          })
+                        }
+                      >
+                        <ThumbsDown size={14} /> No
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="investigation-empty">
+                    <Sparkles size={26} />
+                    <p>
+                      Analyze the selected evidence, suggest next steps, and
+                      draft a provider message. Nothing is sent automatically.
+                    </p>
+                    <button
+                      className="primary-button"
+                      disabled={investigating}
+                      onClick={generateInvestigation}
+                    >
+                      {investigating ? (
+                        <LoaderCircle className="spin" size={17} />
+                      ) : (
+                        <Sparkles size={17} />
+                      )}
+                      {investigating
+                        ? "Investigating…"
+                        : "Investigate with AI"}
+                    </button>
+                  </div>
+                )}
+              </section>
               {saving && (
                 <div className="saving-indicator">
                   <LoaderCircle className="spin" size={15} /> Saving…

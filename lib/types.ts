@@ -71,6 +71,31 @@ export type OperationsCase = {
   notes: string;
   createdAt: string;
   updatedAt: string;
+  latestInvestigation: AIInvestigation | null;
+};
+
+export type InvestigationConfidence = "low" | "medium" | "high";
+export type InvestigationApproval = "pending" | "approved" | "rejected";
+
+export type InvestigationAnalysis = {
+  likelyCause: string;
+  confidence: InvestigationConfidence;
+  supportingEvidence: string[];
+  recommendedActions: string[];
+  providerMessage: string;
+  limitations: string[];
+};
+
+export type AIInvestigation = InvestigationAnalysis & {
+  id: string;
+  caseId: string;
+  provider: "openai" | "deterministic";
+  model: string;
+  approvalStatus: InvestigationApproval;
+  feedbackRating: "helpful" | "not_helpful" | null;
+  feedbackNotes: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type RunSummary = ReconciliationResult["summary"] & {

@@ -30,6 +30,8 @@ principles can come together in one practical workflow.
 - Automatically convert actionable exceptions into operations cases.
 - Assign case owners, priorities, statuses, and investigation notes.
 - Review historical runs and match-rate trends.
+- Generate evidence-grounded AI investigations with structured outputs.
+- Approve, reject, and rate AI suggestions before operational use.
 
 ## Architecture
 
@@ -43,6 +45,8 @@ flowchart LR
     F --> G[Reconciliation ledger]
     F --> H[Operations inbox]
     F --> I[Run history]
+    H --> J[OpenAI Responses API]
+    J --> F
 ```
 
 The browser parses CSV files and sends their rows to a Next.js route handler.
@@ -73,6 +77,8 @@ npm run db:down
 - `GET /api/runs` — list persisted reconciliation runs.
 - `GET /api/cases` — list operations cases with transaction evidence.
 - `PATCH /api/cases/:id` — update owner, priority, status, and notes.
+- `POST /api/cases/:id/investigations` — generate and persist an investigation.
+- `PATCH /api/investigations/:id` — approve, reject, or rate an investigation.
 - `GET /api/health` — verify application and database connectivity.
 
 ## Data model
@@ -80,6 +86,7 @@ npm run db:down
 - `reconciliation_runs` stores report-level metrics and source metadata.
 - `reconciliation_items` stores row-level matching results and evidence.
 - `operations_cases` stores the analyst workflow for actionable exceptions.
+- `ai_investigations` stores structured findings, approvals, and feedback.
 - `schema_migrations` records applied SQL migrations.
 
 ## Production deployment
@@ -88,6 +95,10 @@ Provision PostgreSQL through Neon, Supabase, Render, Railway, AWS RDS, or
 another managed provider. Set `DATABASE_URL`, run `npm run db:migrate` during
 release, and deploy the Next.js application. Keep database credentials in the
 deployment platform's encrypted environment settings.
+
+Set `OPENAI_API_KEY` to enable GPT-5.5 investigations through the Responses API.
+Without a key, the application uses a clearly labeled deterministic
+evidence-rules fallback so the portfolio demo remains functional.
 
 ## Quality checks
 
@@ -120,7 +131,7 @@ npm run build
 
 - Add authentication and workspace-level role permissions.
 - Add SLA due dates and operational notifications.
-- Add an AI investigator that cites source rows.
+- Build an evaluation set from analyst investigation feedback.
 - Include refunds, chargebacks, and webhook timelines.
 - Turn analyst corrections into repeatable AI evaluations.
 - Add immutable audit events and production observability.

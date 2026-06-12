@@ -1454,6 +1454,212 @@ footer {
   font-size: 10px;
 }
 
+.ai-investigation {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid var(--ink);
+}
+
+.ai-investigation-head,
+.ai-investigation-head > span,
+.investigation-meta,
+.provider-draft > div,
+.approval-actions,
+.feedback-box {
+  display: flex;
+  align-items: center;
+}
+
+.ai-investigation-head {
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.ai-investigation-head h3 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -0.03em;
+}
+
+.ai-investigation-head > span {
+  gap: 6px;
+  color: var(--green);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.investigation-empty {
+  margin-top: 18px;
+  padding: 24px;
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  background: #e9e5d9;
+}
+
+.investigation-empty > svg {
+  color: var(--orange-dark);
+}
+
+.investigation-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.investigation-empty .primary-button {
+  min-height: 42px;
+  box-shadow: 3px 3px 0 var(--ink);
+  font-size: 10px;
+}
+
+.investigation-result {
+  margin-top: 18px;
+  border: 1px solid var(--ink);
+}
+
+.investigation-meta {
+  min-height: 42px;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ink);
+  background: #e9e5d9;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.investigation-meta > span {
+  padding: 4px 6px;
+  background: var(--paper-strong);
+}
+
+.investigation-meta .approval {
+  margin-left: auto;
+}
+
+.confidence.high,
+.approval.approved {
+  color: var(--green);
+}
+
+.confidence.medium,
+.approval.pending {
+  color: #8b6100;
+}
+
+.confidence.low,
+.approval.rejected {
+  color: var(--orange-dark);
+}
+
+.investigation-block {
+  padding: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.investigation-block > span,
+.provider-draft > div > span,
+.feedback-box > span {
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.investigation-block p,
+.investigation-block li {
+  color: #454841;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.investigation-block p {
+  margin: 9px 0 0;
+}
+
+.investigation-block ol {
+  margin: 10px 0 0;
+  padding-left: 19px;
+}
+
+.provider-draft > div {
+  justify-content: space-between;
+}
+
+.provider-draft button,
+.approval-actions button,
+.feedback-box button {
+  min-height: 30px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.provider-draft pre {
+  margin: 12px 0 0;
+  padding: 14px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  background: #f0ede4;
+  color: #454841;
+  font-family: var(--font-manrope), sans-serif;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.limitations {
+  padding: 15px 18px;
+  background: #fff4dd;
+  color: #6e520e;
+}
+
+.limitations strong {
+  font-size: 9px;
+}
+
+.limitations p {
+  margin: 6px 0 0;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.approval-actions {
+  padding: 14px 18px;
+  gap: 8px;
+  border-top: 1px solid var(--ink);
+}
+
+.approval-actions .approve-button {
+  background: var(--green);
+  color: white;
+  border-color: var(--green);
+}
+
+.feedback-box {
+  padding: 12px 18px;
+  gap: 7px;
+  border-top: 1px solid var(--line);
+}
+
+.feedback-box > span {
+  margin-right: auto;
+}
+
+.feedback-box button.active {
+  background: var(--ink);
+  color: var(--paper-strong);
+}
+
 .detail-placeholder,
 .loading-state {
   min-height: 360px;

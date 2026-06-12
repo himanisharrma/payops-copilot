@@ -41,6 +41,9 @@ actual settlements differ.
 - Reconciliation runs and findings persist in PostgreSQL.
 - Actionable exceptions automatically create operations cases.
 - Analysts can assign an owner, change status and priority, and save notes.
+- Analysts can generate a structured investigation grounded in case evidence.
+- AI suggestions require explicit approval or rejection before operational use.
+- Analyst usefulness ratings persist for future evaluation datasets.
 - No real payment is initiated and no credentials are collected.
 
 ## Non-goals for the first release
@@ -61,7 +64,7 @@ actual settlements differ.
 ## Next releases
 
 1. Add authentication and workspace permissions.
-2. Add an AI investigator that cites supporting rows.
+2. Build a golden evaluation set from investigation feedback.
 3. Add SLA tracking and notifications to the operations inbox.
 4. Add refund, chargeback, and webhook timelines.
-5. Add feedback-driven evaluations for AI suggestions.
+5. Add provider-specific investigation tools and policies.
