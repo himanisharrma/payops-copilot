@@ -38,13 +38,16 @@ actual settlements differ.
 - Exceptions include missing gateway rows, duplicate captures, missing
   settlements, and amount mismatches.
 - Every finding shows evidence from the source records.
+- Reconciliation runs and findings persist in PostgreSQL.
+- Actionable exceptions automatically create operations cases.
+- Analysts can assign an owner, change status and priority, and save notes.
 - No real payment is initiated and no credentials are collected.
 
 ## Non-goals for the first release
 
 - Moving money or initiating refunds.
 - Connecting to production payment gateways.
-- Storing uploaded reports permanently.
+- Storing original uploaded file contents permanently.
 - AI-generated financial calculations.
 
 ## Product principles
@@ -57,8 +60,8 @@ actual settlements differ.
 
 ## Next releases
 
-1. Persist reconciliation runs and analyst comments.
+1. Add authentication and workspace permissions.
 2. Add an AI investigator that cites supporting rows.
-3. Convert exceptions into an operations inbox.
+3. Add SLA tracking and notifications to the operations inbox.
 4. Add refund, chargeback, and webhook timelines.
 5. Add feedback-driven evaluations for AI suggestions.

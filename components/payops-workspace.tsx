@@ -12,7 +12,9 @@ import {
   FileSpreadsheet,
   Filter,
   Landmark,
+  ListChecks,
   LoaderCircle,
+  History,
   Search,
   ShieldCheck,
   Sparkles,
@@ -117,7 +119,11 @@ export function PayOpsWorkspace() {
 
   const ready = Object.values(uploads).every((rows) => rows.length > 0);
 
-  async function reconcile(nextUploads = uploads) {
+  async function reconcile(
+    nextUploads = uploads,
+    nextFileNames = fileNames,
+    nextSourceType: "demo" | "upload" = "upload",
+  ) {
     setLoading(true);
     setError("");
 
@@ -125,7 +131,17 @@ export function PayOpsWorkspace() {
       const response = await fetch("/api/reconcile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextUploads),
+        body: JSON.stringify({
+          ...nextUploads,
+          runName: `Settlement run · ${new Date().toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}`,
+          sourceType: nextSourceType,
+          sourceFiles: nextFileNames,
+        }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error);
@@ -154,12 +170,13 @@ export function PayOpsWorkspace() {
       );
       const nextUploads = Object.fromEntries(entries) as UploadState;
       setUploads(nextUploads);
-      setFileNames({
+      const demoFileNames = {
         orders: "orders.csv",
         gateway: "gateway.csv",
         settlements: "settlements.csv",
-      });
-      await reconcile(nextUploads);
+      };
+      setFileNames(demoFileNames);
+      await reconcile(nextUploads, demoFileNames, "demo");
     } catch {
       setError("The demo files could not be loaded.");
       setLoading(false);
@@ -216,6 +233,14 @@ export function PayOpsWorkspace() {
           SYNTHETIC DATA · SAFE MODE
         </div>
         <nav className="top-actions" aria-label="Workspace utilities">
+          <a href="/operations" className="text-link nav-link">
+            <ListChecks size={15} />
+            Operations
+          </a>
+          <a href="/runs" className="text-link nav-link">
+            <History size={15} />
+            Runs
+          </a>
           <a href="/product-brief" className="text-link">
             Product brief
           </a>
@@ -253,8 +278,8 @@ export function PayOpsWorkspace() {
             </span>
           </div>
           <p>
-            No real payments. No credentials. Uploaded files stay in this
-            session.
+            No real payments or credentials. Results are stored in your
+            PostgreSQL workspace.
           </p>
         </div>
       </section>
@@ -345,7 +370,7 @@ export function PayOpsWorkspace() {
           <button
             className="primary-button"
             disabled={!ready || loading}
-            onClick={() => reconcile()}
+            onClick={() => reconcile(uploads, fileNames, "upload")}
           >
             {loading ? (
               <LoaderCircle className="spin" size={18} />

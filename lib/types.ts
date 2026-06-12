@@ -4,6 +4,13 @@ export type ReconciliationRequest = {
   orders: RawRecord[];
   gateway: RawRecord[];
   settlements: RawRecord[];
+  runName?: string;
+  sourceType?: "demo" | "upload";
+  sourceFiles?: {
+    orders?: string;
+    gateway?: string;
+    settlements?: string;
+  };
 };
 
 export type ReconciliationStatus =
@@ -30,6 +37,7 @@ export type ReconciliationItem = {
 };
 
 export type ReconciliationResult = {
+  id?: string;
   generatedAt: string;
   summary: {
     totalOrders: number;
@@ -41,4 +49,34 @@ export type ReconciliationResult = {
     matchRate: number;
   };
   items: ReconciliationItem[];
+};
+
+export type CaseStatus = "open" | "investigating" | "resolved";
+
+export type OperationsCase = {
+  id: string;
+  runId: string;
+  runName: string;
+  orderId: string;
+  gatewayReference: string;
+  paymentMode: string;
+  orderAmount: number;
+  variance: number;
+  reconciliationStatus: ReconciliationStatus;
+  summary: string;
+  evidence: string[];
+  priority: "low" | "medium" | "high";
+  status: CaseStatus;
+  owner: string | null;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RunSummary = ReconciliationResult["summary"] & {
+  id: string;
+  name: string;
+  sourceType: string;
+  status: string;
+  createdAt: string;
 };

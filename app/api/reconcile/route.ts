@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { reconcilePayments } from "@/lib/reconciliation";
+import { saveReconciliationRun } from "@/lib/repository";
 import type { ReconciliationRequest } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -13,11 +14,23 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(reconcilePayments(payload));
-  } catch {
+    const result = reconcilePayments(payload);
+    const stored = await saveReconciliationRun(result, {
+      name:
+        payload.runName ??
+        `Reconciliation ${new Date().toLocaleDateString("en-IN")}`,
+      sourceType: payload.sourceType ?? "upload",
+      sourceFiles: payload.sourceFiles ?? {},
+    });
+    return NextResponse.json(stored, { status: 201 });
+  } catch (error) {
+    console.error(error);
     return NextResponse.json(
-      { error: "The uploaded files could not be reconciled." },
-      { status: 400 },
+      {
+        error:
+          "The reports could not be saved. Confirm PostgreSQL is running and migrations are applied.",
+      },
+      { status: 503 },
     );
   }
 }

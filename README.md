@@ -6,7 +6,8 @@ operations teams.
 PayOps Copilot compares internal orders, payment gateway transactions, and bank
 settlements. It identifies missing records, duplicate captures, fee-related
 amount mismatches, and pending payments without relying on AI for financial
-arithmetic.
+arithmetic. Reconciliation runs and analyst workflows are persisted in
+PostgreSQL.
 
 ## Why this project exists
 
@@ -15,7 +16,7 @@ inconsistent identifiers. This portfolio project demonstrates how product
 thinking, fintech domain knowledge, full-stack engineering, and responsible AI
 principles can come together in one practical workflow.
 
-## Current MVP
+## Full-stack workflow
 
 - Upload three CSV reports.
 - Automatically normalize common payment-report headers.
@@ -25,6 +26,10 @@ principles can come together in one practical workflow.
 - Load a built-in synthetic Indian payments dataset.
 - Filter and search the reconciliation ledger.
 - Inspect a transaction's evidence and suggested next step.
+- Persist every reconciliation run and transaction finding in PostgreSQL.
+- Automatically convert actionable exceptions into operations cases.
+- Assign case owners, priorities, statuses, and investigation notes.
+- Review historical runs and match-rate trends.
 
 ## Architecture
 
@@ -34,22 +39,55 @@ flowchart LR
     B[Gateway CSV] --> D
     C[Settlement CSV] --> D
     D --> E[Deterministic matching engine]
-    E --> F[Exception ledger]
-    F --> G[Evidence drawer]
+    E --> F[(PostgreSQL)]
+    F --> G[Reconciliation ledger]
+    F --> H[Operations inbox]
+    F --> I[Run history]
 ```
 
 The browser parses CSV files and sends their rows to a Next.js route handler.
-The server normalizes aliases, performs deterministic calculations, and
-returns structured findings. Uploaded data is not persisted in this release.
+The server normalizes aliases, performs deterministic calculations, and writes
+the run, findings, and operations cases to PostgreSQL in one transaction.
 
 ## Run locally
 
 ```bash
 npm install
-npm run dev
+cp .env.example .env.local
+npm run db:up
+npm run db:migrate
+npm run dev -- --port 4317
 ```
 
-Open `http://localhost:3000` and select **Load demo data**.
+Open `http://127.0.0.1:4317` and select **Load demo data**.
+
+The local database runs PostgreSQL 17 in Docker on port `5438`. Stop it with:
+
+```bash
+npm run db:down
+```
+
+## API surface
+
+- `POST /api/reconcile` — reconcile reports and persist a run.
+- `GET /api/runs` — list persisted reconciliation runs.
+- `GET /api/cases` — list operations cases with transaction evidence.
+- `PATCH /api/cases/:id` — update owner, priority, status, and notes.
+- `GET /api/health` — verify application and database connectivity.
+
+## Data model
+
+- `reconciliation_runs` stores report-level metrics and source metadata.
+- `reconciliation_items` stores row-level matching results and evidence.
+- `operations_cases` stores the analyst workflow for actionable exceptions.
+- `schema_migrations` records applied SQL migrations.
+
+## Production deployment
+
+Provision PostgreSQL through Neon, Supabase, Render, Railway, AWS RDS, or
+another managed provider. Set `DATABASE_URL`, run `npm run db:migrate` during
+release, and deploy the Next.js application. Keep database credentials in the
+deployment platform's encrypted environment settings.
 
 ## Quality checks
 
@@ -63,7 +101,9 @@ npm run build
 
 - `app/` — Next.js pages, styling, and API route
 - `components/` — interactive reconciliation workspace
-- `lib/` — types, matching logic, and unit tests
+- `db/migrations/` — versioned PostgreSQL schema
+- `lib/` — database pool, repository, types, matching logic, and tests
+- `scripts/` — database migration runner
 - `public/demo/` — fictional CSV reports safe for a public portfolio
 - `docs/PRODUCT_REQUIREMENTS.md` — MVP product requirements
 - `docs/PAYMENTS_GLOSSARY.md` — plain-language payment terminology
@@ -78,12 +118,12 @@ npm run build
 
 ## Roadmap
 
-- Persist reconciliation runs and analyst decisions.
-- Add an operations inbox with owners and SLAs.
+- Add authentication and workspace-level role permissions.
+- Add SLA due dates and operational notifications.
 - Add an AI investigator that cites source rows.
 - Include refunds, chargebacks, and webhook timelines.
 - Turn analyst corrections into repeatable AI evaluations.
-- Add role-based access, audit logs, and production observability.
+- Add immutable audit events and production observability.
 
 ## Safety
 
