@@ -1,0 +1,11 @@
+order_id,created_at,customer_name,order_amount,payment_mode,payment_status
+ORD-260601,2026-06-01 09:12,Aarav Stores,12499.00,UPI,paid
+ORD-260602,2026-06-01 09:45,Blue Tokai Demo,849.00,Card,paid
+ORD-260603,2026-06-01 10:18,Chennai Crafts,2200.00,Netbanking,paid
+ORD-260604,2026-06-01 11:03,Delhi Design Co,5199.00,UPI,paid
+ORD-260605,2026-06-01 11:42,Earth Basket,750.00,Wallet,paid
+ORD-260606,2026-06-01 12:24,Fab Home Demo,3100.00,Card,paid
+ORD-260607,2026-06-01 13:05,Goa Goods,8999.00,UPI,paid
+ORD-260608,2026-06-01 14:16,Hyderabad House,1450.00,UPI,paid
+ORD-260609,2026-06-01 15:30,Indore Ideas,6400.00,Card,paid
+ORD-260610,2026-06-01 16:47,Jaipur Junction,1999.00,Netbanking,paid
