@@ -35,6 +35,8 @@ principles can come together in one practical workflow.
 - Isolate payment data by organization.
 - Protect actions with admin, analyst, and viewer roles.
 - Record important user actions in an administrator audit log.
+- Apply 4-hour, 24-hour, and 72-hour SLAs by case priority.
+- Alert operators to at-risk and overdue payment exceptions.
 
 ## Architecture
 
@@ -111,6 +113,7 @@ require the `admin` or `analyst` role, and audit access requires `admin`.
 - `reconciliation_runs` stores report-level metrics and source metadata.
 - `reconciliation_items` stores row-level matching results and evidence.
 - `operations_cases` stores the analyst workflow for actionable exceptions.
+- Case deadlines and resolution timestamps support SLA measurement.
 - `ai_investigations` stores structured findings, approvals, and feedback.
 - `organizations` and `users` provide workspace identity and roles.
 - `audit_events` stores who performed important operational actions.
@@ -160,7 +163,6 @@ npm run build
 
 ## Roadmap
 
-- Add SLA due dates and operational notifications.
 - Build an evaluation set from analyst investigation feedback.
 - Include refunds, chargebacks, and webhook timelines.
 - Turn analyst corrections into repeatable AI evaluations.

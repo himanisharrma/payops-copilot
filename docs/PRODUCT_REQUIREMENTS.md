@@ -41,6 +41,9 @@ actual settlements differ.
 - Reconciliation runs and findings persist in PostgreSQL.
 - Actionable exceptions automatically create operations cases.
 - Analysts can assign an owner, change status and priority, and save notes.
+- Priority automatically sets a case SLA: high in 4 hours, medium in 24
+  hours, and low in 72 hours.
+- Operators can filter at-risk and overdue cases and see an in-app SLA alert.
 - Analysts can generate a structured investigation grounded in case evidence.
 - AI suggestions require explicit approval or rejection before operational use.
 - Analyst usefulness ratings persist for future evaluation datasets.
@@ -65,6 +68,6 @@ actual settlements differ.
 
 1. Add authentication and workspace permissions.
 2. Build a golden evaluation set from investigation feedback.
-3. Add SLA tracking and notifications to the operations inbox.
+3. Add configurable business calendars and external escalation notifications.
 4. Add refund, chargeback, and webhook timelines.
 5. Add provider-specific investigation tools and policies.

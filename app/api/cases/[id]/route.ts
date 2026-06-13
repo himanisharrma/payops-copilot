@@ -42,7 +42,11 @@ export async function PATCH(
       action: "case.updated",
       entityType: "operations_case",
       entityId: id,
-      details: payload,
+      details: {
+        ...payload,
+        ...(payload.priority ? { dueAt: updated.dueAt } : {}),
+        slaStatus: updated.slaStatus,
+      },
     });
     return NextResponse.json({ case: updated });
   } catch (error) {

@@ -52,6 +52,12 @@ export type ReconciliationResult = {
 };
 
 export type CaseStatus = "open" | "investigating" | "resolved";
+export type SlaStatus =
+  | "on_track"
+  | "at_risk"
+  | "overdue"
+  | "met"
+  | "breached";
 
 export type OperationsCase = {
   id: string;
@@ -69,6 +75,9 @@ export type OperationsCase = {
   status: CaseStatus;
   owner: string | null;
   notes: string;
+  dueAt: string;
+  resolvedAt: string | null;
+  slaStatus: SlaStatus;
   createdAt: string;
   updatedAt: string;
   latestInvestigation: AIInvestigation | null;

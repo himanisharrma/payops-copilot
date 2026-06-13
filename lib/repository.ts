@@ -10,6 +10,7 @@ import type {
   ReconciliationResult,
   RunSummary,
 } from "@/lib/types";
+import { getSlaStatus } from "@/lib/sla";
 
 export async function saveReconciliationRun(
   result: ReconciliationResult,
@@ -47,8 +48,17 @@ export async function saveReconciliationRun(
       const storedItem = await insertItem(client, runId, item);
       if (!["matched", "pending"].includes(item.status)) {
         await client.query(
-          `INSERT INTO operations_cases (organization_id, item_id, run_id, priority)
-           VALUES ($1, $2, $3, $4)`,
+          `INSERT INTO operations_cases (
+             organization_id, item_id, run_id, priority, due_at
+           )
+           VALUES (
+             $1, $2, $3, $4,
+             NOW() + CASE $4
+               WHEN 'high' THEN INTERVAL '4 hours'
+               WHEN 'medium' THEN INTERVAL '24 hours'
+               ELSE INTERVAL '72 hours'
+             END
+           )`,
           [metadata.organizationId, storedItem.id, runId, item.severity],
         );
       }
@@ -147,6 +157,8 @@ export async function listCases(organizationId: string): Promise<OperationsCase[
     case_status: CaseStatus;
     owner: string | null;
     notes: string;
+    due_at: Date;
+    resolved_at: Date | null;
     created_at: Date;
     updated_at: Date;
     investigation_id: string | null;
@@ -185,31 +197,44 @@ export async function listCases(organizationId: string): Promise<OperationsCase[
      WHERE c.organization_id = $1
      ORDER BY
        CASE c.case_status WHEN 'open' THEN 1 WHEN 'investigating' THEN 2 ELSE 3 END,
-       CASE c.priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
+       c.due_at ASC,
        c.created_at DESC`,
     [organizationId],
   );
 
-  return result.rows.map((row) => ({
-    id: row.id,
-    runId: row.run_id,
-    runName: row.run_name,
-    orderId: row.order_id,
-    gatewayReference: row.gateway_reference,
-    paymentMode: row.payment_mode,
-    orderAmount: Number(row.order_amount),
-    variance: Number(row.variance),
-    reconciliationStatus: row.reconciliation_status,
-    summary: row.summary,
-    evidence: row.evidence,
-    priority: row.priority,
-    status: row.case_status,
-    owner: row.owner,
-    notes: row.notes,
-    createdAt: row.created_at.toISOString(),
-    updatedAt: row.updated_at.toISOString(),
-    latestInvestigation: row.investigation_id
-      ? {
+  return result.rows.map((row) => {
+    const createdAt = row.created_at.toISOString();
+    const dueAt = row.due_at.toISOString();
+    const resolvedAt = row.resolved_at?.toISOString() ?? null;
+    return {
+      id: row.id,
+      runId: row.run_id,
+      runName: row.run_name,
+      orderId: row.order_id,
+      gatewayReference: row.gateway_reference,
+      paymentMode: row.payment_mode,
+      orderAmount: Number(row.order_amount),
+      variance: Number(row.variance),
+      reconciliationStatus: row.reconciliation_status,
+      summary: row.summary,
+      evidence: row.evidence,
+      priority: row.priority,
+      status: row.case_status,
+      owner: row.owner,
+      notes: row.notes,
+      dueAt,
+      resolvedAt,
+      slaStatus: getSlaStatus({
+        createdAt,
+        dueAt,
+        resolvedAt,
+        status: row.case_status,
+        priority: row.priority,
+      }),
+      createdAt,
+      updatedAt: row.updated_at.toISOString(),
+      latestInvestigation: row.investigation_id
+        ? {
           id: row.investigation_id,
           caseId: row.id,
           provider: row.investigation_provider!,
@@ -225,9 +250,10 @@ export async function listCases(organizationId: string): Promise<OperationsCase[
           feedbackNotes: row.feedback_notes ?? "",
           createdAt: row.investigation_created_at!.toISOString(),
           updatedAt: row.investigation_updated_at!.toISOString(),
-        }
-      : null,
-  }));
+          }
+        : null,
+    };
+  });
 }
 
 export async function getCase(id: string, organizationId: string) {
@@ -323,6 +349,12 @@ export async function updateCase(
     `UPDATE operations_cases SET
        case_status = COALESCE($2, case_status),
        priority = COALESCE($3, priority),
+       due_at = CASE
+         WHEN $3 = 'high' THEN created_at + INTERVAL '4 hours'
+         WHEN $3 = 'medium' THEN created_at + INTERVAL '24 hours'
+         WHEN $3 = 'low' THEN created_at + INTERVAL '72 hours'
+         ELSE due_at
+       END,
        owner = CASE WHEN $4::boolean THEN $5 ELSE owner END,
        notes = COALESCE($6, notes),
        resolved_at = CASE

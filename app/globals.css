@@ -1366,7 +1366,7 @@ button:disabled {
 
 .queue-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border: 1px solid var(--ink);
   background: var(--paper-strong);
 }
@@ -1396,6 +1396,52 @@ button:disabled {
   color: var(--muted);
   font-size: 7px;
   letter-spacing: 0.1em;
+}
+
+.queue-stats .urgent {
+  background: var(--red-soft);
+  color: #8b2d19;
+}
+
+.sla-alert {
+  width: min(1228px, calc(100% - clamp(44px, 10vw, 152px)));
+  min-height: 74px;
+  margin: 24px auto;
+  padding: 15px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #b64027;
+  background: var(--red-soft);
+  color: #722413;
+}
+
+.sla-alert > svg {
+  flex: 0 0 auto;
+}
+
+.sla-alert strong {
+  display: block;
+  font-size: 12px;
+}
+
+.sla-alert p {
+  margin: 4px 0 0;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.sla-alert button {
+  min-height: 36px;
+  margin-left: auto;
+  padding: 0 13px;
+  flex: 0 0 auto;
+  border: 1px solid #722413;
+  background: transparent;
+  color: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .operations-layout {
@@ -1429,6 +1475,18 @@ button:disabled {
   border-right: 1px solid var(--ink);
   border-bottom: 1px solid var(--ink);
   background: var(--paper-strong);
+}
+
+.case-filter-stack {
+  display: grid;
+  gap: 4px;
+}
+
+.sla-filter-group button {
+  min-height: 27px;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+  text-transform: uppercase;
 }
 
 .case-list {
@@ -1519,6 +1577,46 @@ button:disabled {
   line-height: 1.55;
 }
 
+.sla-card-status {
+  margin-top: 17px;
+  padding: 9px 10px;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+}
+
+.sla-card-status strong {
+  text-transform: uppercase;
+}
+
+.sla-card-status span {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.sla-card-status.at_risk {
+  border-color: #d29a22;
+  background: #fff0cf;
+  color: #755000;
+}
+
+.sla-card-status.overdue,
+.sla-card-status.breached {
+  border-color: #b64027;
+  background: var(--red-soft);
+  color: #8b2d19;
+}
+
+.sla-card-status.met {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: #07563d;
+}
+
 .case-card-meta {
   margin-top: 24px;
   padding-top: 14px;
@@ -1555,6 +1653,79 @@ button:disabled {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.65;
+}
+
+.sla-control {
+  margin-top: 22px;
+  padding: 17px;
+  border: 1px solid var(--line);
+  background: #f8f5ed;
+}
+
+.sla-control > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.sla-control > strong {
+  display: block;
+  margin-top: 14px;
+  font-size: 20px;
+}
+
+.sla-control > p {
+  margin: 4px 0 16px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.sla-control dl {
+  margin: 0;
+  padding-top: 13px;
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.sla-control dl div {
+  display: grid;
+  gap: 4px;
+}
+
+.sla-control dt {
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.sla-control dd {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sla-control.at_risk {
+  border-color: #d29a22;
+  background: #fff0cf;
+}
+
+.sla-control.overdue,
+.sla-control.breached {
+  border-color: #b64027;
+  background: var(--red-soft);
+}
+
+.sla-control.met {
+  border-color: var(--green);
+  background: var(--green-soft);
 }
 
 .case-form {
@@ -2031,6 +2202,26 @@ button:disabled {
 
   .queue-stats {
     width: 100%;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .queue-stats div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .queue-stats div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .sla-alert {
+    width: calc(100% - 44px);
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .sla-alert button {
+    width: 100%;
+    margin-left: 0;
   }
 
   .case-list {

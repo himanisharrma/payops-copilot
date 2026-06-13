@@ -3,8 +3,10 @@
 import {
   AlertTriangle,
   ArrowRight,
+  BellRing,
   CheckCircle2,
   CircleDot,
+  Clock3,
   Copy,
   LoaderCircle,
   Search,
@@ -16,12 +18,21 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { CaseStatus, OperationsCase } from "@/lib/types";
+import { formatSlaDistance, getSlaStatus, SLA_HOURS } from "@/lib/sla";
+import type { CaseStatus, OperationsCase, SlaStatus } from "@/lib/types";
 
 const statusLabels: Record<CaseStatus, string> = {
   open: "Open",
   investigating: "Investigating",
   resolved: "Resolved",
+};
+
+const slaLabels: Record<SlaStatus, string> = {
+  on_track: "On track",
+  at_risk: "At risk",
+  overdue: "Overdue",
+  met: "SLA met",
+  breached: "SLA breached",
 };
 
 const formatMoney = (value: number) =>
@@ -31,10 +42,29 @@ const formatMoney = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 
+const formatDateTime = (value: string) =>
+  new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(value));
+
+const currentSlaStatus = (item: OperationsCase) =>
+  getSlaStatus({
+    createdAt: item.createdAt,
+    dueAt: item.dueAt,
+    resolvedAt: item.resolvedAt,
+    status: item.status,
+    priority: item.priority,
+  });
+
 export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
   const [cases, setCases] = useState<OperationsCase[]>([]);
   const [selected, setSelected] = useState<OperationsCase | null>(null);
   const [filter, setFilter] = useState<"all" | CaseStatus>("all");
+  const [slaFilter, setSlaFilter] = useState<
+    "all" | "at_risk" | "overdue"
+  >("all");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -174,18 +204,32 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return cases.filter(
-      (item) =>
-        (filter === "all" || item.status === filter) &&
+      (item) => {
+        const slaStatus = currentSlaStatus(item);
+        return (
+          (filter === "all" || item.status === filter) &&
+          (slaFilter === "all" || slaStatus === slaFilter) &&
         (!normalized ||
           item.orderId.toLowerCase().includes(normalized) ||
           item.owner?.toLowerCase().includes(normalized) ||
-          item.summary.toLowerCase().includes(normalized)),
+            item.summary.toLowerCase().includes(normalized))
+        );
+      },
     );
-  }, [cases, filter, query]);
+  }, [cases, filter, query, slaFilter]);
 
+  const slaCounts = cases.reduce(
+    (counts, item) => {
+      const status = currentSlaStatus(item);
+      if (status === "at_risk") counts.atRisk += 1;
+      if (status === "overdue") counts.overdue += 1;
+      if (status === "breached") counts.breached += 1;
+      return counts;
+    },
+    { atRisk: 0, overdue: 0, breached: 0 },
+  );
   const counts = {
-    open: cases.filter((item) => item.status === "open").length,
-    investigating: cases.filter((item) => item.status === "investigating").length,
+    active: cases.filter((item) => item.status !== "resolved").length,
     resolved: cases.filter((item) => item.status === "resolved").length,
   };
 
@@ -205,12 +249,16 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
         </div>
         <div className="queue-stats">
           <div>
-            <strong>{counts.open}</strong>
-            <span>OPEN</span>
+            <strong>{counts.active}</strong>
+            <span>ACTIVE</span>
           </div>
           <div>
-            <strong>{counts.investigating}</strong>
-            <span>IN REVIEW</span>
+            <strong>{slaCounts.atRisk}</strong>
+            <span>AT RISK</span>
+          </div>
+          <div className={slaCounts.overdue ? "urgent" : ""}>
+            <strong>{slaCounts.overdue}</strong>
+            <span>OVERDUE</span>
           </div>
           <div>
             <strong>{counts.resolved}</strong>
@@ -219,21 +267,63 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
         </div>
       </section>
 
+      {(slaCounts.overdue > 0 || slaCounts.atRisk > 0) && (
+        <section className="sla-alert" aria-label="SLA notification">
+          <BellRing size={19} />
+          <div>
+            <strong>Attention needed</strong>
+            <p>
+              {slaCounts.overdue} overdue and {slaCounts.atRisk} at-risk{" "}
+              {slaCounts.overdue + slaCounts.atRisk === 1 ? "case" : "cases"}.
+              The queue is ordered to help the team act before more deadlines
+              are missed.
+            </p>
+          </div>
+          {slaCounts.overdue > 0 && (
+            <button
+              onClick={() => {
+                setFilter("all");
+                setSlaFilter("overdue");
+              }}
+            >
+              Review overdue
+            </button>
+          )}
+        </section>
+      )}
+
       <section className="operations-layout">
         <div className="case-list-panel">
           <div className="case-toolbar">
-            <div className="filter-group">
-              {(["all", "open", "investigating", "resolved"] as const).map(
-                (value) => (
+            <div className="case-filter-stack">
+              <div className="filter-group">
+                {(["all", "open", "investigating", "resolved"] as const).map(
+                  (value) => (
+                    <button
+                      key={value}
+                      className={filter === value ? "active" : ""}
+                      onClick={() => setFilter(value)}
+                    >
+                      {value === "all" ? "All" : statusLabels[value]}
+                    </button>
+                  ),
+                )}
+              </div>
+              <div className="filter-group sla-filter-group">
+                {(["all", "at_risk", "overdue"] as const).map((value) => (
                   <button
                     key={value}
-                    className={filter === value ? "active" : ""}
-                    onClick={() => setFilter(value)}
+                    className={slaFilter === value ? "active" : ""}
+                    onClick={() => setSlaFilter(value)}
                   >
-                    {value === "all" ? "All" : statusLabels[value]}
+                    {value === "all"
+                      ? "Any SLA"
+                      : value === "at_risk"
+                        ? "At risk"
+                        : "Overdue"}
                   </button>
-                ),
-              )}
+                ))}
+              </div>
             </div>
             <label className="search-box">
               <Search size={16} />
@@ -255,37 +345,51 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
           ) : visible.length ? (
             <div className="case-list">
               {visible.map((item) => (
-                <button
-                  key={item.id}
-                  className={`case-card ${
-                    selected?.id === item.id ? "selected" : ""
-                  }`}
-                  onClick={() => setSelected(item)}
-                >
-                  <div className="case-card-top">
-                    <span className={`priority-chip ${item.priority}`}>
-                      {item.priority} priority
-                    </span>
-                    <span className={`case-status ${item.status}`}>
-                      {item.status === "resolved" ? (
-                        <CheckCircle2 size={13} />
-                      ) : (
-                        <CircleDot size={13} />
-                      )}
-                      {statusLabels[item.status]}
-                    </span>
-                  </div>
-                  <h2>{item.orderId}</h2>
-                  <p>{item.summary}</p>
-                  <div className="case-card-meta">
-                    <span>
-                      <UserRound size={13} />
-                      {item.owner || "Unassigned"}
-                    </span>
-                    <strong>{formatMoney(Math.abs(item.variance))}</strong>
-                    <ArrowRight size={15} />
-                  </div>
-                </button>
+                (() => {
+                  const slaStatus = currentSlaStatus(item);
+                  return (
+                    <button
+                      key={item.id}
+                      className={`case-card ${
+                        selected?.id === item.id ? "selected" : ""
+                      }`}
+                      onClick={() => setSelected(item)}
+                    >
+                      <div className="case-card-top">
+                        <span className={`priority-chip ${item.priority}`}>
+                          {item.priority} priority
+                        </span>
+                        <span className={`case-status ${item.status}`}>
+                          {item.status === "resolved" ? (
+                            <CheckCircle2 size={13} />
+                          ) : (
+                            <CircleDot size={13} />
+                          )}
+                          {statusLabels[item.status]}
+                        </span>
+                      </div>
+                      <h2>{item.orderId}</h2>
+                      <p>{item.summary}</p>
+                      <div className={`sla-card-status ${slaStatus}`}>
+                        <Clock3 size={13} />
+                        <strong>{slaLabels[slaStatus]}</strong>
+                        <span>
+                          {item.status === "resolved"
+                            ? `Resolved ${formatDateTime(item.resolvedAt!)}`
+                            : formatSlaDistance(item.dueAt)}
+                        </span>
+                      </div>
+                      <div className="case-card-meta">
+                        <span>
+                          <UserRound size={13} />
+                          {item.owner || "Unassigned"}
+                        </span>
+                        <strong>{formatMoney(Math.abs(item.variance))}</strong>
+                        <ArrowRight size={15} />
+                      </div>
+                    </button>
+                  );
+                })()
               ))}
             </div>
           ) : (
@@ -317,6 +421,32 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
                 </span>
               </div>
               <p className="case-summary">{selected.summary}</p>
+
+              <div
+                className={`sla-control ${currentSlaStatus(selected)}`}
+                aria-label="Case SLA status"
+              >
+                <div>
+                  <Clock3 size={18} />
+                  <span>SLA CONTROL</span>
+                </div>
+                <strong>{slaLabels[currentSlaStatus(selected)]}</strong>
+                <p>
+                  {selected.status === "resolved"
+                    ? `Resolved ${formatDateTime(selected.resolvedAt!)}`
+                    : formatSlaDistance(selected.dueAt)}
+                </p>
+                <dl>
+                  <div>
+                    <dt>Target</dt>
+                    <dd>{SLA_HOURS[selected.priority]} hours</dd>
+                  </div>
+                  <div>
+                    <dt>Deadline</dt>
+                    <dd>{formatDateTime(selected.dueAt)}</dd>
+                  </div>
+                </dl>
+              </div>
 
               <div className="case-form">
                 <label>
