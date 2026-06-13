@@ -31,7 +31,7 @@ const formatMoney = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 
-export function OperationsInbox() {
+export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
   const [cases, setCases] = useState<OperationsCase[]>([]);
   const [selected, setSelected] = useState<OperationsCase | null>(null);
   const [filter, setFilter] = useState<"all" | CaseStatus>("all");
@@ -323,7 +323,7 @@ export function OperationsInbox() {
                   STATUS
                   <select
                     value={selected.status}
-                    disabled={saving}
+                    disabled={saving || !canEdit}
                     onChange={(event) =>
                       updateSelected({
                         status: event.target.value as CaseStatus,
@@ -341,6 +341,7 @@ export function OperationsInbox() {
                     key={`${selected.id}-${selected.owner}`}
                     defaultValue={selected.owner ?? ""}
                     placeholder="Assign an analyst"
+                    disabled={!canEdit}
                     onBlur={(event) =>
                       updateSelected({ owner: event.target.value || null })
                     }
@@ -350,7 +351,7 @@ export function OperationsInbox() {
                   PRIORITY
                   <select
                     value={selected.priority}
-                    disabled={saving}
+                    disabled={saving || !canEdit}
                     onChange={(event) =>
                       updateSelected({
                         priority: event.target
@@ -369,6 +370,7 @@ export function OperationsInbox() {
                     key={`${selected.id}-${selected.notes}`}
                     defaultValue={selected.notes}
                     placeholder="Record what you checked and what happened…"
+                    disabled={!canEdit}
                     onBlur={(event) =>
                       updateSelected({ notes: event.target.value })
                     }
@@ -457,7 +459,7 @@ export function OperationsInbox() {
                     <div className="approval-actions">
                       <button
                         className="approve-button"
-                        disabled={saving}
+                        disabled={saving || !canEdit}
                         onClick={() =>
                           updateInvestigation({
                             approvalStatus: "approved",
@@ -467,7 +469,7 @@ export function OperationsInbox() {
                         <CheckCircle2 size={15} /> Approve analysis
                       </button>
                       <button
-                        disabled={saving}
+                        disabled={saving || !canEdit}
                         onClick={() =>
                           updateInvestigation({
                             approvalStatus: "rejected",
@@ -477,7 +479,7 @@ export function OperationsInbox() {
                         Reject
                       </button>
                       <button
-                        disabled={investigating}
+                        disabled={investigating || !canEdit}
                         onClick={generateInvestigation}
                       >
                         Regenerate
@@ -487,6 +489,7 @@ export function OperationsInbox() {
                     <div className="feedback-box">
                       <span>WAS THIS USEFUL?</span>
                       <button
+                        disabled={!canEdit}
                         className={
                           selected.latestInvestigation.feedbackRating ===
                           "helpful"
@@ -502,6 +505,7 @@ export function OperationsInbox() {
                         <ThumbsUp size={14} /> Yes
                       </button>
                       <button
+                        disabled={!canEdit}
                         className={
                           selected.latestInvestigation.feedbackRating ===
                           "not_helpful"
@@ -527,7 +531,7 @@ export function OperationsInbox() {
                     </p>
                     <button
                       className="primary-button"
-                      disabled={investigating}
+                      disabled={investigating || !canEdit}
                       onClick={generateInvestigation}
                     >
                       {investigating ? (
@@ -535,7 +539,9 @@ export function OperationsInbox() {
                       ) : (
                         <Sparkles size={17} />
                       )}
-                      {investigating
+                      {!canEdit
+                        ? "Viewer access · read only"
+                        : investigating
                         ? "Investigating…"
                         : "Investigate with AI"}
                     </button>

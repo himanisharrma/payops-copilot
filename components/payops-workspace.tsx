@@ -103,7 +103,13 @@ async function readFile(file: File) {
   return parseCsv(await file.text());
 }
 
-export function PayOpsWorkspace() {
+export function PayOpsWorkspace({
+  canEdit,
+  userRole,
+}: {
+  canEdit: boolean;
+  userRole: string;
+}) {
   const [uploads, setUploads] = useState<UploadState>(emptyUploads);
   const [fileNames, setFileNames] = useState<FileNames>({
     orders: "",
@@ -293,7 +299,7 @@ export function PayOpsWorkspace() {
               <h2 id="upload-heading">Three files. One truth.</h2>
             </div>
           </div>
-          <button className="demo-button" onClick={loadDemo} disabled={loading}>
+          <button className="demo-button" onClick={loadDemo} disabled={loading || !canEdit}>
             <Sparkles size={16} />
             Load demo data
           </button>
@@ -365,11 +371,13 @@ export function PayOpsWorkspace() {
         <div className="run-row">
           <p>
             <ShieldCheck size={16} />
-            We normalize common headers automatically and never discard a row.
+            {canEdit
+              ? "We normalize common headers automatically and never discard a row."
+              : `Viewer access · ${userRole} can inspect saved data but cannot create runs.`}
           </p>
           <button
             className="primary-button"
-            disabled={!ready || loading}
+            disabled={!ready || loading || !canEdit}
             onClick={() => reconcile(uploads, fileNames, "upload")}
           >
             {loading ? (

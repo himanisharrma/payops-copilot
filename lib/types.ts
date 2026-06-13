@@ -105,3 +105,13 @@ export type RunSummary = ReconciliationResult["summary"] & {
   status: string;
   createdAt: string;
 };
+
+export type AuditEvent = {
+  id: string;
+  actorName: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  details: Record<string, unknown>;
+  createdAt: string;
+};

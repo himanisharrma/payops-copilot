@@ -32,6 +32,9 @@ principles can come together in one practical workflow.
 - Review historical runs and match-rate trends.
 - Generate evidence-grounded AI investigations with structured outputs.
 - Approve, reject, and rate AI suggestions before operational use.
+- Isolate payment data by organization.
+- Protect actions with admin, analyst, and viewer roles.
+- Record important user actions in an administrator audit log.
 
 ## Architecture
 
@@ -47,6 +50,9 @@ flowchart LR
     F --> I[Run history]
     H --> J[OpenAI Responses API]
     J --> F
+    K[Auth.js identity and roles] --> D
+    D --> L[Audit events]
+    L --> F
 ```
 
 The browser parses CSV files and sends their rows to a Next.js route handler.
@@ -60,10 +66,23 @@ npm install
 cp .env.example .env.local
 npm run db:up
 npm run db:migrate
+npm run db:seed
 npm run dev -- --port 4317
 ```
 
-Open `http://127.0.0.1:4317` and select **Load demo data**.
+Open `http://127.0.0.1:4317` and sign in with one of these fictional users.
+All three accounts use the password `PayOpsDemo123!`.
+
+| Persona | Email | What they can do |
+| --- | --- | --- |
+| Admin | `admin@payops.local` | Run reconciliation, manage cases, review AI work, and inspect the audit log |
+| Analyst | `analyst@payops.local` | Run reconciliation, manage cases, and review AI work |
+| Viewer | `viewer@payops.local` | Read dashboards, cases, and run history without changing data |
+
+Start as the admin, select **Load demo data**, and run the reconciliation. Open
+**Operations** to see the exceptions become cases, then generate and review an
+investigation. Open **Audit** to see the actions recorded. Sign in as the viewer
+to experience the same product with read-only controls.
 
 The local database runs PostgreSQL 17 in Docker on port `5438`. Stop it with:
 
@@ -79,7 +98,13 @@ npm run db:down
 - `PATCH /api/cases/:id` — update owner, priority, status, and notes.
 - `POST /api/cases/:id/investigations` — generate and persist an investigation.
 - `PATCH /api/investigations/:id` — approve, reject, or rate an investigation.
+- `GET /api/audit` — list organization audit events for administrators.
+- `/api/auth/*` — Auth.js sign-in, sign-out, and session endpoints.
 - `GET /api/health` — verify application and database connectivity.
+
+Except for health checks and sign-in, application routes require an
+authenticated user. Reads are scoped to the user's organization. Mutations
+require the `admin` or `analyst` role, and audit access requires `admin`.
 
 ## Data model
 
@@ -87,6 +112,8 @@ npm run db:down
 - `reconciliation_items` stores row-level matching results and evidence.
 - `operations_cases` stores the analyst workflow for actionable exceptions.
 - `ai_investigations` stores structured findings, approvals, and feedback.
+- `organizations` and `users` provide workspace identity and roles.
+- `audit_events` stores who performed important operational actions.
 - `schema_migrations` records applied SQL migrations.
 
 ## Production deployment
@@ -95,6 +122,10 @@ Provision PostgreSQL through Neon, Supabase, Render, Railway, AWS RDS, or
 another managed provider. Set `DATABASE_URL`, run `npm run db:migrate` during
 release, and deploy the Next.js application. Keep database credentials in the
 deployment platform's encrypted environment settings.
+
+Set a long random `AUTH_SECRET` in every deployed environment. Replace the
+fictional seed accounts with an enterprise identity provider before handling
+real operational data.
 
 Set `OPENAI_API_KEY` to enable GPT-5.5 investigations through the Responses API.
 Without a key, the application uses a clearly labeled deterministic
@@ -129,12 +160,11 @@ npm run build
 
 ## Roadmap
 
-- Add authentication and workspace-level role permissions.
 - Add SLA due dates and operational notifications.
 - Build an evaluation set from analyst investigation feedback.
 - Include refunds, chargebacks, and webhook timelines.
 - Turn analyst corrections into repeatable AI evaluations.
-- Add immutable audit events and production observability.
+- Add tamper-evident audit retention and production observability.
 
 ## Safety
 

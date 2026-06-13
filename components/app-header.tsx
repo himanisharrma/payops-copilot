@@ -1,7 +1,13 @@
 import Link from "next/link";
-import { History, ListChecks, Scale } from "lucide-react";
+import { FileClock, History, ListChecks, LogOut, Scale } from "lucide-react";
+import { auth, signOut } from "@/auth";
 
-export function AppHeader({ active }: { active: "operations" | "runs" }) {
+export async function AppHeader({
+  active,
+}: {
+  active: "operations" | "runs" | "audit";
+}) {
+  const session = await auth();
   return (
     <header className="topbar app-page-header">
       <Link className="brand" href="/" aria-label="PayOps Copilot home">
@@ -30,10 +36,31 @@ export function AppHeader({ active }: { active: "operations" | "runs" }) {
           <History size={15} />
           Run history
         </Link>
+        {session?.user.role === "admin" && (
+          <Link
+            href="/audit"
+            className={`product-nav-link ${active === "audit" ? "active" : ""}`}
+          >
+            <FileClock size={15} />
+            Audit
+          </Link>
+        )}
       </nav>
-      <div className="environment">
-        <span className="live-dot" />
-        POSTGRESQL WORKSPACE
+      <div className="session-identity">
+        <span>
+          <strong>{session?.user.organizationName}</strong>
+          {session?.user.name} · {session?.user.role}
+        </span>
+        <form
+          action={async () => {
+            "use server";
+            await signOut({ redirectTo: "/login" });
+          }}
+        >
+          <button aria-label="Sign out" title="Sign out">
+            <LogOut size={16} />
+          </button>
+        </form>
       </div>
     </header>
   );

@@ -2,6 +2,7 @@ import type { PoolClient } from "pg";
 import { query, transaction } from "@/lib/db";
 import type {
   AIInvestigation,
+  AuditEvent,
   CaseStatus,
   InvestigationAnalysis,
   InvestigationApproval,
@@ -13,6 +14,7 @@ import type {
 export async function saveReconciliationRun(
   result: ReconciliationResult,
   metadata: {
+    organizationId: string;
     name: string;
     sourceType: string;
     sourceFiles: Record<string, string>;
@@ -21,11 +23,12 @@ export async function saveReconciliationRun(
   return transaction(async (client) => {
     const run = await client.query<{ id: string; created_at: Date }>(
       `INSERT INTO reconciliation_runs (
-        name, source_type, total_orders, processed_value, matched_value,
+        organization_id, name, source_type, total_orders, processed_value, matched_value,
         unmatched_value, matched_count, exception_count, match_rate, source_files
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
       RETURNING id, created_at`,
       [
+        metadata.organizationId,
         metadata.name,
         metadata.sourceType,
         result.summary.totalOrders,
@@ -44,9 +47,9 @@ export async function saveReconciliationRun(
       const storedItem = await insertItem(client, runId, item);
       if (!["matched", "pending"].includes(item.status)) {
         await client.query(
-          `INSERT INTO operations_cases (item_id, run_id, priority)
-           VALUES ($1, $2, $3)`,
-          [storedItem.id, runId, item.severity],
+          `INSERT INTO operations_cases (organization_id, item_id, run_id, priority)
+           VALUES ($1, $2, $3, $4)`,
+          [metadata.organizationId, storedItem.id, runId, item.severity],
         );
       }
     }
@@ -90,7 +93,7 @@ async function insertItem(
   return inserted.rows[0];
 }
 
-export async function listRuns(): Promise<RunSummary[]> {
+export async function listRuns(organizationId: string): Promise<RunSummary[]> {
   const result = await query<{
     id: string;
     name: string;
@@ -106,7 +109,9 @@ export async function listRuns(): Promise<RunSummary[]> {
     created_at: Date;
   }>(
     `SELECT * FROM reconciliation_runs
+     WHERE organization_id = $1
      ORDER BY created_at DESC LIMIT 50`,
+    [organizationId],
   );
 
   return result.rows.map((row) => ({
@@ -125,7 +130,7 @@ export async function listRuns(): Promise<RunSummary[]> {
   }));
 }
 
-export async function listCases(): Promise<OperationsCase[]> {
+export async function listCases(organizationId: string): Promise<OperationsCase[]> {
   const result = await query<{
     id: string;
     run_id: string;
@@ -177,10 +182,12 @@ export async function listCases(): Promise<OperationsCase[]> {
        ORDER BY created_at DESC
        LIMIT 1
      ) ai ON TRUE
+     WHERE c.organization_id = $1
      ORDER BY
        CASE c.case_status WHEN 'open' THEN 1 WHEN 'investigating' THEN 2 ELSE 3 END,
        CASE c.priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
        c.created_at DESC`,
+    [organizationId],
   );
 
   return result.rows.map((row) => ({
@@ -223,8 +230,8 @@ export async function listCases(): Promise<OperationsCase[]> {
   }));
 }
 
-export async function getCase(id: string) {
-  return (await listCases()).find((item) => item.id === id) ?? null;
+export async function getCase(id: string, organizationId: string) {
+  return (await listCases(organizationId)).find((item) => item.id === id) ?? null;
 }
 
 export async function saveInvestigation(
@@ -255,6 +262,7 @@ export async function saveInvestigation(
 
 export async function updateInvestigation(
   id: string,
+  organizationId: string,
   patch: {
     approvalStatus?: InvestigationApproval;
     feedbackRating?: AIInvestigation["feedbackRating"];
@@ -272,23 +280,32 @@ export async function updateInvestigation(
         ELSE approved_at
       END,
       updated_at = NOW()
-     WHERE id = $1`,
+     WHERE id = $1
+       AND case_id IN (
+         SELECT id FROM operations_cases WHERE organization_id = $5
+       )`,
     [
       id,
       patch.approvalStatus ?? null,
       patch.feedbackRating ?? null,
       patch.feedbackNotes ?? null,
+      organizationId,
     ],
   );
   const result = await query<{ case_id: string }>(
-    "SELECT case_id FROM ai_investigations WHERE id = $1",
-    [id],
+    `SELECT ai.case_id FROM ai_investigations ai
+     JOIN operations_cases c ON c.id = ai.case_id
+     WHERE ai.id = $1 AND c.organization_id = $2`,
+    [id, organizationId],
   );
-  return result.rowCount ? getCase(result.rows[0].case_id) : null;
+  return result.rowCount
+    ? getCase(result.rows[0].case_id, organizationId)
+    : null;
 }
 
 export async function updateCase(
   id: string,
+  organizationId: string,
   patch: {
     status?: CaseStatus;
     priority?: OperationsCase["priority"];
@@ -297,8 +314,8 @@ export async function updateCase(
   },
 ) {
   const existing = await query<{ case_status: CaseStatus }>(
-    "SELECT case_status FROM operations_cases WHERE id = $1",
-    [id],
+    "SELECT case_status FROM operations_cases WHERE id = $1 AND organization_id = $2",
+    [id, organizationId],
   );
   if (!existing.rowCount) return null;
 
@@ -314,7 +331,7 @@ export async function updateCase(
          ELSE resolved_at
        END,
        updated_at = NOW()
-     WHERE id = $1`,
+     WHERE id = $1 AND organization_id = $7`,
     [
       id,
       patch.status ?? null,
@@ -322,12 +339,67 @@ export async function updateCase(
       Object.prototype.hasOwnProperty.call(patch, "owner"),
       patch.owner ?? null,
       patch.notes ?? null,
+      organizationId,
     ],
   );
-  return (await listCases()).find((item) => item.id === id) ?? null;
+  return (await listCases(organizationId)).find((item) => item.id === id) ?? null;
 }
 
 export async function databaseHealth() {
   const result = await query<{ now: Date }>("SELECT NOW() AS now");
   return result.rows[0].now.toISOString();
+}
+
+export async function recordAuditEvent(input: {
+  organizationId: string;
+  actorUserId: string;
+  actorName: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  details?: Record<string, unknown>;
+}) {
+  await query(
+    `INSERT INTO audit_events (
+      organization_id, actor_user_id, actor_name, action,
+      entity_type, entity_id, details
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [
+      input.organizationId,
+      input.actorUserId,
+      input.actorName,
+      input.action,
+      input.entityType,
+      input.entityId,
+      JSON.stringify(input.details ?? {}),
+    ],
+  );
+}
+
+export async function listAuditEvents(
+  organizationId: string,
+): Promise<AuditEvent[]> {
+  const result = await query<{
+    id: string;
+    actor_name: string;
+    action: string;
+    entity_type: string;
+    entity_id: string;
+    details: Record<string, unknown>;
+    created_at: Date;
+  }>(
+    `SELECT id, actor_name, action, entity_type, entity_id, details, created_at
+     FROM audit_events WHERE organization_id = $1
+     ORDER BY created_at DESC LIMIT 100`,
+    [organizationId],
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    actorName: row.actor_name,
+    action: row.action,
+    entityType: row.entity_type,
+    entityId: row.entity_id,
+    details: row.details,
+    createdAt: row.created_at.toISOString(),
+  }));
 }
