@@ -66,8 +66,8 @@ actual settlements differ.
 
 ## Next releases
 
-1. Add authentication and workspace permissions.
-2. Build a golden evaluation set from investigation feedback.
-3. Add configurable business calendars and external escalation notifications.
-4. Add refund, chargeback, and webhook timelines.
-5. Add provider-specific investigation tools and policies.
+1. Build a golden evaluation set from investigation feedback.
+2. Add configurable business calendars and external escalation notifications.
+3. Add refund, chargeback, and webhook timelines.
+4. Add provider-specific investigation tools and policies.
+5. Add production identity, observability, and retention controls.
