@@ -209,6 +209,11 @@ constraints, and completion conditions; encode durable repository guidance in
 | [Architecture](docs/portfolio/ARCHITECTURE.md) | How do reconciliation, PostgreSQL, RBAC, SLA, AI, and audit fit together? |
 | [By the Numbers](docs/portfolio/BY-THE-NUMBERS.md) | Which project claims are measured and where is the evidence? |
 | [Roadmap and Trade-offs](docs/portfolio/ROADMAP-AND-TRADEOFFS.md) | What was deliberately chosen, deferred, and accepted? |
+| [AI Development System](docs/portfolio/AI-DEVELOPMENT-SYSTEM.md) | How was Codex directed, reviewed, and verified? |
+| [AI Workflows and Agents](docs/portfolio/AI-WORKFLOWS-AND-AGENTS.md) | Which repeatable workflows turn feedback and messy data into product changes? |
+| [AI SDLC Playbook](docs/portfolio/AI-SDLC-PLAYBOOK.md) | How should an AI payment feature move from framing to monitored release? |
+| [AI Model Evaluation](docs/portfolio/AI-MODEL-EVALUATION.md) | How will investigation quality, grounding, and financial safety be measured? |
+| [Analytics Event Spec](docs/portfolio/ANALYTICS-EVENT-SPEC.md) | Which privacy-safe events and product metrics should be collected? |
 | [Product Requirements](docs/PRODUCT_REQUIREMENTS.md) | What did the MVP need to achieve? |
 | [Payments Glossary](docs/PAYMENTS_GLOSSARY.md) | What do the payment terms mean? |
 

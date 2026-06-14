@@ -131,6 +131,10 @@ end to end.
 - Add prompt and model version fields to stored investigations.
 - Run the evaluation set before changing the default model or instructions.
 
+The evaluation design and initial release thresholds are documented in
+[AI Model Evaluation](AI-MODEL-EVALUATION.md). The next engineering slice is to
+turn that specification into a versioned dataset and executable harness.
+
 ### Next: deepen payment operations
 
 - Add refunds and chargebacks as explicit lifecycle objects.
