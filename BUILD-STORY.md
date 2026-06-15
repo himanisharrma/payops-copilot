@@ -180,6 +180,18 @@ complete. The final implementation disables that stage in the UI and rejects
 it at the API until every evidence item is complete. Each accepted change adds
 a workflow timeline event and an organization-scoped audit event.
 
+### Architecture refactor: Replace the central repository
+
+After the tenth product milestone, the backend's single `lib/repository.ts`
+had grown to 937 lines across seven business areas. It was replaced with
+domain-owned repositories for reconciliation, cases, investigations,
+evaluations, payment workflows, audit, and system health.
+
+The application remains one Next.js deployment and one PostgreSQL database.
+Routes now import only the module they serve, shared pooling remains in
+`lib/db.ts`, and repository guidance prevents the catch-all file from
+returning. This is a modular monolith, not a microservices claim.
+
 ## The working workflow
 
 This was the recurring delivery loop:

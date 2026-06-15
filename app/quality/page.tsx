@@ -7,7 +7,7 @@ import {
   runDeterministicEvaluation,
   summarizeEvaluationScenarios,
 } from "@/lib/evaluation";
-import { listEvaluationRuns } from "@/lib/repository";
+import { listEvaluationRuns } from "@/lib/modules/evaluations/repository";
 
 export default async function QualityPage() {
   const session = await auth();

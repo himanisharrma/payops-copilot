@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { reconcilePayments } from "@/lib/reconciliation";
-import { recordAuditEvent, saveReconciliationRun } from "@/lib/repository";
+import { recordAuditEvent } from "@/lib/modules/audit/repository";
+import { saveReconciliationRun } from "@/lib/modules/reconciliation/repository";
 import type { ReconciliationRequest } from "@/lib/types";
 import { accessErrorResponse, requireActor } from "@/lib/access";
 

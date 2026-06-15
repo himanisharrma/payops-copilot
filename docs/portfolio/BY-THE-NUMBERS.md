@@ -17,8 +17,8 @@
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 91 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 6,248 | repository file list piped to `wc -l` |
+| Repository files | 99 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 6,266 | existing repository file list piped to `wc -l` |
 | Next.js API route files | 14 | `find app/api -name route.ts` |
 | PostgreSQL migrations | 9 | `db/migrations/` |
 | Automated test cases | 19 | Vitest output |
@@ -40,7 +40,8 @@
 | Reconciliation result states | 6 typed states in `lib/types.ts` |
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
-| Organization-scoped repositories | organization predicates in `lib/repository.ts` |
+| Backend domain modules | 7 repositories under `lib/modules/` |
+| Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
 | AI feedback states | helpful, not helpful |

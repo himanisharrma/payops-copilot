@@ -33,7 +33,9 @@ that it connects to live payment providers or can move money.
 - `components/`: client-facing product workflows.
 - `lib/reconciliation.ts`: deterministic normalization, matching, and arithmetic.
 - `lib/ai-investigator.ts`: bounded OpenAI and deterministic fallback paths.
-- `lib/repository.ts`: PostgreSQL persistence and organization-scoped queries.
+- `lib/modules/`: domain-owned backend repositories for reconciliation, cases,
+  investigations, evaluations, payment workflows, audit, and system health.
+- `lib/db.ts`: shared PostgreSQL pool, query helper, and transaction boundary.
 - `lib/access.ts`: authentication and role checks.
 - `lib/sla.ts`: SLA policy and status calculation.
 - `db/migrations/`: ordered SQL migrations; never rewrite an applied migration.
@@ -46,6 +48,8 @@ that it connects to live payment providers or can move money.
 2. State the user outcome and completion conditions in plain language.
 3. Make the smallest complete change across database, API, UI, tests, and docs.
 4. Use existing repository patterns unless there is a concrete reason to change.
+   API routes must import the domain module they serve; do not recreate a
+   catch-all repository.
 5. Exercise the real browser journey for user-facing changes.
 6. Review the diff for security, tenancy, AI safety, and unsupported claims.
 7. Run the required checks before committing.

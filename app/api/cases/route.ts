@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listCases } from "@/lib/repository";
+import { listCases } from "@/lib/modules/cases/repository";
 import { accessErrorResponse, requireActor } from "@/lib/access";
 
 export async function GET() {

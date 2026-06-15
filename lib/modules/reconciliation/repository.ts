@@ -1,0 +1,134 @@
+import type { PoolClient } from "pg";
+import { query, transaction } from "@/lib/db";
+import type {
+  ReconciliationResult,
+  RunSummary,
+} from "@/lib/types";
+
+export async function saveReconciliationRun(
+  result: ReconciliationResult,
+  metadata: {
+    organizationId: string;
+    name: string;
+    sourceType: string;
+    sourceFiles: Record<string, string>;
+  },
+) {
+  return transaction(async (client) => {
+    const run = await client.query<{ id: string; created_at: Date }>(
+      `INSERT INTO reconciliation_runs (
+        organization_id, name, source_type, total_orders, processed_value, matched_value,
+        unmatched_value, matched_count, exception_count, match_rate, source_files
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      RETURNING id, created_at`,
+      [
+        metadata.organizationId,
+        metadata.name,
+        metadata.sourceType,
+        result.summary.totalOrders,
+        result.summary.processedValue,
+        result.summary.matchedValue,
+        result.summary.unmatchedValue,
+        result.summary.matchedCount,
+        result.summary.exceptionCount,
+        result.summary.matchRate,
+        metadata.sourceFiles,
+      ],
+    );
+    const runId = run.rows[0].id;
+
+    for (const item of result.items) {
+      const storedItem = await insertItem(client, runId, item);
+      if (!["matched", "pending"].includes(item.status)) {
+        await client.query(
+          `INSERT INTO operations_cases (
+             organization_id, item_id, run_id, priority, due_at
+           )
+           VALUES (
+             $1, $2, $3, $4,
+             NOW() + CASE $4
+               WHEN 'high' THEN INTERVAL '4 hours'
+               WHEN 'medium' THEN INTERVAL '24 hours'
+               ELSE INTERVAL '72 hours'
+             END
+           )`,
+          [metadata.organizationId, storedItem.id, runId, item.severity],
+        );
+      }
+    }
+
+    return {
+      ...result,
+      id: runId,
+      generatedAt: run.rows[0].created_at.toISOString(),
+    };
+  });
+}
+
+async function insertItem(
+  client: PoolClient,
+  runId: string,
+  item: ReconciliationResult["items"][number],
+) {
+  const inserted = await client.query<{ id: string }>(
+    `INSERT INTO reconciliation_items (
+      run_id, order_id, gateway_reference, payment_mode, order_amount,
+      gateway_amount, settled_amount, expected_net, variance,
+      reconciliation_status, severity, summary, evidence
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+    RETURNING id`,
+    [
+      runId,
+      item.orderId,
+      item.gatewayReference,
+      item.paymentMode,
+      item.orderAmount,
+      item.gatewayAmount,
+      item.settledAmount,
+      item.expectedNet,
+      item.variance,
+      item.status,
+      item.severity,
+      item.summary,
+      JSON.stringify(item.evidence),
+    ],
+  );
+  return inserted.rows[0];
+}
+
+export async function listRuns(organizationId: string): Promise<RunSummary[]> {
+  const result = await query<{
+    id: string;
+    name: string;
+    source_type: string;
+    status: string;
+    total_orders: number;
+    processed_value: string;
+    matched_value: string;
+    unmatched_value: string;
+    matched_count: number;
+    exception_count: number;
+    match_rate: string;
+    created_at: Date;
+  }>(
+    `SELECT * FROM reconciliation_runs
+     WHERE organization_id = $1
+     ORDER BY created_at DESC LIMIT 50`,
+    [organizationId],
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    sourceType: row.source_type,
+    status: row.status,
+    totalOrders: row.total_orders,
+    processedValue: Number(row.processed_value),
+    matchedValue: Number(row.matched_value),
+    unmatchedValue: Number(row.unmatched_value),
+    matchedCount: row.matched_count,
+    exceptionCount: row.exception_count,
+    matchRate: Number(row.match_rate),
+    createdAt: row.created_at.toISOString(),
+  }));
+}

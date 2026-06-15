@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { recordAuditEvent, updateCase } from "@/lib/repository";
+import { recordAuditEvent } from "@/lib/modules/audit/repository";
+import { updateCase } from "@/lib/modules/cases/repository";
 import type { CaseStatus, OperationsCase } from "@/lib/types";
 import { accessErrorResponse, requireActor } from "@/lib/access";
 

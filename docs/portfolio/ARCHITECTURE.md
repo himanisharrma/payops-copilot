@@ -21,7 +21,7 @@ flowchart TB
       Engine[Deterministic reconciliation]
       Investigator[AI investigation adapter]
       Access[Role and organization guard]
-      Repo[Repository layer]
+      Modules[Domain backend modules]
     end
 
     subgraph Data["PostgreSQL 17"]
@@ -36,11 +36,11 @@ flowchart TB
     Routes --> Access
     Access --> Auth
     Routes --> Engine
-    Engine --> Repo
+    Engine --> Modules
     Ops --> Routes
     Routes --> Investigator
-    Investigator --> Repo
-    Repo --> Data
+    Investigator --> Modules
+    Modules --> Data
     Data --> Ledger
     Data --> Ops
     Data --> History
@@ -65,9 +65,9 @@ AI is not imported into this module. The same inputs produce the same outputs.
 
 ## 2. Transactional persistence
 
-`lib/repository.ts` writes a reconciliation run, its row-level items, and its
-operations cases inside one database transaction. If persistence fails, the
-workflow does not leave a partially written run.
+`lib/modules/reconciliation/repository.ts` writes a reconciliation run, its
+row-level items, and its operations cases inside one database transaction. If
+persistence fails, the workflow does not leave a partially written run.
 
 The migration chain is append-only:
 
@@ -94,11 +94,25 @@ portfolio demo. Every protected route calls `requireActor`.
 | Analyst | Yes | Yes | Yes | Yes | No |
 | Viewer | Yes | No | No | No | No |
 
-Repository reads and writes receive `organizationId`, and SQL predicates scope
-records to that organization. UI controls are disabled for viewers, but the
-server guard remains authoritative.
+Domain repository reads and writes receive `organizationId`, and SQL predicates
+scope records to that organization. UI controls are disabled for viewers, but
+the server guard remains authoritative.
 
-## 4. SLA as policy
+## 4. Modular backend
+
+The backend is a modular monolith. Next.js route handlers are the transport
+layer, domain policy remains in typed TypeScript files, and each business area
+owns its PostgreSQL queries under `lib/modules/<domain>/repository.ts`.
+
+```text
+route handler -> domain policy/service -> domain repository -> lib/db.ts
+```
+
+Current modules are reconciliation, cases, investigations, evaluations,
+payment workflows, audit, and system health. This preserves one deployment
+while removing the central repository as a coupling point.
+
+## 5. SLA as policy
 
 `lib/sla.ts` centralizes the deadline policy:
 
@@ -113,7 +127,7 @@ frontend derives live labels from those timestamps.
 Changing priority recalculates the deadline from the original case creation
 time. The update is included in the audit details.
 
-## 5. Bounded AI investigation
+## 6. Bounded AI investigation
 
 `lib/ai-investigator.ts` is deliberately downstream of deterministic evidence.
 
@@ -151,7 +165,7 @@ A Zod-validated object containing:
 
 This is an assistance workflow, not an autonomous agent.
 
-## 6. Refund and chargeback control plane
+## 7. Refund and chargeback control plane
 
 `payment_workflows` keeps refunds and chargebacks separate from reconciliation
 cases because they have different states and evidence requirements.
@@ -164,7 +178,7 @@ cases because they have different states and evidence requirements.
 - Every update appends a workflow event and an administrator audit event.
 - The product records decisions but has no integration that moves money.
 
-## 7. Auditability
+## 8. Auditability
 
 Important mutations call `recordAuditEvent` with:
 
@@ -179,7 +193,7 @@ Current audited actions include reconciliation creation, case updates,
 investigation generation, and investigation review. The administrator ledger
 is organization-scoped.
 
-## 8. Frontend structure
+## 9. Frontend structure
 
 - `components/payops-workspace.tsx`: upload, demo data, reconciliation results.
 - `components/operations-inbox.tsx`: queue, case detail, SLA, AI review.

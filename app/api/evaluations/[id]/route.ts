@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { accessErrorResponse, requireActor } from "@/lib/access";
-import { getEvaluationRun } from "@/lib/repository";
+import { getEvaluationRun } from "@/lib/modules/evaluations/repository";
 
 export async function GET(
   _request: Request,

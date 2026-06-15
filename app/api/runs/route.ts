@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listRuns } from "@/lib/repository";
+import { listRuns } from "@/lib/modules/reconciliation/repository";
 import { accessErrorResponse, requireActor } from "@/lib/access";
 
 export async function GET() {

@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { investigateCase } from "@/lib/ai-investigator";
-import {
-  getCase,
-  recordAuditEvent,
-  saveInvestigation,
-} from "@/lib/repository";
+import { recordAuditEvent } from "@/lib/modules/audit/repository";
+import { getCase } from "@/lib/modules/cases/repository";
+import { saveInvestigation } from "@/lib/modules/investigations/repository";
 import { accessErrorResponse, requireActor } from "@/lib/access";
 
 export async function POST(

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { accessErrorResponse, requireActor } from "@/lib/access";
+import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import {
   listPaymentWorkflows,
-  recordAuditEvent,
   updatePaymentWorkflow,
-} from "@/lib/repository";
+} from "@/lib/modules/payment-workflows/repository";
 import {
   canSubmitChargebackEvidence,
   canTransitionWorkflow,

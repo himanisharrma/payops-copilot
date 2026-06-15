@@ -7,11 +7,11 @@ import {
   runOpenAIEvaluation,
   summarizeEvaluationScenarios,
 } from "@/lib/evaluation";
+import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import {
   listEvaluationRuns,
-  recordAuditEvent,
   saveEvaluationRun,
-} from "@/lib/repository";
+} from "@/lib/modules/evaluations/repository";
 
 export const maxDuration = 300;
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { databaseHealth } from "@/lib/repository";
+import { databaseHealth } from "@/lib/modules/system/repository";
 
 export async function GET() {
   try {

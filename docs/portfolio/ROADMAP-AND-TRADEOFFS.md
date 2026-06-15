@@ -120,6 +120,20 @@ end to end.
 
 **Cost accepted:** boundaries would need revisiting at team or scale growth.
 
+### ADR-11: Modular monolith backend
+
+**Chose:** domain-owned repositories under `lib/modules/` with shared database
+infrastructure.
+
+**Over:** one central repository file or premature microservices.
+
+**Why:** reconciliation, cases, investigations, evaluations, payment
+workflows, audit, and health change at different rates. Explicit modules reduce
+coupling while preserving one deployment and transaction model.
+
+**Cost accepted:** cross-domain workflows need deliberate public interfaces,
+and modules may gain service layers as orchestration grows.
+
 ## Roadmap
 
 ### Now: produce model-quality evidence

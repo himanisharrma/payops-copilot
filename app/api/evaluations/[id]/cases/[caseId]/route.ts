@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { accessErrorResponse, requireActor } from "@/lib/access";
 import type { EvaluationReviewScores } from "@/lib/types";
+import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import {
   getEvaluationRun,
-  recordAuditEvent,
   reviewEvaluationCase,
-} from "@/lib/repository";
+} from "@/lib/modules/evaluations/repository";
 
 const validScore = (score: unknown) =>
   typeof score === "number" && Number.isInteger(score) && score >= 0 && score <= 2;

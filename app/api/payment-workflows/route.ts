@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { accessErrorResponse, requireActor } from "@/lib/access";
-import { listPaymentWorkflows } from "@/lib/repository";
+import { listPaymentWorkflows } from "@/lib/modules/payment-workflows/repository";
 
 export async function GET() {
   try {

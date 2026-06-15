@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { recordAuditEvent, updateInvestigation } from "@/lib/repository";
+import { recordAuditEvent } from "@/lib/modules/audit/repository";
+import { updateInvestigation } from "@/lib/modules/investigations/repository";
 import type {
   AIInvestigation,
   InvestigationApproval,

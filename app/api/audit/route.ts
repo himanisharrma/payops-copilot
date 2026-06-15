@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { accessErrorResponse, requireActor } from "@/lib/access";
-import { listAuditEvents } from "@/lib/repository";
+import { listAuditEvents } from "@/lib/modules/audit/repository";
 
 export async function GET() {
   try {
