@@ -16,11 +16,12 @@ The analyst receives reports with different column names and needs to identify
 missing settlements, duplicate payments, amount mismatches, and incomplete
 gateway records. Existing work is slow, repetitive, and difficult to audit.
 
-## MVP outcome
+## Current product outcome
 
 A user can upload three CSV files and receive a transparent reconciliation
-report with matched transactions, prioritized exceptions, and row-level
-evidence.
+report with matched transactions, prioritized exceptions, row-level evidence,
+durable cases, SLA controls, bounded AI assistance, evaluation evidence, and
+separate refund and chargeback queues.
 
 ## User story
 
@@ -46,15 +47,27 @@ actual settlements differ.
 - Operators can filter at-risk and overdue cases and see an in-app SLA alert.
 - Analysts can generate a structured investigation grounded in case evidence.
 - AI suggestions require explicit approval or rejection before operational use.
-- Analyst usefulness ratings persist for future evaluation datasets.
-- No real payment is initiated and no credentials are collected.
+- Analyst usefulness ratings persist as input for governed evaluation-set
+  expansion.
+- Admins and analysts can run a versioned 30-case deterministic evaluation and
+  explicitly request a guarded OpenAI evaluation.
+- Reviewers can inspect case-level evaluation evidence and save six rubric
+  scores with notes and attribution.
+- Refund and chargeback workflows track owner, deadline, evidence, stage, notes,
+  timeline events, and audit history without moving money.
+- Chargeback evidence cannot advance to submitted until the checklist is
+  complete.
+- No real payment is initiated and no payment-provider credentials are
+  collected.
 
-## Non-goals for the first release
+## Non-goals
 
-- Moving money or initiating refunds.
+- Moving money or initiating a provider-side refund.
 - Connecting to production payment gateways.
 - Storing original uploaded file contents permanently.
 - AI-generated financial calculations.
+- Autonomous provider communication or case resolution.
+- Production identity, compliance certification, or operational telemetry.
 
 ## Product principles
 
@@ -66,8 +79,9 @@ actual settlements differ.
 
 ## Next releases
 
-1. Build a golden evaluation set from investigation feedback.
-2. Add configurable business calendars and external escalation notifications.
-3. Add refund, chargeback, and webhook timelines.
-4. Add provider-specific investigation tools and policies.
-5. Add production identity, observability, and retention controls.
+1. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
+2. Turn approved analyst corrections into governed synthetic regression cases.
+3. Add provider webhook ingestion and settlement-cycle metadata.
+4. Add configurable business calendars and external escalation notifications.
+5. Add provider-specific adapters, production identity, observability, and
+   retention controls.

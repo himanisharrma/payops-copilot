@@ -71,8 +71,11 @@ flowchart TD
     J --> K{Human decision}
     K -->|Approve or reject| L[Persist review and feedback]
     L --> M[Resolve case]
+    G --> O[Manage refund or chargeback lifecycle]
+    O --> P[Complete evidence gate and record timeline]
     C --> N[Audit important actions]
     M --> N
+    P --> N
 ```
 
 ## MVP decisions
@@ -115,6 +118,12 @@ mutate operations data; viewers cannot. Audit access is admin-only.
 - Role-aware login and organization-scoped APIs.
 - 4/24/72-hour SLA policy with at-risk, overdue, met, and breached states.
 - Historical run view and administrator audit ledger.
+- Versioned 30-case evaluation runs with automated checks, case-level evidence,
+  six-score human review, latency, token metadata, and audit attribution.
+- Separate refund and chargeback queues with lifecycle transitions, ownership,
+  deadlines, evidence gates, notes, and timelines.
+- A modular monolith backend with thin API routes, domain services, seven
+  repositories, and shared PostgreSQL infrastructure.
 
 ## Success metrics
 
@@ -147,11 +156,11 @@ For an AI Product Manager role, the artifact demonstrates:
 ## Current limits
 
 - No production payment-provider connection.
-- No refund, payout, or money-movement action.
+- No provider-side refund, payout, or money-movement action.
 - No business-day or holiday calendar in SLA calculations.
 - No outbound email, Slack, or incident notification.
 - No enterprise SSO or production secrets system.
-- No labeled AI evaluation dataset yet.
+- No production-derived or representative two-reviewer evaluation dataset yet.
 - No production telemetry or load testing.
 
 ---

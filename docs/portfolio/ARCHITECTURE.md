@@ -11,6 +11,8 @@ flowchart TB
       Upload[CSV upload and demo loader]
       Ledger[Reconciliation ledger]
       Ops[Operations inbox]
+      Lifecycles[Refund and chargeback queues]
+      Quality[Quality Lab]
       History[Run history]
       AuditUI[Audit ledger]
     end
@@ -28,6 +30,8 @@ flowchart TB
       Runs[Runs and items]
       Cases[Operations cases and SLA]
       AI[AI investigations and feedback]
+      Evals[Evaluation runs and reviews]
+      Workflows[Payment workflows and timelines]
       Identity[Organizations and users]
       Events[Audit events]
     end
@@ -38,11 +42,15 @@ flowchart TB
     Routes --> Engine
     Engine --> Modules
     Ops --> Routes
+    Lifecycles --> Routes
+    Quality --> Routes
     Routes --> Investigator
     Investigator --> Modules
     Modules --> Data
     Data --> Ledger
     Data --> Ops
+    Data --> Lifecycles
+    Data --> Quality
     Data --> History
     Data --> AuditUI
 ```
@@ -88,7 +96,7 @@ The migration chain is append-only:
 Auth.js credentials authentication provides a JWT-backed session for the local
 portfolio demo. Every protected route calls `requireActor`.
 
-| Role | Read | Reconcile | Update cases | Review AI | Audit |
+| Role | Read | Reconcile | Update operations | Run/review evaluations | Audit |
 | --- | --- | --- | --- | --- | --- |
 | Admin | Yes | Yes | Yes | Yes | Yes |
 | Analyst | Yes | Yes | Yes | Yes | No |
@@ -195,16 +203,19 @@ Important mutations call `recordAuditEvent` with:
 - timestamp.
 
 Current audited actions include reconciliation creation, case updates,
-investigation generation, and investigation review. The administrator ledger
-is organization-scoped.
+investigation generation and review, evaluation completion and case review, and
+payment-workflow updates. The administrator ledger is organization-scoped.
 
 ## 9. Frontend structure
 
 - `components/payops-workspace.tsx`: upload, demo data, reconciliation results.
 - `components/operations-inbox.tsx`: queue, case detail, SLA, AI review.
+- `components/payment-lifecycle.tsx`: refund and chargeback queues, evidence,
+  stages, and timelines.
+- `components/quality-lab.tsx`: evaluation execution, history, case evidence,
+  and human scoring.
 - `components/run-history.tsx`: historical quality and value metrics.
 - `components/audit-log.tsx`: admin audit ledger.
-- `components/payment-lifecycle.tsx`: refunds, chargebacks, evidence, and timeline.
 - `components/app-header.tsx`: role-aware product navigation.
 
 The visual language intentionally resembles an operations console: dense
@@ -235,7 +246,7 @@ A real deployment should add:
 - structured tracing, metrics, and alerts;
 - idempotency and asynchronous processing for large files;
 - configurable business calendars and escalation channels;
-- a versioned AI evaluation set and prompt/model release gates.
+- production-derived evaluation governance and prompt/model release gates.
 
 ---
 

@@ -73,7 +73,8 @@ The minimum test pyramid is:
 
 1. Schema and deterministic fallback unit tests.
 2. Golden-case evaluation for grounding and prohibited actions.
-3. API integration tests for authentication, tenancy, persistence, and audit.
+3. Domain-service tests for validation, lifecycle transitions, persistence
+   coordination, and audit contracts.
 4. Browser checks for generation, approval, rejection, and feedback.
 5. Adversarial checks for prompt injection inside analyst notes.
 
@@ -91,7 +92,9 @@ Recommended release stages:
 | Assisted | Display drafts with mandatory human review |
 | Expanded | Add provider tools only after measured quality and scoped permissions |
 
-PayOps Copilot currently represents the **assisted** stage. It does not include
+PayOps Copilot currently represents the **assisted** stage. Its deterministic
+evaluation workflow is implemented, while representative human scoring and a
+completed OpenAI run remain release evidence to collect. It does not include
 autonomous action.
 
 ## 7. Measure production behavior

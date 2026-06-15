@@ -60,7 +60,7 @@ the deadline, tests pass, and the journey works in the browser.
 Before changing code, Codex should inspect:
 
 - nearby implementation and test files;
-- database migrations and repository queries;
+- domain services, repository queries, and database migrations;
 - role and organization access rules;
 - product documentation and existing terminology;
 - the current Git diff, so unrelated user work is preserved.
@@ -122,6 +122,7 @@ Useful terminal conditions include:
 | A polished UI hides missing persistence | Verify reloads and query PostgreSQL-backed APIs |
 | AI is used for arithmetic | Keep reconciliation in deterministic typed code |
 | A route check exists but SQL leaks tenants | Require `organizationId` in repository operations |
+| Business rules drift across API handlers | Put validation and orchestration in domain services |
 | Documentation becomes marketing fiction | Link claims to code, screenshots, tests, or commits |
 | A large change is hard to review | Ship vertical product slices with focused commits |
 | The agent stops after implementation | Include test, browser, review, and GitHub in "done" |
@@ -136,6 +137,7 @@ npm run dev -- --hostname 127.0.0.1 --port 4317
 npm run lint
 npm test
 npm run build
+git diff --check
 ```
 
 The unique local port avoids collisions with common development servers and is

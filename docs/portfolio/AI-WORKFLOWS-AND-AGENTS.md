@@ -9,7 +9,8 @@ Use when adding a capability such as SLA tracking, provider timelines, or bulk
 case assignment.
 
 1. Define the user problem and observable acceptance criteria.
-2. Inspect relevant UI, API, repository, migrations, tests, and docs.
+2. Inspect relevant UI, API, domain service, repository, migrations, tests, and
+   docs.
 3. Identify affected trust boundaries: financial logic, role access, tenancy,
    audit, and AI.
 4. Implement the smallest end-to-end slice.
@@ -74,6 +75,10 @@ Ask Codex to review the diff with these lenses:
 - **Testing:** Which realistic failure path remains uncovered?
 
 Findings should be ordered by severity and reference specific files and lines.
+
+For modular-backend changes, also ask whether the route is only translating
+HTTP concerns, the service owns business orchestration, and the repository owns
+SQL without leaking another organization's data.
 
 ## Workflow 5: Prepare a portfolio release
 

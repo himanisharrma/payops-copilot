@@ -51,9 +51,13 @@ that it connects to live payment providers or can move money.
 4. Use existing repository patterns unless there is a concrete reason to change.
    API routes must import the domain module they serve; do not recreate a
    catch-all repository or place business orchestration in route handlers.
+   Add a service when a domain needs validation, state-transition policy,
+   cross-repository coordination, or audit orchestration.
 5. Exercise the real browser journey for user-facing changes.
 6. Review the diff for security, tenancy, AI safety, and unsupported claims.
 7. Run the required checks before committing.
+8. Update every affected README, product document, architecture claim, demo
+   instruction, measured count, and roadmap item in the same change.
 
 ## Required checks
 

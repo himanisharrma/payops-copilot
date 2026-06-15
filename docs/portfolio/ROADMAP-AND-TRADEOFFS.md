@@ -36,8 +36,8 @@ message, and limitations.
 
 **Over:** storing arbitrary model prose.
 
-**Why:** the UI, audit model, feedback system, and future evaluation set need a
-stable shape.
+**Why:** the UI, audit model, feedback system, and versioned evaluation set need
+a stable shape.
 
 **Cost accepted:** schema changes require coordinated code changes.
 
@@ -134,6 +134,20 @@ coupling while preserving one deployment and transaction model.
 **Cost accepted:** cross-domain workflows need deliberate public interfaces.
 Service layers are introduced when orchestration or validation is meaningful,
 rather than added mechanically to every module.
+
+### ADR-12: Domain services for business orchestration
+
+**Chose:** thin route handlers that delegate validation, lifecycle policy,
+repository coordination, and audit writes to domain services.
+
+**Over:** duplicating business rules in HTTP handlers or forcing service files
+onto read-only modules with no orchestration.
+
+**Why:** payment workflows, cases, and evaluations have meaningful mutation
+rules that should be testable without HTTP or PostgreSQL.
+
+**Cost accepted:** the modular monolith now has an additional layer and needs
+clear service-to-repository contracts.
 
 ## Roadmap
 

@@ -42,11 +42,11 @@ The dates and commits below come directly from the repository history.
 | June 12, 2026 | `5fe52b8` | Added evidence-grounded AI investigations and human review |
 | June 13, 2026 | `1e9a986` | Added organizations, authentication, roles, and audit controls |
 | June 14, 2026 | `8e083e1` | Added SLA policy, alerts, filters, and deadline auditability |
-| June 15, 2026 | AI quality release | Added a 30-case evaluation harness, prompt versioning, and Quality Lab |
-| June 15, 2026 | Evaluation operations release | Persisted evaluation history, scenario results, roles, and audit evidence |
-| June 15, 2026 | Human review release | Added case-level outputs, six-score review, notes, attribution, and audit |
-| June 15, 2026 | Model evaluation release | Added guarded OpenAI execution with latency and token evidence |
-| June 15, 2026 | Payment lifecycle release | Added refunds, chargebacks, evidence gates, deadlines, and timelines |
+| June 15, 2026 | `60456e7` | Added a 30-case evaluation harness, prompt versioning, and Quality Lab |
+| June 15, 2026 | `6a4f9dc` | Persisted evaluation history, scenario results, roles, and audit evidence |
+| June 15, 2026 | `1597d5f` | Added case-level outputs, six-score review, notes, attribution, and audit |
+| June 15, 2026 | `489d5dd` | Added guarded OpenAI execution with latency and token evidence |
+| June 15, 2026 | `ae7cea0` | Added refunds, chargebacks, evidence gates, deadlines, and timelines |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -196,6 +196,7 @@ The next refactor moved payment-workflow, case, and evaluation validation plus
 audit orchestration into service files. Four mutation routes became thin HTTP
 adapters, and focused service tests cover invalid lifecycle jumps, chargeback
 evidence gates, case values, evaluation providers, and six-score reviews.
+The architecture commits are `eea15a4` and `3bcf4ee`.
 
 ## The working workflow
 
@@ -291,9 +292,9 @@ must all reinforce the same boundary. Safety cannot live in one sentence.
 ## Honest current limits
 
 This is a portfolio MVP, not a production payment system. It has synthetic
-data, local credentials, a simple SLA calendar, and a small test suite. It does
-not ingest provider APIs, initiate refunds, store payment credentials, send
-notifications, provider webhook ingestion, or production-derived labeled
+data, local credentials, a simple SLA calendar, and a focused test suite. It
+does not ingest provider APIs or webhooks, initiate provider-side refunds, store
+payment credentials, send notifications, or use production-derived labeled
 evaluation data.
 
 Those are not hidden gaps. They are the next product and engineering decisions,

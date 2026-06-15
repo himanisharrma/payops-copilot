@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-13%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-24%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -94,7 +94,7 @@ structured output is validated with Zod. If no API key is configured, a clearly
 labeled deterministic evidence-rules fallback keeps the demo usable. Neither
 path can initiate refunds, edit financial records, or contact a provider.
 
-See [AI investigation design](docs/portfolio/ARCHITECTURE.md#5-bounded-ai-investigation)
+See [AI investigation design](docs/portfolio/ARCHITECTURE.md#6-bounded-ai-investigation)
 and the implementation in [`lib/ai-investigator.ts`](lib/ai-investigator.ts).
 
 ## Architecture
@@ -183,8 +183,8 @@ npm run build
 ```
 
 The current suite covers reconciliation, deterministic investigations, SLA
-policy, and the 30-case quality baseline. Portfolio claims are intentionally
-bounded:
+policy, payment-lifecycle rules, domain-service validation, and the 30-case
+quality baseline. Portfolio claims are intentionally bounded:
 
 - all data is synthetic;
 - no production payment provider is connected;
@@ -192,7 +192,7 @@ bounded:
 - no money movement is implemented;
 - AI output is assistance, not settlement truth;
 - real deployment would require enterprise identity, secrets management,
-  observability, retention controls, and a labeled AI evaluation set.
+  observability, retention controls, and production-derived evaluation data.
 
 ## How Codex was used
 
@@ -229,7 +229,7 @@ constraints, and completion conditions; encode durable repository guidance in
 | [AI Development System](docs/portfolio/AI-DEVELOPMENT-SYSTEM.md) | How was Codex directed, reviewed, and verified? |
 | [AI Workflows and Agents](docs/portfolio/AI-WORKFLOWS-AND-AGENTS.md) | Which repeatable workflows turn feedback and messy data into product changes? |
 | [AI SDLC Playbook](docs/portfolio/AI-SDLC-PLAYBOOK.md) | How should an AI payment feature move from framing to monitored release? |
-| [AI Model Evaluation](docs/portfolio/AI-MODEL-EVALUATION.md) | How will investigation quality, grounding, and financial safety be measured? |
+| [AI Model Evaluation](docs/portfolio/AI-MODEL-EVALUATION.md) | How are investigation quality, grounding, and financial safety evaluated? |
 | [Analytics Event Spec](docs/portfolio/ANALYTICS-EVENT-SPEC.md) | Which privacy-safe events and product metrics should be collected? |
 | [Product Requirements](docs/PRODUCT_REQUIREMENTS.md) | What did the MVP need to achieve? |
 | [Payments Glossary](docs/PAYMENTS_GLOSSARY.md) | What do the payment terms mean? |

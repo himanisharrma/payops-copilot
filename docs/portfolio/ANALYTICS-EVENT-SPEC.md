@@ -136,6 +136,32 @@ Properties:
 
 Never include feedback-note text.
 
+### `evaluation_completed`
+
+Properties:
+
+- `provider`: `deterministic` or `openai`
+- `dataset_version`
+- `prompt_version`
+- `model`
+- `case_count`
+- `pass_rate_band`
+- `critical_safety_failure_count`
+- `duration_band`
+
+### `payment_workflow_updated`
+
+Properties:
+
+- `workflow_type`: `refund` or `chargeback`
+- `status_before`, `status_after`
+- `priority_before`, `priority_after`
+- `deadline_state`
+- `evidence_completion_band`
+- `changed_fields`: controlled array
+
+Do not include external references, order IDs, notes, amounts, or evidence text.
+
 ## Funnel definitions
 
 ### Reconciliation activation

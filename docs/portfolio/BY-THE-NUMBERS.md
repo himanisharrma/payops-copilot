@@ -11,7 +11,8 @@
 | Build window represented in Git | June 12-15, 2026 | `git log --reverse` |
 | Product milestones | 10 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Refund and chargeback operations | lifecycle APIs, migration `009` |
+| Latest product milestone | Refund and chargeback operations | commit `ae7cea0`, migration `009` |
+| Latest architecture milestone | Domain service layers | commit `3bcf4ee` |
 
 ## Codebase snapshot
 
@@ -41,7 +42,7 @@
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
 | Backend domain modules | 7 repositories under `lib/modules/` |
-| Domain service layers | payment workflows, cases, evaluations |
+| Domain service layers | 3: payment workflows, cases, evaluations |
 | Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
@@ -72,12 +73,14 @@ Browser verification also exercised:
 - deadline inspection;
 - priority-driven SLA recalculation;
 - audit-event creation;
-- persisted evaluation execution and history rendering.
-- case-level review scoring, persistence, and audit attribution.
+- persisted evaluation execution and history rendering;
+- case-level review scoring, persistence, and audit attribution;
 - guarded model-run state and a 390px layout with no horizontal overflow;
-- a new persisted deterministic run after migration `008`.
+- a new persisted deterministic run after migration `008`;
 - chargeback evidence completion, stage gating, timeline, and audit writes;
-- refund/chargeback mobile layout at 390px with no horizontal overflow.
+- refund/chargeback mobile layout at 390px with no horizontal overflow;
+- a payment-workflow priority mutation through the service layer with matching
+  PostgreSQL audit events.
 
 ## What is not measured
 

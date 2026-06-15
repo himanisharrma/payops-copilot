@@ -1,8 +1,8 @@
 # AI Model Evaluation
 
 > Evaluation system for evidence-grounded payment investigations. Deterministic
-> and OpenAI execution paths now exist; OpenAI results have not yet been run or
-> claimed.
+> and OpenAI execution paths exist; deterministic results are reproducible, but
+> no completed OpenAI run or model-quality claim exists yet.
 
 ## Evaluation question
 
@@ -111,16 +111,12 @@ revisited with operational evidence.
 
 ## Versioning
 
-Every evaluation run should record:
+Every evaluation run records:
 
-- dataset version;
-- model;
-- prompt/instruction version;
-- code commit;
+- dataset, prompt, provider, and model identifiers;
 - timestamp;
-- environment;
 - aggregate and per-scenario scores;
-- failed case IDs and reviewer notes.
+- case-level outputs, checks, scores, and reviewer notes;
 - duration and input/output/total token usage.
 
 The deterministic workflow now records run-level versions, aggregate metrics,

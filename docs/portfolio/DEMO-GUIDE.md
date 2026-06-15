@@ -89,7 +89,18 @@ Say:
 > settlement truth, contact the provider, or resolve the case. It helps an
 > analyst prepare the next step."
 
-### 3:40-4:20 - Show accountability
+### 3:40-4:05 - Show payment lifecycles
+
+Open **Refunds & disputes**. Show that refunds and chargebacks have separate
+states, deadlines, evidence checklists, owners, and timelines. Explain that the
+application records operational decisions but has no provider integration that
+moves money.
+
+### 4:05-4:30 - Show quality and accountability
+
+Open **Quality** and show the versioned 30-case baseline, persisted run history,
+case-level evidence, and six-score human rubric. Do not claim OpenAI model
+quality: no paid model run completed in this repository snapshot.
 
 Open **Audit**.
 
@@ -97,7 +108,7 @@ Show that reconciliation and case activity records the actor, entity, action,
 and timestamp. Explain that audit access is admin-only and records are scoped
 to the organization.
 
-### 4:20-5:00 - Demonstrate role boundaries
+### 4:30-5:00 - Demonstrate role boundaries
 
 Sign out and use:
 
@@ -123,6 +134,7 @@ Close with:
 | Reconcile | `http://127.0.0.1:4317/` |
 | Operations and SLA | `http://127.0.0.1:4317/operations` |
 | Refunds and disputes | `http://127.0.0.1:4317/refunds-disputes` |
+| AI Quality Lab | `http://127.0.0.1:4317/quality` |
 | Historical runs | `http://127.0.0.1:4317/runs` |
 | Administrator audit | `http://127.0.0.1:4317/audit` |
 | Product summary | `http://127.0.0.1:4317/product-brief` |
@@ -132,6 +144,7 @@ Close with:
 
 - Do not describe the demo as connected to a real gateway or bank.
 - Do not describe AI output as a confirmed root cause.
+- Do not describe the deterministic evaluation baseline as OpenAI model proof.
 - Do not describe local credentials as production authentication.
 - Do not claim measured analyst savings or AI accuracy.
 - Do not upload private company reports to the public portfolio instance.
