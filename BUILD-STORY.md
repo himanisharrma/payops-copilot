@@ -192,6 +192,11 @@ Routes now import only the module they serve, shared pooling remains in
 `lib/db.ts`, and repository guidance prevents the catch-all file from
 returning. This is a modular monolith, not a microservices claim.
 
+The next refactor moved payment-workflow, case, and evaluation validation plus
+audit orchestration into service files. Four mutation routes became thin HTTP
+adapters, and focused service tests cover invalid lifecycle jumps, chargeback
+evidence gates, case values, evaluation providers, and six-score reviews.
+
 ## The working workflow
 
 This was the recurring delivery loop:

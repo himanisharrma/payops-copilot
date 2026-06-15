@@ -35,6 +35,7 @@ that it connects to live payment providers or can move money.
 - `lib/ai-investigator.ts`: bounded OpenAI and deterministic fallback paths.
 - `lib/modules/`: domain-owned backend repositories for reconciliation, cases,
   investigations, evaluations, payment workflows, audit, and system health.
+  Services own validation and orchestration; repositories own SQL.
 - `lib/db.ts`: shared PostgreSQL pool, query helper, and transaction boundary.
 - `lib/access.ts`: authentication and role checks.
 - `lib/sla.ts`: SLA policy and status calculation.
@@ -49,7 +50,7 @@ that it connects to live payment providers or can move money.
 3. Make the smallest complete change across database, API, UI, tests, and docs.
 4. Use existing repository patterns unless there is a concrete reason to change.
    API routes must import the domain module they serve; do not recreate a
-   catch-all repository.
+   catch-all repository or place business orchestration in route handlers.
 5. Exercise the real browser journey for user-facing changes.
 6. Review the diff for security, tenancy, AI safety, and unsupported claims.
 7. Run the required checks before committing.

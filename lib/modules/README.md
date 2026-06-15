@@ -22,5 +22,7 @@ API route (transport and request validation)
 
 API routes import the module they serve. Cross-domain calls use public module
 exports. `lib/db.ts` remains the only shared connection and transaction utility.
+Services validate business input, coordinate repositories, and write audit
+evidence. Routes only handle authentication, JSON, and HTTP responses.
 Financial and lifecycle rules stay in domain policy files. Do not recreate a
-central repository.
+central repository or move orchestration back into routes.

@@ -131,8 +131,9 @@ infrastructure.
 workflows, audit, and health change at different rates. Explicit modules reduce
 coupling while preserving one deployment and transaction model.
 
-**Cost accepted:** cross-domain workflows need deliberate public interfaces,
-and modules may gain service layers as orchestration grows.
+**Cost accepted:** cross-domain workflows need deliberate public interfaces.
+Service layers are introduced when orchestration or validation is meaningful,
+rather than added mechanically to every module.
 
 ## Roadmap
 

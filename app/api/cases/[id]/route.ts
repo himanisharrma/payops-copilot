@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server";
-import { recordAuditEvent } from "@/lib/modules/audit/repository";
-import { updateCase } from "@/lib/modules/cases/repository";
-import type { CaseStatus, OperationsCase } from "@/lib/types";
 import { accessErrorResponse, requireActor } from "@/lib/access";
-
-const statuses = new Set<CaseStatus>(["open", "investigating", "resolved"]);
-const priorities = new Set<OperationsCase["priority"]>([
-  "low",
-  "medium",
-  "high",
-]);
+import {
+  changeCase,
+  type CasePatch,
+} from "@/lib/modules/cases/service";
+import { DomainError } from "@/lib/modules/errors";
 
 export async function PATCH(
   request: Request,
@@ -18,41 +13,17 @@ export async function PATCH(
   try {
     const actor = await requireActor(["admin", "analyst"]);
     const { id } = await context.params;
-    const payload = (await request.json()) as {
-      status?: CaseStatus;
-      priority?: OperationsCase["priority"];
-      owner?: string | null;
-      notes?: string;
-    };
-
-    if (payload.status && !statuses.has(payload.status)) {
-      return NextResponse.json({ error: "Invalid status." }, { status: 400 });
-    }
-    if (payload.priority && !priorities.has(payload.priority)) {
-      return NextResponse.json({ error: "Invalid priority." }, { status: 400 });
-    }
-
-    const updated = await updateCase(id, actor.organizationId, payload);
-    if (!updated) {
-      return NextResponse.json({ error: "Case not found." }, { status: 404 });
-    }
-    await recordAuditEvent({
-      organizationId: actor.organizationId,
-      actorUserId: actor.id,
-      actorName: actor.name,
-      action: "case.updated",
-      entityType: "operations_case",
-      entityId: id,
-      details: {
-        ...payload,
-        ...(payload.priority ? { dueAt: updated.dueAt } : {}),
-        slaStatus: updated.slaStatus,
-      },
-    });
-    return NextResponse.json({ case: updated });
+    const payload = (await request.json()) as CasePatch;
+    return NextResponse.json({ case: await changeCase(id, payload, actor) });
   } catch (error) {
     const accessResponse = accessErrorResponse(error);
     if (accessResponse) return accessResponse;
+    if (error instanceof DomainError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
+    }
     console.error(error);
     return NextResponse.json(
       { error: "The case could not be updated." },

@@ -17,11 +17,11 @@
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 99 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 6,266 | existing repository file list piped to `wc -l` |
+| Repository files | 104 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 6,468 | repository file list piped to `wc -l` |
 | Next.js API route files | 14 | `find app/api -name route.ts` |
 | PostgreSQL migrations | 9 | `db/migrations/` |
-| Automated test cases | 19 | Vitest output |
+| Automated test cases | 24 | Vitest output |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 8 | Adds `/refunds-disputes` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
@@ -41,6 +41,7 @@
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
 | Backend domain modules | 7 repositories under `lib/modules/` |
+| Domain service layers | payment workflows, cases, evaluations |
 | Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
@@ -56,7 +57,7 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 5 test files, 19 tests passing
+npm test       -> 6 test files, 24 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```

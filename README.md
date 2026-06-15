@@ -21,8 +21,8 @@
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Backend shape** | Modular monolith with seven domain repositories and shared PostgreSQL infrastructure |
-| **Build evidence** | 10 product milestones, 99 repository files, 14 API routes, 9 migrations, and 19 tests at the modular-backend snapshot |
+| **Backend shape** | Modular monolith with thin routes, domain services, seven repositories, and shared PostgreSQL infrastructure |
+| **Build evidence** | 10 product milestones, 104 repository files, 14 API routes, 9 migrations, and 24 tests at the service-layer snapshot |
 
 ## Why this exists
 
