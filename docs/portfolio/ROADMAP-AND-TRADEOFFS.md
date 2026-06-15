@@ -122,18 +122,17 @@ end to end.
 
 ## Roadmap
 
-### Now: prove AI quality
+### Now: evaluate model quality
 
-- Create a versioned golden set of synthetic cases.
-- Define expected evidence usage, safe recommendations, and prohibited claims.
-- Measure schema validity, evidence grounding, unsupported-claim rate, and
-  human approval/correction rate.
-- Add prompt and model version fields to stored investigations.
-- Run the evaluation set before changing the default model or instructions.
+- Run OpenAI model output through the versioned 30-case synthetic dataset.
+- Add two-reviewer human scoring for grounding, uncertainty, and action quality.
+- Store evaluation run metadata and per-scenario results.
+- Expand adversarial tests before changing the default model or instructions.
+- Turn approved analyst corrections into anonymized synthetic regression cases.
 
 The evaluation design and initial release thresholds are documented in
-[AI Model Evaluation](AI-MODEL-EVALUATION.md). The next engineering slice is to
-turn that specification into a versioned dataset and executable harness.
+[AI Model Evaluation](AI-MODEL-EVALUATION.md). The deterministic fallback now
+has an executable baseline; model and human evaluation remain the next slice.
 
 ### Next: deepen payment operations
 

@@ -1,11 +1,18 @@
 import Link from "next/link";
-import { FileClock, History, ListChecks, LogOut, Scale } from "lucide-react";
+import {
+  FileClock,
+  FlaskConical,
+  History,
+  ListChecks,
+  LogOut,
+  Scale,
+} from "lucide-react";
 import { auth, signOut } from "@/auth";
 
 export async function AppHeader({
   active,
 }: {
-  active: "operations" | "runs" | "audit";
+  active: "operations" | "runs" | "quality" | "audit";
 }) {
   const session = await auth();
   return (
@@ -35,6 +42,13 @@ export async function AppHeader({
         >
           <History size={15} />
           Run history
+        </Link>
+        <Link
+          href="/quality"
+          className={`product-nav-link ${active === "quality" ? "active" : ""}`}
+        >
+          <FlaskConical size={15} />
+          AI quality
         </Link>
         {session?.user.role === "admin" && (
           <Link

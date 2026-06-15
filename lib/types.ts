@@ -100,6 +100,7 @@ export type AIInvestigation = InvestigationAnalysis & {
   caseId: string;
   provider: "openai" | "deterministic";
   model: string;
+  promptVersion: string;
   approvalStatus: InvestigationApproval;
   feedbackRating: "helpful" | "not_helpful" | null;
   feedbackNotes: string;

@@ -1,29 +1,31 @@
 # By the Numbers
 
-> Every implemented-project figure below was measured from commit `8e083e1`,
-> immediately before the Phase 1 portfolio documentation work. It is a
-> repository snapshot, not a production-performance claim.
+> Every implemented-project figure below was measured from the AI-quality
+> working snapshot prepared on June 15, 2026. It is repository evidence, not a
+> production-performance claim.
 
 ## Delivery
 
 | Metric | Value | Evidence |
 | --- | --- | --- |
-| Build window represented in Git | June 12-14, 2026 | `git log --reverse` |
-| Product milestones | 5 commits | `git rev-list --count 8e083e1` |
+| Build window represented in Git | June 12-15, 2026 | `git log --reverse` |
+| Product milestones | 6 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest pre-doc milestone | SLA tracking and alerts | commit `8e083e1` |
+| Latest product milestone | AI evaluation harness and Quality Lab | `app/quality/`, `lib/evaluation.ts` |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Tracked files | 55 | `git ls-files \| wc -l` |
-| TypeScript and TSX lines | 3,457 | `git ls-files '*.ts' '*.tsx' \| xargs wc -l` |
+| Repository files | 78 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 3,931 | repository file list piped to `wc -l` |
 | Next.js API route files | 9 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 4 | `db/migrations/` |
-| Automated test cases | 8 | `rg '\\b(it\|test)\\(' --glob '*.{test,spec}.{ts,tsx,js,jsx}'` |
+| PostgreSQL migrations | 5 | `db/migrations/` |
+| Automated test cases | 11 | `rg '\\bit\\(' --glob '*.test.ts'` |
 | Demo CSV reports | 3 | `public/demo/` |
-| Product pages | 6 | `/`, `/login`, `/operations`, `/runs`, `/audit`, `/product-brief` |
+| Product pages | 7 | Adds `/quality` to the six original pages |
+| Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
+| Baseline automated checks | 180 | 30 cases x 6 evaluation dimensions |
 
 ## Product surface
 
@@ -37,6 +39,7 @@
 | Human AI review states | pending, approved, rejected |
 | AI feedback states | helpful, not helpful |
 | Audited entity workflows | reconciliation, case, investigation |
+| Versioned AI inputs | dataset, prompt, provider, and model identifiers |
 
 ## Quality evidence
 
@@ -44,7 +47,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 3 test files, 8 tests passing
+npm test       -> 4 test files, 11 tests passing
+npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
 
@@ -68,6 +72,7 @@ The project does not claim:
 - analyst time savings;
 - production SLA performance;
 - AI accuracy, acceptance rate, or cost;
+- OpenAI model quality or human-review pass rates;
 - security certification or regulatory compliance.
 
 Those require a real pilot, production telemetry, labeled data, and formal
@@ -79,15 +84,13 @@ repository evidence, and future product metrics remain hypotheses.
 Reproduce the core counts from the repository root:
 
 ```bash
-git rev-list --count 8e083e1
-git ls-tree -r --name-only 8e083e1 | wc -l
-git ls-tree -r --name-only 8e083e1 |
-  grep -E '\.(ts|tsx)$' |
-  xargs -I{} git show 8e083e1:{} |
-  wc -l
+git ls-files --cached --others --exclude-standard | sort -u | wc -l
+git ls-files --cached --others --exclude-standard '*.ts' '*.tsx' |
+  xargs wc -l
 find app/api -name route.ts | wc -l
 find db/migrations -name '*.sql' | wc -l
 npm test
+npm run eval
 ```
 
 ---

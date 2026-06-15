@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-8%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-11%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -21,7 +21,7 @@
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Build evidence** | 5 milestones, 55 tracked files, 9 API routes, 4 migrations, and 8 tests at the Phase 1 documentation snapshot |
+| **Build evidence** | 6 product milestones, 78 repository files, 9 API routes, 5 migrations, and 11 tests at the AI-quality snapshot |
 
 ## Why this exists
 
@@ -65,6 +65,7 @@ to production gateways or move money.
 9. Applies 4-hour, 24-hour, and 72-hour SLAs by priority.
 10. Generates structured AI investigations with approval and feedback controls.
 11. Records reconciliation, case, and investigation actions in an audit ledger.
+12. Runs a 30-case synthetic AI-quality baseline with versioned prompt metadata.
 
 ## The product judgment
 
@@ -163,6 +164,7 @@ operations cases, AI investigations, audit events, and migration history.
 ```bash
 npm run lint
 npm test
+npm run eval
 npm run build
 ```
 
@@ -219,7 +221,8 @@ constraints, and completion conditions; encode durable repository guidance in
 
 ## Roadmap
 
-- Build a golden evaluation set from analyst ratings and corrections.
+- Add human-scored OpenAI model runs to the synthetic evaluation harness.
+- Feed approved analyst corrections into new anonymized evaluation cases.
 - Add refunds, chargebacks, and webhook event timelines.
 - Add configurable business calendars and escalation notifications.
 - Add provider-specific investigation tools with scoped permissions.

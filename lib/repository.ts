@@ -164,6 +164,7 @@ export async function listCases(organizationId: string): Promise<OperationsCase[
     investigation_id: string | null;
     investigation_provider: AIInvestigation["provider"] | null;
     investigation_model: string | null;
+    investigation_prompt_version: string | null;
     likely_cause: string | null;
     confidence: AIInvestigation["confidence"] | null;
     supporting_evidence: string[] | null;
@@ -180,7 +181,9 @@ export async function listCases(organizationId: string): Promise<OperationsCase[
        i.payment_mode, i.order_amount, i.variance, i.reconciliation_status,
        i.summary, i.evidence,
        ai.id AS investigation_id, ai.provider AS investigation_provider,
-       ai.model AS investigation_model, ai.likely_cause, ai.confidence,
+       ai.model AS investigation_model,
+       ai.prompt_version AS investigation_prompt_version,
+       ai.likely_cause, ai.confidence,
        ai.supporting_evidence, ai.recommended_actions, ai.provider_message,
        ai.limitations, ai.approval_status, ai.feedback_rating,
        ai.feedback_notes, ai.created_at AS investigation_created_at,
@@ -239,6 +242,7 @@ export async function listCases(organizationId: string): Promise<OperationsCase[
           caseId: row.id,
           provider: row.investigation_provider!,
           model: row.investigation_model!,
+          promptVersion: row.investigation_prompt_version!,
           likelyCause: row.likely_cause!,
           confidence: row.confidence!,
           supportingEvidence: row.supporting_evidence ?? [],
@@ -263,18 +267,23 @@ export async function getCase(id: string, organizationId: string) {
 export async function saveInvestigation(
   caseId: string,
   analysis: InvestigationAnalysis,
-  metadata: { provider: AIInvestigation["provider"]; model: string },
+  metadata: {
+    provider: AIInvestigation["provider"];
+    model: string;
+    promptVersion: string;
+  },
 ) {
   const result = await query<{ id: string }>(
     `INSERT INTO ai_investigations (
-      case_id, provider, model, likely_cause, confidence,
+      case_id, provider, model, prompt_version, likely_cause, confidence,
       supporting_evidence, recommended_actions, provider_message, limitations
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
     RETURNING id`,
     [
       caseId,
       metadata.provider,
       metadata.model,
+      metadata.promptVersion,
       analysis.likelyCause,
       analysis.confidence,
       JSON.stringify(analysis.supportingEvidence),

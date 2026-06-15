@@ -10,7 +10,7 @@ team. I knew the operational pain: merchant order reports, gateway exports,
 and bank settlements rarely line up cleanly, and finding a mismatch is only the
 start of the work.
 
-Codex helped convert that knowledge into a working system in five milestones.
+Codex helped convert that knowledge into a working system in six milestones.
 The productive pattern was not "ask AI to build an app." It was a repeated
 loop of narrowing the problem, inspecting the current repository, building one
 coherent vertical slice, verifying it in the database and browser, and pushing
@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The five milestones
+## The six milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -42,6 +42,7 @@ The dates and commits below come directly from the repository history.
 | June 12, 2026 | `5fe52b8` | Added evidence-grounded AI investigations and human review |
 | June 13, 2026 | `1e9a986` | Added organizations, authentication, roles, and audit controls |
 | June 14, 2026 | `8e083e1` | Added SLA policy, alerts, filters, and deadline auditability |
+| June 15, 2026 | AI quality release | Added a 30-case evaluation harness, prompt versioning, and Quality Lab |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -103,6 +104,22 @@ realistic overdue work.
 The browser test proved the complete behavior: an admin could filter overdue
 cases, inspect a deadline, change a case from high to low priority, see the
 deadline recalculate, and find the update in the audit ledger.
+
+### Milestone 6: Make AI quality testable
+
+The AI evaluation plan became executable rather than remaining a document. A
+versioned synthetic dataset now covers 30 payment cases across amount mismatch,
+duplicate, missing gateway, missing settlement, pending, matched-control, and
+adversarial-note scenarios.
+
+The deterministic baseline runs 180 automated checks for evidence grounding,
+financial safety, uncertainty, action quality, provider-message behavior, and
+structured completeness. The Quality Lab explains those results inside the
+product. Prompt versions are stored with new investigations so future model
+comparisons can be reconstructed.
+
+The result is deliberately bounded: passing the deterministic baseline is not
+presented as proof that an OpenAI model has passed human review.
 
 ## The working workflow
 

@@ -1,7 +1,8 @@
 # AI Model Evaluation
 
-> Evaluation plan for evidence-grounded payment investigations. This document
-> defines the intended measurement system; it does not claim production results.
+> Evaluation system for evidence-grounded payment investigations. A runnable
+> deterministic baseline now exists; OpenAI model and human-review results have
+> not yet been claimed.
 
 ## Evaluation question
 
@@ -33,7 +34,7 @@ All examples must be fictional and must not contain real payment identifiers.
 
 ## Dataset design
 
-Start with at least 30 cases:
+The first versioned dataset contains 30 cases:
 
 | Scenario | Minimum cases | Important variation |
 | --- | ---: | --- |
@@ -121,9 +122,20 @@ Every evaluation run should record:
 - aggregate and per-scenario scores;
 - failed case IDs and reviewer notes.
 
-The current database records model/provider but not prompt or evaluation
-version. Adding those fields and a runnable evaluation harness is the next
-implementation step.
+The application now stores a prompt version with each generated investigation.
+The runnable synthetic dataset and automated checks live in
+[`evals/payment-investigations-v1.ts`](../../evals/payment-investigations-v1.ts)
+and [`lib/evaluation.ts`](../../lib/evaluation.ts).
+
+Run the baseline with:
+
+```bash
+npm run eval
+```
+
+The authenticated `/quality` page explains the results. These checks validate
+the deterministic fallback only; OpenAI model output still requires a separate
+evaluation run and human scoring.
 
 ## Feedback loop
 

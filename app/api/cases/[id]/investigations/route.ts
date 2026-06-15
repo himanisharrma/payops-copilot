@@ -28,7 +28,12 @@ export async function POST(
       action: "investigation.generated",
       entityType: "ai_investigation",
       entityId: investigationId,
-      details: { provider: result.provider, model: result.model, caseId: id },
+      details: {
+        provider: result.provider,
+        model: result.model,
+        promptVersion: result.promptVersion,
+        caseId: id,
+      },
     });
     return NextResponse.json(
       { case: await getCase(id, actor.organizationId) },

@@ -15,6 +15,8 @@ const InvestigationSchema = z.object({
   limitations: z.array(z.string()),
 });
 
+export const PROMPT_VERSION = "payment-investigation-v1";
+
 const instructions = `You are a payment-operations investigation assistant.
 Analyze only the supplied case facts. Do not invent transaction events, policies,
 provider responses, or money movement. Financial calculations in the input are
@@ -27,12 +29,14 @@ export async function investigateCase(paymentCase: OperationsCase): Promise<{
   analysis: InvestigationAnalysis;
   provider: "openai" | "deterministic";
   model: string;
+  promptVersion: string;
 }> {
   if (!process.env.OPENAI_API_KEY) {
     return {
       analysis: fallbackInvestigation(paymentCase),
       provider: "deterministic",
       model: "evidence-rules-v1",
+      promptVersion: PROMPT_VERSION,
     };
   }
 
@@ -64,7 +68,12 @@ export async function investigateCase(paymentCase: OperationsCase): Promise<{
     throw new Error("The model did not return a structured investigation.");
   }
 
-  return { analysis: response.output_parsed, provider: "openai", model };
+  return {
+    analysis: response.output_parsed,
+    provider: "openai",
+    model,
+    promptVersion: PROMPT_VERSION,
+  };
 }
 
 export function fallbackInvestigation(
