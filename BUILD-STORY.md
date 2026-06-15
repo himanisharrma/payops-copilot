@@ -10,7 +10,7 @@ team. I knew the operational pain: merchant order reports, gateway exports,
 and bank settlements rarely line up cleanly, and finding a mismatch is only the
 start of the work.
 
-Codex helped convert that knowledge into a working system in seven milestones.
+Codex helped convert that knowledge into a working system in eight milestones.
 The productive pattern was not "ask AI to build an app." It was a repeated
 loop of narrowing the problem, inspecting the current repository, building one
 coherent vertical slice, verifying it in the database and browser, and pushing
@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The seven milestones
+## The eight milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -44,6 +44,7 @@ The dates and commits below come directly from the repository history.
 | June 14, 2026 | `8e083e1` | Added SLA policy, alerts, filters, and deadline auditability |
 | June 15, 2026 | AI quality release | Added a 30-case evaluation harness, prompt versioning, and Quality Lab |
 | June 15, 2026 | Evaluation operations release | Persisted evaluation history, scenario results, roles, and audit evidence |
+| June 15, 2026 | Human review release | Added case-level outputs, six-score review, notes, attribution, and audit |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -133,6 +134,22 @@ scenario summaries, initiating user, and timestamp in PostgreSQL. The operation
 is organization-scoped, transactional, and recorded as `evaluation.completed`
 in the audit ledger. This creates the data model needed for future model-version
 comparisons without claiming those comparisons have happened yet.
+
+### Milestone 8: Separate automated checks from human judgment
+
+Run-level metrics could show that checks passed, but reviewers still needed to
+inspect the actual evidence and output. The next migration stores all 30 case
+inputs, generated analyses, automated checks, and scores for every new run.
+
+The Quality Lab now provides a case navigator and a six-dimension human rubric:
+grounding, financial safety, uncertainty, action quality, provider-message
+quality, and completeness. Admins and analysts can save scores and notes;
+viewers remain read-only. Each review stores the reviewer and timestamp and
+creates an `evaluation_case.reviewed` audit event.
+
+One synthetic case was reviewed during browser verification to prove the
+workflow. That is implementation evidence, not a representative human
+evaluation result.
 
 ## The working workflow
 

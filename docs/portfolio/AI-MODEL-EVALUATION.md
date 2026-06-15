@@ -123,8 +123,9 @@ Every evaluation run should record:
 - failed case IDs and reviewer notes.
 
 The deterministic workflow now records run-level versions, aggregate metrics,
-scenario summaries, actor, and timestamp. Per-case model outputs and human
-reviewer scores remain future work.
+scenario summaries, actor, timestamp, and 30 case-level inputs, outputs, checks,
+and automated scores. Human rubric scores and reviewer notes can be stored for
+each case.
 
 The application now stores a prompt version with each generated investigation.
 The runnable synthetic dataset and automated checks live in
@@ -146,6 +147,12 @@ Admins and analysts can also run the baseline from the Quality Lab. The
 scenario summaries in PostgreSQL, while viewers receive read-only history. Each
 execution creates an audit event containing the dataset, prompt, provider,
 model, pass rate, and critical safety-failure count.
+
+The run-detail workspace separates automated checks from human judgment.
+Reviewers score six dimensions from 0 to 2, add notes, and create an attributable
+audit event. One synthetic review was saved to verify the workflow; it is not a
+quality claim. A real release decision still requires two independent reviewers
+over a representative sample.
 
 ## Feedback loop
 

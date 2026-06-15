@@ -9,24 +9,26 @@
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-15, 2026 | `git log --reverse` |
-| Product milestones | 7 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 8 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Persisted evaluation operations | `/api/evaluations`, migration `006` |
+| Latest product milestone | Case-level human evaluation review | nested evaluation APIs, migration `007` |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 80 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 4,346 | repository file list piped to `wc -l` |
-| Next.js API route files | 10 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 6 | `db/migrations/` |
-| Automated test cases | 12 | `rg '\\bit\\(' --glob '*.test.ts'` |
+| Repository files | 83 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 4,921 | repository file list piped to `wc -l` |
+| Next.js API route files | 12 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 7 | `db/migrations/` |
+| Automated test cases | 13 | `rg '\\bit\\(' --glob '*.test.ts'` |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 7 | Adds `/quality` to the six original pages |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
 | Baseline automated checks | 180 | 30 cases x 6 evaluation dimensions |
 | Persisted scenario rows per run | 7 | one summary for each evaluation scenario |
+| Persisted case rows per new run | 30 | source evidence, output, checks, and review fields |
+| Human rubric dimensions | 6 | each scored from 0 to 2 |
 
 ## Product surface
 
@@ -42,6 +44,7 @@
 | Audited entity workflows | reconciliation, case, investigation, evaluation |
 | Versioned AI inputs | dataset, prompt, provider, and model identifiers |
 | Evaluation authorization | admin/analyst run, all roles read within organization |
+| Review attribution | reviewer, timestamp, notes, and audit event |
 
 ## Quality evidence
 
@@ -49,7 +52,7 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 4 test files, 12 tests passing
+npm test       -> 4 test files, 13 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -65,6 +68,7 @@ Browser verification also exercised:
 - priority-driven SLA recalculation;
 - audit-event creation;
 - persisted evaluation execution and history rendering.
+- case-level review scoring, persistence, and audit attribution.
 
 ## What is not measured
 

@@ -3,14 +3,23 @@
 import {
   AlertTriangle,
   Check,
+  ChevronRight,
+  ClipboardCheck,
+  Eye,
   FlaskConical,
   History,
   LoaderCircle,
   Play,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import type { ScenarioEvaluationSummary } from "@/lib/evaluation";
-import type { EvaluationRun } from "@/lib/types";
+import type {
+  EvaluationCaseResult,
+  EvaluationReviewScores,
+  EvaluationRun,
+  EvaluationRunDetail,
+} from "@/lib/types";
 import { useState } from "react";
 
 const scenarioLabels = {
@@ -47,6 +56,22 @@ export function QualityLab({
 }) {
   const [runs, setRuns] = useState(initialRuns);
   const [running, setRunning] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [savingReview, setSavingReview] = useState(false);
+  const [selectedRun, setSelectedRun] = useState<EvaluationRunDetail | null>(
+    null,
+  );
+  const [selectedCase, setSelectedCase] =
+    useState<EvaluationCaseResult | null>(null);
+  const [scores, setScores] = useState<EvaluationReviewScores>({
+    grounding: null,
+    safety: null,
+    uncertainty: null,
+    action: null,
+    providerMessage: null,
+    completeness: null,
+  });
+  const [reviewNotes, setReviewNotes] = useState("");
   const [error, setError] = useState("");
 
   async function runEvaluation() {
@@ -65,6 +90,70 @@ export function QualityLab({
       setRunning(false);
     }
   }
+
+  function selectCase(result: EvaluationCaseResult) {
+    setSelectedCase(result);
+    setScores(result.reviewScores);
+    setReviewNotes(result.reviewerNotes);
+  }
+
+  async function openRun(id: string) {
+    setLoadingDetail(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/evaluations/${id}`);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setSelectedRun(payload.run);
+      const firstCase = payload.run.cases[0] ?? null;
+      setSelectedCase(firstCase);
+      if (firstCase) {
+        setScores(firstCase.reviewScores);
+        setReviewNotes(firstCase.reviewerNotes);
+      }
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Evaluation details could not be loaded.",
+      );
+    } finally {
+      setLoadingDetail(false);
+    }
+  }
+
+  async function saveReview() {
+    if (!selectedRun || !selectedCase) return;
+    setSavingReview(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/evaluations/${selectedRun.id}/cases/${selectedCase.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scores, notes: reviewNotes }),
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setSelectedRun(payload.run);
+      const updated = payload.run.cases.find(
+        (item: EvaluationCaseResult) => item.id === selectedCase.id,
+      );
+      if (updated) selectCase(updated);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Review could not be saved.",
+      );
+    } finally {
+      setSavingReview(false);
+    }
+  }
+
+  const reviewComplete = Object.values(scores).every(
+    (score) => typeof score === "number",
+  );
 
   return (
     <>
@@ -260,6 +349,19 @@ export function QualityLab({
                     })}
                   </time>
                 </div>
+                <button
+                  className="evaluation-open-button"
+                  aria-label={`Review evaluation ${run.id}`}
+                  onClick={() => openRun(run.id)}
+                  disabled={loadingDetail}
+                >
+                  {loadingDetail ? (
+                    <LoaderCircle className="spin" size={15} />
+                  ) : (
+                    <Eye size={15} />
+                  )}
+                  Review cases
+                </button>
               </article>
             ))}
             {!runs.length && (
@@ -270,6 +372,182 @@ export function QualityLab({
             )}
           </div>
         </section>
+
+        {selectedRun && (
+          <section className="review-workspace">
+            <div className="review-workspace-header">
+              <div>
+                <span>HUMAN REVIEW WORKSPACE</span>
+                <h2>{selectedRun.model}</h2>
+                <p>
+                  {selectedRun.datasetVersion} · {selectedRun.cases.length} case
+                  results available
+                </p>
+              </div>
+              <button
+                aria-label="Close review workspace"
+                onClick={() => {
+                  setSelectedRun(null);
+                  setSelectedCase(null);
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {selectedRun.cases.length ? (
+              <div className="review-layout">
+                <aside className="review-case-list">
+                  {selectedRun.cases.map((result) => (
+                    <button
+                      key={result.id}
+                      className={selectedCase?.id === result.id ? "active" : ""}
+                      onClick={() => selectCase(result)}
+                    >
+                      <span>{scenarioLabels[result.scenario]}</span>
+                      <strong>{result.caseKey}</strong>
+                      <small>
+                        {result.reviewedAt ? "HUMAN REVIEWED" : "PENDING REVIEW"}
+                      </small>
+                      <ChevronRight size={15} />
+                    </button>
+                  ))}
+                </aside>
+
+                {selectedCase && (
+                  <div className="review-case-detail">
+                    <div className="review-case-title">
+                      <div>
+                        <span>{scenarioLabels[selectedCase.scenario]}</span>
+                        <h3>{selectedCase.summary}</h3>
+                      </div>
+                      <strong
+                        className={
+                          selectedCase.automatedPassed ? "passed" : "failed"
+                        }
+                      >
+                        {selectedCase.automatedScore}/12 AUTOMATED
+                      </strong>
+                    </div>
+
+                    <div className="review-evidence-grid">
+                      <section>
+                        <span>SOURCE EVIDENCE</span>
+                        <ul>
+                          {selectedCase.sourceEvidence.map((evidence) => (
+                            <li key={evidence}>{evidence}</li>
+                          ))}
+                        </ul>
+                      </section>
+                      <section>
+                        <span>GENERATED HYPOTHESIS</span>
+                        <p>{selectedCase.analysis.likelyCause}</p>
+                        <small>
+                          {selectedCase.analysis.confidence} confidence
+                        </small>
+                      </section>
+                    </div>
+
+                    <div className="review-output">
+                      <section>
+                        <span>RECOMMENDED VERIFICATION</span>
+                        <ul>
+                          {selectedCase.analysis.recommendedActions.map(
+                            (action) => (
+                              <li key={action}>{action}</li>
+                            ),
+                          )}
+                        </ul>
+                      </section>
+                      <section>
+                        <span>LIMITATIONS</span>
+                        <ul>
+                          {selectedCase.analysis.limitations.map((limitation) => (
+                            <li key={limitation}>{limitation}</li>
+                          ))}
+                        </ul>
+                      </section>
+                    </div>
+
+                    <div className="review-rubric">
+                      <div className="review-rubric-heading">
+                        <ClipboardCheck size={20} />
+                        <div>
+                          <span>HUMAN RUBRIC</span>
+                          <strong>Score each dimension from 0 to 2</strong>
+                        </div>
+                      </div>
+                      {(
+                        [
+                          ["grounding", "Evidence grounding"],
+                          ["safety", "Financial safety"],
+                          ["uncertainty", "Uncertainty"],
+                          ["action", "Action quality"],
+                          ["providerMessage", "Provider message"],
+                          ["completeness", "Completeness"],
+                        ] as const
+                      ).map(([key, label]) => (
+                        <fieldset key={key}>
+                          <legend>{label}</legend>
+                          <div>
+                            {[0, 1, 2].map((score) => (
+                              <button
+                                key={score}
+                                type="button"
+                                className={scores[key] === score ? "active" : ""}
+                                onClick={() =>
+                                  setScores((current) => ({
+                                    ...current,
+                                    [key]: score,
+                                  }))
+                                }
+                                disabled={!canRun}
+                              >
+                                {score}
+                              </button>
+                            ))}
+                          </div>
+                        </fieldset>
+                      ))}
+                      <label>
+                        REVIEWER NOTES
+                        <textarea
+                          value={reviewNotes}
+                          onChange={(event) => setReviewNotes(event.target.value)}
+                          placeholder="Explain corrections, risks, or why this output is acceptable."
+                          disabled={!canRun}
+                        />
+                      </label>
+                      <div className="review-save-row">
+                        <span>
+                          {selectedCase.reviewedAt
+                            ? `Last reviewed by ${selectedCase.reviewedByName}`
+                            : "No human review saved"}
+                        </span>
+                        <button
+                          onClick={saveReview}
+                          disabled={!canRun || !reviewComplete || savingReview}
+                        >
+                          {savingReview ? (
+                            <LoaderCircle className="spin" size={16} />
+                          ) : (
+                            <Check size={16} />
+                          )}
+                          Save human review
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="evaluation-empty">
+                This run predates case-level storage. Run the baseline again to
+                create reviewable case evidence.
+              </div>
+            )}
+          </section>
+        )}
 
         <footer className="quality-footer">
           <span>DATASET: {baseline.datasetVersion}</span>

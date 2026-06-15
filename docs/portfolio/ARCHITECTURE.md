@@ -79,6 +79,7 @@ The migration chain is append-only:
 | `004_case_sla.sql` | Backfilled deadlines and SLA query index |
 | `005_ai_versioning.sql` | Prompt version metadata for investigations |
 | `006_evaluation_runs.sql` | Organization-scoped evaluation and scenario history |
+| `007_evaluation_case_reviews.sql` | Case outputs and attributable human rubric reviews |
 
 ## 3. Identity, organization, and roles
 

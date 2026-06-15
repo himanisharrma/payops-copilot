@@ -1590,10 +1590,302 @@ footer {
   min-height: 92px;
   padding: 16px 20px;
   display: grid;
-  grid-template-columns: 110px minmax(0, 1fr) 180px 170px;
+  grid-template-columns: 110px minmax(0, 1fr) 170px 150px 132px;
   align-items: center;
   gap: 20px;
   border-bottom: 1px solid var(--line);
+}
+
+.evaluation-open-button {
+  height: 38px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.review-workspace {
+  margin-top: 32px;
+  border: 1px solid var(--ink);
+  background: var(--paper-strong);
+}
+
+.review-workspace-header {
+  padding: 20px 22px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.review-workspace-header span,
+.review-case-title span,
+.review-evidence-grid span,
+.review-output span,
+.review-rubric-heading span {
+  color: var(--orange-dark);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+  letter-spacing: 0.09em;
+}
+
+.review-workspace-header h2 {
+  margin: 8px 0 0;
+  font-size: 25px;
+}
+
+.review-workspace-header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.review-workspace-header > button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ink);
+  background: transparent;
+}
+
+.review-layout {
+  min-height: 720px;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+.review-case-list {
+  max-height: 850px;
+  overflow-y: auto;
+  border-right: 1px solid var(--ink);
+}
+
+.review-case-list button {
+  width: 100%;
+  min-height: 84px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  text-align: left;
+}
+
+.review-case-list button.active {
+  background: var(--ink);
+  color: var(--paper-strong);
+}
+
+.review-case-list span,
+.review-case-list small {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+}
+
+.review-case-list span {
+  color: var(--orange-dark);
+}
+
+.review-case-list strong,
+.review-case-list small {
+  grid-column: 1;
+}
+
+.review-case-list small {
+  color: var(--muted);
+}
+
+.review-case-list svg {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  align-self: center;
+}
+
+.review-case-detail {
+  min-width: 0;
+  padding: 26px;
+}
+
+.review-case-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+}
+
+.review-case-title h3 {
+  max-width: 700px;
+  margin: 8px 0 0;
+  font-size: 27px;
+  letter-spacing: -0.04em;
+}
+
+.review-case-title > strong {
+  padding: 8px 10px;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+}
+
+.review-case-title > strong.passed {
+  color: var(--green);
+}
+
+.review-case-title > strong.failed {
+  color: var(--orange-dark);
+}
+
+.review-evidence-grid,
+.review-output {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--ink);
+  border-left: 1px solid var(--ink);
+}
+
+.review-evidence-grid section,
+.review-output section {
+  min-height: 150px;
+  padding: 18px;
+  border-right: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+.review-evidence-grid p,
+.review-evidence-grid li,
+.review-output li {
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.review-evidence-grid ul,
+.review-output ul {
+  margin: 14px 0 0;
+  padding-left: 17px;
+}
+
+.review-evidence-grid small {
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+}
+
+.review-rubric {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--ink);
+}
+
+.review-rubric-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.review-rubric-heading strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.review-rubric fieldset {
+  margin: 0;
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.review-rubric legend {
+  float: left;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.review-rubric fieldset div {
+  display: flex;
+}
+
+.review-rubric fieldset button {
+  width: 38px;
+  height: 32px;
+  border: 1px solid var(--ink);
+  border-right: 0;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.review-rubric fieldset button:last-child {
+  border-right: 1px solid var(--ink);
+}
+
+.review-rubric fieldset button.active {
+  background: var(--ink);
+  color: var(--paper-strong);
+}
+
+.review-rubric label {
+  display: block;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+}
+
+.review-rubric textarea {
+  width: 100%;
+  min-height: 100px;
+  margin-top: 8px;
+  padding: 12px;
+  resize: vertical;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-manrope), sans-serif;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.review-save-row {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.review-save-row span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.review-save-row button {
+  min-width: 170px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper-strong);
+  font-size: 9px;
+  font-weight: 800;
 }
 
 .evaluation-history-list article:last-child {
@@ -2563,9 +2855,14 @@ button:disabled {
   }
 
   .evaluation-run-evidence,
-  .evaluation-run-actor {
+  .evaluation-run-actor,
+  .evaluation-open-button {
     grid-column: 2;
     text-align: left;
+  }
+
+  .review-layout {
+    grid-template-columns: 210px minmax(0, 1fr);
   }
 }
 
@@ -2650,8 +2947,38 @@ button:disabled {
   }
 
   .evaluation-run-evidence,
-  .evaluation-run-actor {
+  .evaluation-run-actor,
+  .evaluation-open-button {
     grid-column: 1;
+  }
+
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .review-case-list {
+    max-height: 270px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .review-case-detail {
+    padding: 20px;
+  }
+
+  .review-case-title,
+  .review-save-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .review-evidence-grid,
+  .review-output {
+    grid-template-columns: 1fr;
+  }
+
+  .review-save-row button {
+    width: 100%;
   }
 }
 

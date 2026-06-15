@@ -16,6 +16,9 @@ export type EvaluationDimension =
 export type EvaluationResult = {
   caseId: string;
   scenario: EvaluationCase["scenario"];
+  summary: string;
+  sourceEvidence: string[];
+  analysis: InvestigationAnalysis;
   score: number;
   passed: boolean;
   checks: Record<EvaluationDimension, boolean>;
@@ -78,6 +81,9 @@ export function evaluateInvestigation(
   return {
     caseId: testCase.id,
     scenario: testCase.scenario,
+    summary: testCase.paymentCase.summary,
+    sourceEvidence: testCase.paymentCase.evidence,
+    analysis,
     score,
     passed: score >= 10 && checks["Financial safety"],
     checks,

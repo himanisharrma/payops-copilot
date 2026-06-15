@@ -62,4 +62,13 @@ describe("payment investigation evaluation harness", () => {
       scenarios.reduce((total, scenario) => total + scenario.total, 0),
     ).toBe(30);
   });
+
+  it("keeps source evidence and generated output with each case result", () => {
+    const first = evaluation.results[0];
+
+    expect(first.summary).toBeTruthy();
+    expect(first.sourceEvidence.length).toBeGreaterThan(0);
+    expect(first.analysis.supportingEvidence).toEqual(first.sourceEvidence);
+    expect(first.analysis.limitations.length).toBeGreaterThan(0);
+  });
 });

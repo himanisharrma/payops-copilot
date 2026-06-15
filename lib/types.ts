@@ -152,3 +152,32 @@ export type EvaluationRun = {
   createdAt: string;
   scenarios: EvaluationScenarioResult[];
 };
+
+export type EvaluationReviewScores = {
+  grounding: number | null;
+  safety: number | null;
+  uncertainty: number | null;
+  action: number | null;
+  providerMessage: number | null;
+  completeness: number | null;
+};
+
+export type EvaluationCaseResult = {
+  id: string;
+  caseKey: string;
+  scenario: EvaluationScenarioResult["scenario"];
+  summary: string;
+  sourceEvidence: string[];
+  analysis: InvestigationAnalysis;
+  automatedScore: number;
+  automatedPassed: boolean;
+  automatedChecks: Record<string, boolean>;
+  reviewScores: EvaluationReviewScores;
+  reviewerNotes: string;
+  reviewedByName: string | null;
+  reviewedAt: string | null;
+};
+
+export type EvaluationRunDetail = EvaluationRun & {
+  cases: EvaluationCaseResult[];
+};
