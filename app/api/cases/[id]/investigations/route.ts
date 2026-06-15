@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { investigateCase } from "@/lib/ai-investigator";
-import { recordAuditEvent } from "@/lib/modules/audit/repository";
-import { getCase } from "@/lib/modules/cases/repository";
-import { saveInvestigation } from "@/lib/modules/investigations/repository";
 import { accessErrorResponse, requireActor } from "@/lib/access";
+import { DomainError } from "@/lib/modules/errors";
+import { generateInvestigation } from "@/lib/modules/investigations/service";
 
 export async function POST(
   _request: Request,
@@ -12,34 +10,19 @@ export async function POST(
   try {
     const actor = await requireActor(["admin", "analyst"]);
     const { id } = await context.params;
-    const paymentCase = await getCase(id, actor.organizationId);
-    if (!paymentCase) {
-      return NextResponse.json({ error: "Case not found." }, { status: 404 });
-    }
-
-    const result = await investigateCase(paymentCase);
-    const investigationId = await saveInvestigation(id, result.analysis, result);
-    await recordAuditEvent({
-      organizationId: actor.organizationId,
-      actorUserId: actor.id,
-      actorName: actor.name,
-      action: "investigation.generated",
-      entityType: "ai_investigation",
-      entityId: investigationId,
-      details: {
-        provider: result.provider,
-        model: result.model,
-        promptVersion: result.promptVersion,
-        caseId: id,
-      },
-    });
     return NextResponse.json(
-      { case: await getCase(id, actor.organizationId) },
+      { case: await generateInvestigation(id, actor) },
       { status: 201 },
     );
   } catch (error) {
     const accessResponse = accessErrorResponse(error);
     if (accessResponse) return accessResponse;
+    if (error instanceof DomainError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
+    }
     console.error(error);
     return NextResponse.json(
       { error: "The investigation could not be generated." },

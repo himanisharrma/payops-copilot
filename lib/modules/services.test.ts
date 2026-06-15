@@ -5,6 +5,7 @@ import {
   validateEvaluationReview,
 } from "./evaluations/service";
 import { DomainError } from "./errors";
+import { validateInvestigationReview } from "./investigations/service";
 import { validatePaymentWorkflowPatch } from "./payment-workflows/service";
 import type { PaymentWorkflow } from "../types";
 
@@ -94,5 +95,30 @@ describe("modular backend services", () => {
         completeness: 2,
       }),
     ).toThrow(DomainError);
+  });
+
+  it("accepts valid investigation review changes", () => {
+    expect(() =>
+      validateInvestigationReview({
+        approvalStatus: "approved",
+        feedbackRating: "helpful",
+        feedbackNotes: "Grounded in the supplied evidence.",
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects empty and invalid investigation review changes", () => {
+    expect(() => validateInvestigationReview(null)).toThrow(
+      "Investigation review must be an object.",
+    );
+    expect(() => validateInvestigationReview({})).toThrow(DomainError);
+    expect(() => validateInvestigationReview({ unsupported: true })).toThrow(
+      "Provide an investigation review change.",
+    );
+    expect(() =>
+      validateInvestigationReview({
+        approvalStatus: "accepted" as "approved",
+      }),
+    ).toThrow("Invalid approval.");
   });
 });

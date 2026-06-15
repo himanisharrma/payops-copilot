@@ -1,28 +1,28 @@
 # By the Numbers
 
 > Every implemented-project figure below was measured from the AI-quality
-> working snapshot prepared on June 15, 2026. It is repository evidence, not a
+> working snapshot prepared on June 16, 2026. It is repository evidence, not a
 > production-performance claim.
 
 ## Delivery
 
 | Metric | Value | Evidence |
 | --- | --- | --- |
-| Build window represented in Git | June 12-15, 2026 | `git log --reverse` |
+| Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
 | Product milestones | 10 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
 | Latest product milestone | Refund and chargeback operations | commit `ae7cea0`, migration `009` |
-| Latest architecture milestone | Domain service layers | commit `3bcf4ee` |
+| Latest architecture milestone | Investigation domain service | `lib/modules/investigations/service.ts` |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 104 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 6,468 | repository file list piped to `wc -l` |
+| Repository files | 105 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 6,562 | repository file list piped to `wc -l` |
 | Next.js API route files | 14 | `find app/api -name route.ts` |
 | PostgreSQL migrations | 9 | `db/migrations/` |
-| Automated test cases | 24 | Vitest output |
+| Automated test cases | 26 | Vitest output |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 8 | Adds `/refunds-disputes` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
@@ -42,7 +42,7 @@
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
 | Backend domain modules | 7 repositories under `lib/modules/` |
-| Domain service layers | 3: payment workflows, cases, evaluations |
+| Domain service layers | 4: payment workflows, cases, evaluations, investigations |
 | Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
@@ -58,7 +58,7 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 6 test files, 24 tests passing
+npm test       -> 6 test files, 26 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```

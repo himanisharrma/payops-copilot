@@ -14,7 +14,7 @@ API route (transport and request validation)
 | --- | --- | --- | --- |
 | `reconciliation` | Yes | Policy remains in deterministic engine | Runs, items, and run history |
 | `cases` | Yes | Yes | Ownership, priority, status, SLA, and audited updates |
-| `investigations` | Yes | No | AI investigation persistence and human review |
+| `investigations` | Yes | Yes | AI execution, persistence, review validation, and audit |
 | `evaluations` | Yes | Yes | Runs, case results, reviewer scoring, and audit |
 | `payment-workflows` | Yes | Yes | Refunds, chargebacks, evidence gates, timelines, and audit |
 | `audit` | Yes | No | Organization-scoped writes and administrator reads |
