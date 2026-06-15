@@ -122,17 +122,18 @@ end to end.
 
 ## Roadmap
 
-### Now: evaluate model quality
+### Now: produce model-quality evidence
 
-- Run OpenAI model output through the versioned 30-case synthetic dataset.
+- Configure a controlled API key and execute the implemented 30-case OpenAI run.
 - Add two-reviewer human scoring for grounding, uncertainty, and action quality.
 - Add reviewer assignment, disagreement resolution, and aggregate human scores.
 - Expand adversarial tests before changing the default model or instructions.
 - Turn approved analyst corrections into anonymized synthetic regression cases.
 
 The evaluation design and initial release thresholds are documented in
-[AI Model Evaluation](AI-MODEL-EVALUATION.md). The deterministic fallback now
-has an executable baseline; model and human evaluation remain the next slice.
+[AI Model Evaluation](AI-MODEL-EVALUATION.md). Deterministic and guarded model
+execution are implemented; actual model evidence and representative
+two-reviewer scoring remain the next slice.
 
 ### Next: deepen payment operations
 

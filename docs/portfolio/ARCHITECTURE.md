@@ -80,6 +80,7 @@ The migration chain is append-only:
 | `005_ai_versioning.sql` | Prompt version metadata for investigations |
 | `006_evaluation_runs.sql` | Organization-scoped evaluation and scenario history |
 | `007_evaluation_case_reviews.sql` | Case outputs and attributable human rubric reviews |
+| `008_model_evaluation_metrics.sql` | Run and case latency plus token usage |
 
 ## 3. Identity, organization, and roles
 
@@ -142,6 +143,8 @@ A Zod-validated object containing:
 - Provider messages request confirmation rather than assign fault.
 - The Responses API call uses `store: false`.
 - No API key produces a visible deterministic fallback.
+- Live evaluation is a separate explicit action; it never silently falls back.
+- Evaluation runs capture model, duration, and token usage at run and case level.
 - The UI requires human approval or rejection.
 - The system has no tool for refunds, payouts, or financial-record changes.
 
@@ -184,6 +187,7 @@ urgency.
 | Role lacks permission | `403` |
 | Organization does not own entity | Not found or unchanged |
 | OpenAI key absent | Deterministic fallback |
+| OpenAI evaluation key absent | Paid model action is disabled and API returns `409` |
 | Model output fails schema | Investigation request fails instead of storing malformed output |
 
 ## Production evolution

@@ -9,18 +9,18 @@
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-15, 2026 | `git log --reverse` |
-| Product milestones | 8 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 9 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Case-level human evaluation review | nested evaluation APIs, migration `007` |
+| Latest product milestone | Guarded OpenAI model evaluation | Responses API execution, migration `008` |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 83 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 4,921 | repository file list piped to `wc -l` |
+| Repository files | 84 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 5,163 | repository file list piped to `wc -l` |
 | Next.js API route files | 12 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 7 | `db/migrations/` |
+| PostgreSQL migrations | 8 | `db/migrations/` |
 | Automated test cases | 13 | `rg '\\bit\\(' --glob '*.test.ts'` |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 7 | Adds `/quality` to the six original pages |
@@ -29,6 +29,7 @@
 | Persisted scenario rows per run | 7 | one summary for each evaluation scenario |
 | Persisted case rows per new run | 30 | source evidence, output, checks, and review fields |
 | Human rubric dimensions | 6 | each scored from 0 to 2 |
+| Completed OpenAI evaluation runs | 0 | no API key configured at snapshot |
 
 ## Product surface
 
@@ -69,6 +70,8 @@ Browser verification also exercised:
 - audit-event creation;
 - persisted evaluation execution and history rendering.
 - case-level review scoring, persistence, and audit attribution.
+- guarded model-run state and a 390px layout with no horizontal overflow;
+- a new persisted deterministic run after migration `008`.
 
 ## What is not measured
 

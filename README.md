@@ -21,7 +21,7 @@
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Build evidence** | 8 product milestones, 83 repository files, 12 API routes, 7 migrations, and 13 tests at the human-review snapshot |
+| **Build evidence** | 9 product milestones, 84 repository files, 12 API routes, 8 migrations, and 13 tests at the model-evaluation snapshot |
 
 ## Why this exists
 
@@ -68,6 +68,8 @@ to production gateways or move money.
 12. Runs a 30-case synthetic AI-quality baseline with versioned prompt metadata.
 13. Persists organization-scoped evaluation runs, scenario results, and audit evidence.
 14. Stores case-level outputs and supports attributable six-dimension human review.
+15. Runs the same 30-case suite against OpenAI on explicit request and records
+    latency and token usage at run and case level.
 
 ## The product judgment
 
@@ -156,7 +158,7 @@ For the five-minute walkthrough, use the
 | `POST` | `/api/cases/:id/investigations` | Generate an investigation |
 | `PATCH` | `/api/investigations/:id` | Review or rate an investigation |
 | `GET` | `/api/audit` | List audit events for administrators |
-| `GET/POST` | `/api/evaluations` | List or run organization-scoped AI evaluations |
+| `GET/POST` | `/api/evaluations` | List or run deterministic or guarded OpenAI evaluations |
 | `GET` | `/api/evaluations/:id` | Inspect case-level evaluation evidence |
 | `PATCH` | `/api/evaluations/:id/cases/:caseId` | Save a human rubric review |
 | `GET` | `/api/health` | Check application and database health |
@@ -174,8 +176,9 @@ npm run eval
 npm run build
 ```
 
-The current suite covers reconciliation behavior, deterministic investigation
-fallbacks, and SLA policy. Portfolio claims are intentionally bounded:
+The current suite covers reconciliation, deterministic investigations, SLA
+policy, and the 30-case quality baseline. Portfolio claims are intentionally
+bounded:
 
 - all data is synthetic;
 - no production payment provider is connected;
@@ -227,7 +230,8 @@ constraints, and completion conditions; encode durable repository guidance in
 
 ## Roadmap
 
-- Add human-scored OpenAI model runs to the synthetic evaluation harness.
+- Configure an API key, run the guarded OpenAI evaluation, and complete
+  two-reviewer scoring before making a model-quality claim.
 - Feed approved analyst corrections into new anonymized evaluation cases.
 - Add refunds, chargebacks, and webhook event timelines.
 - Add configurable business calendars and escalation notifications.

@@ -464,6 +464,12 @@ export async function saveEvaluationRun(
       checksTotal: number;
       criticalSafetyFailures: number;
     };
+    durationMs: number;
+    usage: {
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+    };
     results: Array<{
       caseId: string;
       scenario: EvaluationScenarioResult["scenario"];
@@ -473,6 +479,12 @@ export async function saveEvaluationRun(
       score: number;
       passed: boolean;
       checks: Record<string, boolean>;
+      latencyMs?: number;
+      usage?: {
+        inputTokens: number;
+        outputTokens: number;
+        totalTokens: number;
+      };
     }>;
   },
   scenarios: EvaluationScenarioResult[],
@@ -487,8 +499,9 @@ export async function saveEvaluationRun(
       `INSERT INTO evaluation_runs (
         organization_id, dataset_version, prompt_version, provider, model,
         total_cases, passing_cases, pass_rate, checks_passed, checks_total,
-        critical_safety_failures, created_by, created_by_name
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        critical_safety_failures, duration_ms, input_tokens, output_tokens,
+        total_tokens, created_by, created_by_name
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING id`,
       [
         actor.organizationId,
@@ -502,6 +515,10 @@ export async function saveEvaluationRun(
         evaluation.summary.checksPassed,
         evaluation.summary.checksTotal,
         evaluation.summary.criticalSafetyFailures,
+        evaluation.durationMs,
+        evaluation.usage.inputTokens,
+        evaluation.usage.outputTokens,
+        evaluation.usage.totalTokens,
         actor.id,
         actor.name,
       ],
@@ -528,8 +545,9 @@ export async function saveEvaluationRun(
       await client.query(
         `INSERT INTO evaluation_case_results (
           evaluation_run_id, case_key, scenario, case_summary, source_evidence,
-          generated_analysis, automated_score, automated_passed, automated_checks
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          generated_analysis, automated_score, automated_passed, automated_checks,
+          latency_ms, input_tokens, output_tokens, total_tokens
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [
           inserted.rows[0].id,
           result.caseId,
@@ -540,6 +558,10 @@ export async function saveEvaluationRun(
           result.score,
           result.passed,
           JSON.stringify(result.checks),
+          result.latencyMs ?? null,
+          result.usage?.inputTokens ?? null,
+          result.usage?.outputTokens ?? null,
+          result.usage?.totalTokens ?? null,
         ],
       );
     }
@@ -565,6 +587,10 @@ export async function getEvaluationRun(
     automated_score: number;
     automated_passed: boolean;
     automated_checks: Record<string, boolean>;
+    latency_ms: number | null;
+    input_tokens: number | null;
+    output_tokens: number | null;
+    total_tokens: number | null;
     grounding_score: number | null;
     safety_score: number | null;
     uncertainty_score: number | null;
@@ -595,6 +621,10 @@ export async function getEvaluationRun(
       automatedScore: row.automated_score,
       automatedPassed: row.automated_passed,
       automatedChecks: row.automated_checks,
+      latencyMs: row.latency_ms,
+      inputTokens: row.input_tokens,
+      outputTokens: row.output_tokens,
+      totalTokens: row.total_tokens,
       reviewScores: {
         grounding: row.grounding_score,
         safety: row.safety_score,
@@ -672,6 +702,10 @@ export async function listEvaluationRuns(
     checks_passed: number;
     checks_total: number;
     critical_safety_failures: number;
+    duration_ms: number | null;
+    input_tokens: number | null;
+    output_tokens: number | null;
+    total_tokens: number | null;
     created_by_name: string;
     created_at: Date;
     scenarios: EvaluationScenarioResult[];
@@ -711,6 +745,10 @@ export async function listEvaluationRuns(
     checksPassed: row.checks_passed,
     checksTotal: row.checks_total,
     criticalSafetyFailures: row.critical_safety_failures,
+    durationMs: row.duration_ms,
+    inputTokens: row.input_tokens,
+    outputTokens: row.output_tokens,
+    totalTokens: row.total_tokens,
     createdByName: row.created_by_name,
     createdAt: row.created_at.toISOString(),
     scenarios: row.scenarios.map((scenario) => ({

@@ -3,6 +3,7 @@ import { accessErrorResponse, requireActor } from "@/lib/access";
 import { paymentInvestigationDataset } from "@/evals/payment-investigations-v1";
 import {
   runDeterministicEvaluation,
+  runOpenAIEvaluation,
   summarizeEvaluationScenarios,
 } from "@/lib/evaluation";
 import {
@@ -10,6 +11,8 @@ import {
   recordAuditEvent,
   saveEvaluationRun,
 } from "@/lib/repository";
+
+export const maxDuration = 300;
 
 export async function GET() {
   try {
@@ -27,10 +30,32 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const actor = await requireActor(["admin", "analyst"]);
-    const evaluation = runDeterministicEvaluation(paymentInvestigationDataset);
+    const payload = (await request.json().catch(() => ({}))) as {
+      provider?: "deterministic" | "openai";
+    };
+    const provider = payload.provider ?? "deterministic";
+    if (provider !== "deterministic" && provider !== "openai") {
+      return NextResponse.json(
+        { error: "Evaluation provider must be deterministic or openai." },
+        { status: 400 },
+      );
+    }
+    if (provider === "openai" && !process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        {
+          error:
+            "OpenAI model evaluation is unavailable until OPENAI_API_KEY is configured.",
+        },
+        { status: 409 },
+      );
+    }
+    const evaluation =
+      provider === "openai"
+        ? await runOpenAIEvaluation(paymentInvestigationDataset)
+        : runDeterministicEvaluation(paymentInvestigationDataset);
     const scenarios = summarizeEvaluationScenarios(evaluation.results);
     const evaluationId = await saveEvaluationRun(evaluation, scenarios, actor);
 
@@ -49,6 +74,8 @@ export async function POST() {
         passRate: evaluation.summary.passRate,
         criticalSafetyFailures:
           evaluation.summary.criticalSafetyFailures,
+        durationMs: evaluation.durationMs,
+        totalTokens: evaluation.usage.totalTokens,
       },
     });
 

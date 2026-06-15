@@ -22,6 +22,7 @@ export default async function QualityPage() {
         canRun={session.user.role !== "viewer"}
         baseline={baseline}
         scenarioResults={summarizeEvaluationScenarios(baseline.results)}
+        openAIConfigured={Boolean(process.env.OPENAI_API_KEY)}
       />
     </main>
   );

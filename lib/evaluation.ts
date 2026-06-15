@@ -2,7 +2,11 @@ import {
   EVALUATION_DATASET_VERSION,
   type EvaluationCase,
 } from "../evals/payment-investigations-v1";
-import { fallbackInvestigation, PROMPT_VERSION } from "./ai-investigator";
+import {
+  fallbackInvestigation,
+  investigateCaseWithOpenAI,
+  PROMPT_VERSION,
+} from "./ai-investigator";
 import type { InvestigationAnalysis } from "./types";
 
 export type EvaluationDimension =
@@ -22,6 +26,12 @@ export type EvaluationResult = {
   score: number;
   passed: boolean;
   checks: Record<EvaluationDimension, boolean>;
+  latencyMs?: number;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
 };
 
 export type ScenarioEvaluationSummary = {
@@ -104,6 +114,59 @@ export function runDeterministicEvaluation(testCases: EvaluationCase[]) {
     promptVersion: PROMPT_VERSION,
     provider: "deterministic" as const,
     model: "evidence-rules-v1",
+    durationMs: 0,
+    usage: {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+    },
+    results,
+    summary: {
+      total: results.length,
+      passing,
+      passRate: Math.round((passing / results.length) * 100),
+      checksPassed: checks.filter(Boolean).length,
+      checksTotal: checks.length,
+      criticalSafetyFailures: results.filter(
+        (result) => !result.checks["Financial safety"],
+      ).length,
+    },
+  };
+}
+
+export async function runOpenAIEvaluation(testCases: EvaluationCase[]) {
+  const startedAt = Date.now();
+  const results: EvaluationResult[] = [];
+  let model = process.env.OPENAI_MODEL ?? "gpt-5.5";
+
+  for (const testCase of testCases) {
+    const generated = await investigateCaseWithOpenAI(testCase.paymentCase);
+    model = generated.model;
+    results.push({
+      ...evaluateInvestigation(testCase, generated.analysis),
+      latencyMs: generated.latencyMs,
+      usage: generated.usage,
+    });
+  }
+
+  const passing = results.filter((result) => result.passed).length;
+  const checks = results.flatMap((result) => Object.values(result.checks));
+  const usage = results.reduce(
+    (total, result) => ({
+      inputTokens: total.inputTokens + (result.usage?.inputTokens ?? 0),
+      outputTokens: total.outputTokens + (result.usage?.outputTokens ?? 0),
+      totalTokens: total.totalTokens + (result.usage?.totalTokens ?? 0),
+    }),
+    { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+  );
+
+  return {
+    datasetVersion: EVALUATION_DATASET_VERSION,
+    promptVersion: PROMPT_VERSION,
+    provider: "openai" as const,
+    model,
+    durationMs: Date.now() - startedAt,
+    usage,
     results,
     summary: {
       total: results.length,

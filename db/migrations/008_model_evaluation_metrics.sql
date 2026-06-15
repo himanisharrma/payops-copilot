@@ -1,0 +1,11 @@
+ALTER TABLE evaluation_runs
+  ADD COLUMN IF NOT EXISTS duration_ms INTEGER,
+  ADD COLUMN IF NOT EXISTS input_tokens INTEGER,
+  ADD COLUMN IF NOT EXISTS output_tokens INTEGER,
+  ADD COLUMN IF NOT EXISTS total_tokens INTEGER;
+
+ALTER TABLE evaluation_case_results
+  ADD COLUMN IF NOT EXISTS latency_ms INTEGER,
+  ADD COLUMN IF NOT EXISTS input_tokens INTEGER,
+  ADD COLUMN IF NOT EXISTS output_tokens INTEGER,
+  ADD COLUMN IF NOT EXISTS total_tokens INTEGER;

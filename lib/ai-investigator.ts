@@ -40,8 +40,35 @@ export async function investigateCase(paymentCase: OperationsCase): Promise<{
     };
   }
 
+  const result = await investigateCaseWithOpenAI(paymentCase);
+  return {
+    analysis: result.analysis,
+    provider: "openai",
+    model: result.model,
+    promptVersion: PROMPT_VERSION,
+  };
+}
+
+export async function investigateCaseWithOpenAI(
+  paymentCase: OperationsCase,
+): Promise<{
+  analysis: InvestigationAnalysis;
+  model: string;
+  promptVersion: string;
+  latencyMs: number;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
+}> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is not configured.");
+  }
+
   const model = process.env.OPENAI_MODEL ?? "gpt-5.5";
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const startedAt = Date.now();
   const response = await client.responses.parse({
     model,
     instructions,
@@ -58,6 +85,7 @@ export async function investigateCase(paymentCase: OperationsCase): Promise<{
       analystNotes: paymentCase.notes,
     }),
     reasoning: { effort: "low" },
+    max_output_tokens: 1200,
     text: {
       format: zodTextFormat(InvestigationSchema, "payment_investigation"),
     },
@@ -70,9 +98,14 @@ export async function investigateCase(paymentCase: OperationsCase): Promise<{
 
   return {
     analysis: response.output_parsed,
-    provider: "openai",
     model,
     promptVersion: PROMPT_VERSION,
+    latencyMs: Date.now() - startedAt,
+    usage: {
+      inputTokens: response.usage?.input_tokens ?? 0,
+      outputTokens: response.usage?.output_tokens ?? 0,
+      totalTokens: response.usage?.total_tokens ?? 0,
+    },
   };
 }
 

@@ -148,6 +148,10 @@ export type EvaluationRun = {
   checksPassed: number;
   checksTotal: number;
   criticalSafetyFailures: number;
+  durationMs: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
   createdByName: string;
   createdAt: string;
   scenarios: EvaluationScenarioResult[];
@@ -172,6 +176,10 @@ export type EvaluationCaseResult = {
   automatedScore: number;
   automatedPassed: boolean;
   automatedChecks: Record<string, boolean>;
+  latencyMs: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
   reviewScores: EvaluationReviewScores;
   reviewerNotes: string;
   reviewedByName: string | null;

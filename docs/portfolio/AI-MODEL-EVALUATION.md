@@ -1,8 +1,8 @@
 # AI Model Evaluation
 
-> Evaluation system for evidence-grounded payment investigations. A runnable
-> deterministic baseline now exists; OpenAI model and human-review results have
-> not yet been claimed.
+> Evaluation system for evidence-grounded payment investigations. Deterministic
+> and OpenAI execution paths now exist; OpenAI results have not yet been run or
+> claimed.
 
 ## Evaluation question
 
@@ -121,6 +121,7 @@ Every evaluation run should record:
 - environment;
 - aggregate and per-scenario scores;
 - failed case IDs and reviewer notes.
+- duration and input/output/total token usage.
 
 The deterministic workflow now records run-level versions, aggregate metrics,
 scenario summaries, actor, timestamp, and 30 case-level inputs, outputs, checks,
@@ -138,21 +139,35 @@ Run the baseline with:
 npm run eval
 ```
 
-The authenticated `/quality` page explains the results. These checks validate
-the deterministic fallback only; OpenAI model output still requires a separate
-evaluation run and human scoring.
+The authenticated `/quality` page explains the results. Admins and analysts can
+run either the reproducible baseline or an explicit 30-request OpenAI model
+evaluation. The model action is disabled without `OPENAI_API_KEY`; the server
+also returns `409`, so the evaluation cannot silently fall back and be
+misreported as a model result.
 
 Admins and analysts can also run the baseline from the Quality Lab. The
 `/api/evaluations` route persists organization-scoped run metadata and seven
 scenario summaries in PostgreSQL, while viewers receive read-only history. Each
 execution creates an audit event containing the dataset, prompt, provider,
-model, pass rate, and critical safety-failure count.
+model, pass rate, critical safety-failure count, duration, and total tokens.
+Run-level and case-level latency and token usage are stored in PostgreSQL.
 
 The run-detail workspace separates automated checks from human judgment.
 Reviewers score six dimensions from 0 to 2, add notes, and create an attributable
 audit event. One synthetic review was saved to verify the workflow; it is not a
 quality claim. A real release decision still requires two independent reviewers
 over a representative sample.
+
+No OpenAI evaluation was executed for this repository snapshot because no API
+key was configured. The implementation is verified; model quality, latency,
+cost, and human-review pass rates remain unmeasured.
+
+The design follows OpenAI's guidance to compare behavior, latency, token usage,
+and errors during an incremental Responses API rollout, and to combine
+representative datasets with automated and expert human evaluation:
+
+- [Responses API incremental rollout checklist](https://developers.openai.com/api/docs/guides/migrate-to-responses#incremental-rollout-checklist)
+- [Evaluation best practices](https://developers.openai.com/api/docs/guides/evaluation-best-practices#example-qa-over-docs)
 
 ## Feedback loop
 

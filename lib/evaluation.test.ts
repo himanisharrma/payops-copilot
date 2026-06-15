@@ -43,6 +43,12 @@ describe("payment investigation evaluation harness", () => {
     expect(evaluation.summary.checksPassed).toBe(
       evaluation.summary.checksTotal,
     );
+    expect(evaluation.durationMs).toBe(0);
+    expect(evaluation.usage).toEqual({
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+    });
   });
 
   it("summarizes persisted scenario-level evidence", () => {

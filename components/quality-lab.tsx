@@ -37,6 +37,7 @@ export function QualityLab({
   canRun,
   baseline,
   scenarioResults,
+  openAIConfigured,
 }: {
   initialRuns: EvaluationRun[];
   canRun: boolean;
@@ -53,9 +54,12 @@ export function QualityLab({
     };
   };
   scenarioResults: ScenarioEvaluationSummary[];
+  openAIConfigured: boolean;
 }) {
   const [runs, setRuns] = useState(initialRuns);
-  const [running, setRunning] = useState(false);
+  const [running, setRunning] = useState<
+    "deterministic" | "openai" | null
+  >(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [savingReview, setSavingReview] = useState(false);
   const [selectedRun, setSelectedRun] = useState<EvaluationRunDetail | null>(
@@ -74,11 +78,15 @@ export function QualityLab({
   const [reviewNotes, setReviewNotes] = useState("");
   const [error, setError] = useState("");
 
-  async function runEvaluation() {
-    setRunning(true);
+  async function runEvaluation(provider: "deterministic" | "openai") {
+    setRunning(provider);
     setError("");
     try {
-      const response = await fetch("/api/evaluations", { method: "POST" });
+      const response = await fetch("/api/evaluations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider }),
+      });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error);
       setRuns(payload.runs);
@@ -87,7 +95,7 @@ export function QualityLab({
         caught instanceof Error ? caught.message : "Evaluation failed.",
       );
     } finally {
-      setRunning(false);
+      setRunning(null);
     }
   }
 
@@ -199,18 +207,47 @@ export function QualityLab({
               initiating user, and audit evidence in PostgreSQL.
             </p>
           </div>
-          <button onClick={runEvaluation} disabled={!canRun || running}>
-            {running ? (
-              <LoaderCircle className="spin" size={17} />
-            ) : (
-              <Play size={17} />
-            )}
-            {running
-              ? "Running evaluation..."
-              : canRun
-                ? "Run baseline"
-                : "Viewer access"}
-          </button>
+          <div className="quality-run-actions">
+            <button
+              onClick={() => runEvaluation("deterministic")}
+              disabled={!canRun || Boolean(running)}
+            >
+              {running === "deterministic" ? (
+                <LoaderCircle className="spin" size={17} />
+              ) : (
+                <Play size={17} />
+              )}
+              {running === "deterministic"
+                ? "Running baseline..."
+                : canRun
+                  ? "Run baseline"
+                  : "Viewer access"}
+            </button>
+            <button
+              className="openai-run-button"
+              onClick={() => runEvaluation("openai")}
+              disabled={!canRun || !openAIConfigured || Boolean(running)}
+              title={
+                openAIConfigured
+                  ? "Runs 30 paid OpenAI API requests"
+                  : "Configure OPENAI_API_KEY to enable model evaluation"
+              }
+            >
+              {running === "openai" ? (
+                <LoaderCircle className="spin" size={17} />
+              ) : (
+                <FlaskConical size={17} />
+              )}
+              {running === "openai"
+                ? "Evaluating model..."
+                : openAIConfigured
+                  ? "Run OpenAI model"
+                  : "OpenAI key required"}
+            </button>
+            <small>
+              Model mode makes 30 API calls and records latency and token usage.
+            </small>
+          </div>
         </div>
         {error && <div className="error-banner">{error}</div>}
 
@@ -333,12 +370,21 @@ export function QualityLab({
                   <p>
                     {run.datasetVersion} · {run.promptVersion}
                   </p>
+                  <span className={`evaluation-provider ${run.provider}`}>
+                    {run.provider}
+                  </span>
                 </div>
                 <div className="evaluation-run-evidence">
                   <span>
                     {run.checksPassed}/{run.checksTotal} checks
                   </span>
                   <span>{run.criticalSafetyFailures} safety failures</span>
+                  {run.totalTokens !== null && run.totalTokens > 0 && (
+                    <span>{run.totalTokens.toLocaleString()} tokens</span>
+                  )}
+                  {run.durationMs !== null && run.durationMs > 0 && (
+                    <span>{(run.durationMs / 1000).toFixed(1)}s duration</span>
+                  )}
                 </div>
                 <div className="evaluation-run-actor">
                   <strong>{run.createdByName}</strong>
@@ -429,6 +475,32 @@ export function QualityLab({
                         {selectedCase.automatedScore}/12 AUTOMATED
                       </strong>
                     </div>
+
+                    {(selectedCase.latencyMs !== null ||
+                      selectedCase.totalTokens !== null) && (
+                      <div className="case-observability">
+                        <span>
+                          LATENCY
+                          <strong>
+                            {selectedCase.latencyMs !== null
+                              ? `${(selectedCase.latencyMs / 1000).toFixed(1)}s`
+                              : "N/A"}
+                          </strong>
+                        </span>
+                        <span>
+                          INPUT
+                          <strong>{selectedCase.inputTokens ?? "N/A"}</strong>
+                        </span>
+                        <span>
+                          OUTPUT
+                          <strong>{selectedCase.outputTokens ?? "N/A"}</strong>
+                        </span>
+                        <span>
+                          TOTAL
+                          <strong>{selectedCase.totalTokens ?? "N/A"}</strong>
+                        </span>
+                      </div>
+                    )}
 
                     <div className="review-evidence-grid">
                       <section>

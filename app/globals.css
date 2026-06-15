@@ -1425,6 +1425,30 @@ footer {
   color: var(--muted);
 }
 
+.quality-run-actions {
+  min-width: 220px;
+  display: grid;
+  gap: 8px;
+}
+
+.quality-run-actions button {
+  width: 100%;
+}
+
+.quality-run-actions .openai-run-button {
+  border-color: var(--orange-dark);
+  background: var(--orange);
+  color: var(--ink);
+}
+
+.quality-run-actions small {
+  max-width: 220px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .quality-metrics {
   margin-top: 26px;
   display: grid;
@@ -1596,6 +1620,19 @@ footer {
   border-bottom: 1px solid var(--line);
 }
 
+.evaluation-provider {
+  width: fit-content;
+  margin-top: 7px;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  text-transform: uppercase;
+}
+
+.evaluation-provider.openai {
+  border-color: var(--orange-dark);
+  color: var(--orange-dark);
+}
+
 .evaluation-open-button {
   height: 38px;
   padding: 0 12px;
@@ -1760,6 +1797,30 @@ footer {
   padding: 18px;
   border-right: 1px solid var(--ink);
   border-bottom: 1px solid var(--ink);
+}
+
+.case-observability {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--ink);
+  border-left: 1px solid var(--ink);
+}
+
+.case-observability span {
+  padding: 12px;
+  border-right: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+}
+
+.case-observability strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--ink);
+  font-size: 10px;
 }
 
 .review-evidence-grid p,
@@ -2942,6 +3003,14 @@ button:disabled {
     width: 100%;
   }
 
+  .quality-run-actions {
+    width: 100%;
+  }
+
+  .quality-run-actions small {
+    max-width: none;
+  }
+
   .evaluation-history-list article {
     grid-template-columns: 1fr;
   }
@@ -2975,6 +3044,10 @@ button:disabled {
   .review-evidence-grid,
   .review-output {
     grid-template-columns: 1fr;
+  }
+
+  .case-observability {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .review-save-row button {

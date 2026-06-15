@@ -10,7 +10,7 @@ team. I knew the operational pain: merchant order reports, gateway exports,
 and bank settlements rarely line up cleanly, and finding a mismatch is only the
 start of the work.
 
-Codex helped convert that knowledge into a working system in eight milestones.
+Codex helped convert that knowledge into a working system in nine milestones.
 The productive pattern was not "ask AI to build an app." It was a repeated
 loop of narrowing the problem, inspecting the current repository, building one
 coherent vertical slice, verifying it in the database and browser, and pushing
@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The eight milestones
+## The nine milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -45,6 +45,7 @@ The dates and commits below come directly from the repository history.
 | June 15, 2026 | AI quality release | Added a 30-case evaluation harness, prompt versioning, and Quality Lab |
 | June 15, 2026 | Evaluation operations release | Persisted evaluation history, scenario results, roles, and audit evidence |
 | June 15, 2026 | Human review release | Added case-level outputs, six-score review, notes, attribution, and audit |
+| June 15, 2026 | Model evaluation release | Added guarded OpenAI execution with latency and token evidence |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -151,6 +152,19 @@ One synthetic case was reviewed during browser verification to prove the
 workflow. That is implementation evidence, not a representative human
 evaluation result.
 
+### Milestone 9: Make model evaluation executable and observable
+
+The same versioned 30-case dataset can now run through the OpenAI Responses API
+from the Quality Lab. This path is explicit rather than automatic: the UI warns
+that it makes 30 paid calls, requires `OPENAI_API_KEY`, and never silently
+substitutes the deterministic fallback.
+
+Each run stores provider, model, duration, input tokens, output tokens, and
+total tokens. Each case stores its own latency and usage alongside the generated
+analysis and automated checks. Migration `008` added the observability fields.
+No OpenAI run was executed during this milestone because no API key was
+configured, so completed model runs and model-quality claims remain zero.
+
 ## The working workflow
 
 This was the recurring delivery loop:
@@ -247,7 +261,7 @@ must all reinforce the same boundary. Safety cannot live in one sentence.
 This is a portfolio MVP, not a production payment system. It has synthetic
 data, local credentials, a simple SLA calendar, and a small test suite. It does
 not ingest provider APIs, initiate refunds, store payment credentials, send
-notifications, or contain a labeled evaluation dataset for the AI assistant.
+notifications, or contain production-derived labeled evaluation data.
 
 Those are not hidden gaps. They are the next product and engineering decisions,
 documented in
