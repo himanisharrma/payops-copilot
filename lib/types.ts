@@ -189,3 +189,52 @@ export type EvaluationCaseResult = {
 export type EvaluationRunDetail = EvaluationRun & {
   cases: EvaluationCaseResult[];
 };
+
+export type PaymentWorkflowType = "refund" | "chargeback";
+export type PaymentWorkflowStatus =
+  | "requested"
+  | "approved"
+  | "processing"
+  | "completed"
+  | "rejected"
+  | "received"
+  | "evidence_due"
+  | "evidence_submitted"
+  | "won"
+  | "lost"
+  | "accepted";
+
+export type EvidenceChecklistItem = {
+  key: string;
+  label: string;
+  complete: boolean;
+};
+
+export type PaymentWorkflowEvent = {
+  id: string;
+  eventType: string;
+  title: string;
+  detail: string;
+  actorName: string;
+  createdAt: string;
+};
+
+export type PaymentWorkflow = {
+  id: string;
+  type: PaymentWorkflowType;
+  externalReference: string;
+  orderId: string;
+  paymentReference: string;
+  amount: number;
+  reason: string;
+  status: PaymentWorkflowStatus;
+  priority: "low" | "medium" | "high";
+  owner: string | null;
+  dueAt: string;
+  evidenceChecklist: EvidenceChecklistItem[];
+  notes: string;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  events: PaymentWorkflowEvent[];
+};

@@ -81,6 +81,7 @@ The migration chain is append-only:
 | `006_evaluation_runs.sql` | Organization-scoped evaluation and scenario history |
 | `007_evaluation_case_reviews.sql` | Case outputs and attributable human rubric reviews |
 | `008_model_evaluation_metrics.sql` | Run and case latency plus token usage |
+| `009_refunds_and_disputes.sql` | Refund/chargeback lifecycles and decision timelines |
 
 ## 3. Identity, organization, and roles
 
@@ -150,7 +151,20 @@ A Zod-validated object containing:
 
 This is an assistance workflow, not an autonomous agent.
 
-## 6. Auditability
+## 6. Refund and chargeback control plane
+
+`payment_workflows` keeps refunds and chargebacks separate from reconciliation
+cases because they have different states and evidence requirements.
+
+- Refund stages: requested, approved, processing, completed, rejected.
+- Chargeback stages: received, evidence due, evidence submitted, won, lost,
+  accepted.
+- Evidence, owner, deadline, priority, value, and notes are organization-scoped.
+- Chargeback evidence cannot be submitted until every checklist item is complete.
+- Every update appends a workflow event and an administrator audit event.
+- The product records decisions but has no integration that moves money.
+
+## 7. Auditability
 
 Important mutations call `recordAuditEvent` with:
 
@@ -165,12 +179,13 @@ Current audited actions include reconciliation creation, case updates,
 investigation generation, and investigation review. The administrator ledger
 is organization-scoped.
 
-## 7. Frontend structure
+## 8. Frontend structure
 
 - `components/payops-workspace.tsx`: upload, demo data, reconciliation results.
 - `components/operations-inbox.tsx`: queue, case detail, SLA, AI review.
 - `components/run-history.tsx`: historical quality and value metrics.
 - `components/audit-log.tsx`: admin audit ledger.
+- `components/payment-lifecycle.tsx`: refunds, chargebacks, evidence, and timeline.
 - `components/app-header.tsx`: role-aware product navigation.
 
 The visual language intentionally resembles an operations console: dense

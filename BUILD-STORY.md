@@ -10,7 +10,7 @@ team. I knew the operational pain: merchant order reports, gateway exports,
 and bank settlements rarely line up cleanly, and finding a mismatch is only the
 start of the work.
 
-Codex helped convert that knowledge into a working system in nine milestones.
+Codex helped convert that knowledge into a working system in ten milestones.
 The productive pattern was not "ask AI to build an app." It was a repeated
 loop of narrowing the problem, inspecting the current repository, building one
 coherent vertical slice, verifying it in the database and browser, and pushing
@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The nine milestones
+## The ten milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -46,6 +46,7 @@ The dates and commits below come directly from the repository history.
 | June 15, 2026 | Evaluation operations release | Persisted evaluation history, scenario results, roles, and audit evidence |
 | June 15, 2026 | Human review release | Added case-level outputs, six-score review, notes, attribution, and audit |
 | June 15, 2026 | Model evaluation release | Added guarded OpenAI execution with latency and token evidence |
+| June 15, 2026 | Payment lifecycle release | Added refunds, chargebacks, evidence gates, deadlines, and timelines |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -162,8 +163,22 @@ substitutes the deterministic fallback.
 Each run stores provider, model, duration, input tokens, output tokens, and
 total tokens. Each case stores its own latency and usage alongside the generated
 analysis and automated checks. Migration `008` added the observability fields.
-No OpenAI run was executed during this milestone because no API key was
-configured, so completed model runs and model-quality claims remain zero.
+No OpenAI run completed during this milestone. A local key later reached the
+API, but the project returned `insufficient_quota`, so completed model runs and
+model-quality claims remain zero.
+
+### Milestone 10: Model refunds and chargebacks as real operations
+
+Refunds and chargebacks were added as distinct lifecycle objects instead of
+being squeezed into reconciliation exceptions. Six synthetic records make the
+workflow understandable immediately: exposure, owners, deadlines, evidence
+completion, stages, notes, and decision history all live in PostgreSQL.
+
+The browser journey exposed a product flaw during verification: a chargeback
+could be moved to `evidence_submitted` while its checklist was only 75%
+complete. The final implementation disables that stage in the UI and rejects
+it at the API until every evidence item is complete. Each accepted change adds
+a workflow timeline event and an organization-scoped audit event.
 
 ## The working workflow
 
@@ -261,7 +276,8 @@ must all reinforce the same boundary. Safety cannot live in one sentence.
 This is a portfolio MVP, not a production payment system. It has synthetic
 data, local credentials, a simple SLA calendar, and a small test suite. It does
 not ingest provider APIs, initiate refunds, store payment credentials, send
-notifications, or contain production-derived labeled evaluation data.
+notifications, provider webhook ingestion, or production-derived labeled
+evaluation data.
 
 Those are not hidden gaps. They are the next product and engineering decisions,
 documented in

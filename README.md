@@ -21,7 +21,7 @@
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Build evidence** | 9 product milestones, 84 repository files, 12 API routes, 8 migrations, and 13 tests at the model-evaluation snapshot |
+| **Build evidence** | 10 product milestones, 91 repository files, 14 API routes, 9 migrations, and 19 tests at the payment-lifecycle snapshot |
 
 ## Why this exists
 
@@ -70,6 +70,8 @@ to production gateways or move money.
 14. Stores case-level outputs and supports attributable six-dimension human review.
 15. Runs the same 30-case suite against OpenAI on explicit request and records
     latency and token usage at run and case level.
+16. Manages synthetic refunds and chargebacks as separate deadline-driven
+    lifecycles with evidence gates, timelines, ownership, and audit events.
 
 ## The product judgment
 
@@ -161,11 +163,14 @@ For the five-minute walkthrough, use the
 | `GET/POST` | `/api/evaluations` | List or run deterministic or guarded OpenAI evaluations |
 | `GET` | `/api/evaluations/:id` | Inspect case-level evaluation evidence |
 | `PATCH` | `/api/evaluations/:id/cases/:caseId` | Save a human rubric review |
+| `GET` | `/api/payment-workflows` | List organization refund and chargeback workflows |
+| `PATCH` | `/api/payment-workflows/:id` | Update stage, owner, evidence, priority, or notes |
 | `GET` | `/api/health` | Check application and database health |
 
 PostgreSQL stores organizations, users, reconciliation runs, row-level items,
 operations cases, AI investigations, evaluation runs, scenario-level results,
-case-level outputs and reviews, audit events, and migration history.
+case-level outputs and reviews, refund and chargeback workflows, decision
+timelines, audit events, and migration history.
 
 ## Quality and safety
 
@@ -233,7 +238,7 @@ constraints, and completion conditions; encode durable repository guidance in
 - Configure an API key, run the guarded OpenAI evaluation, and complete
   two-reviewer scoring before making a model-quality claim.
 - Feed approved analyst corrections into new anonymized evaluation cases.
-- Add refunds, chargebacks, and webhook event timelines.
+- Add provider webhook timelines and refund-reference verification.
 - Add configurable business calendars and escalation notifications.
 - Add provider-specific investigation tools with scoped permissions.
 - Add tamper-evident audit retention and production observability.

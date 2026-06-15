@@ -122,6 +122,7 @@ Close with:
 | --- | --- |
 | Reconcile | `http://127.0.0.1:4317/` |
 | Operations and SLA | `http://127.0.0.1:4317/operations` |
+| Refunds and disputes | `http://127.0.0.1:4317/refunds-disputes` |
 | Historical runs | `http://127.0.0.1:4317/runs` |
 | Administrator audit | `http://127.0.0.1:4317/audit` |
 | Product summary | `http://127.0.0.1:4317/product-brief` |

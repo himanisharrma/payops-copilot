@@ -9,27 +9,29 @@
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-15, 2026 | `git log --reverse` |
-| Product milestones | 9 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 10 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Guarded OpenAI model evaluation | Responses API execution, migration `008` |
+| Latest product milestone | Refund and chargeback operations | lifecycle APIs, migration `009` |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 84 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 5,163 | repository file list piped to `wc -l` |
-| Next.js API route files | 12 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 8 | `db/migrations/` |
-| Automated test cases | 13 | `rg '\\bit\\(' --glob '*.test.ts'` |
+| Repository files | 91 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 6,248 | repository file list piped to `wc -l` |
+| Next.js API route files | 14 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 9 | `db/migrations/` |
+| Automated test cases | 19 | Vitest output |
 | Demo CSV reports | 3 | `public/demo/` |
-| Product pages | 7 | Adds `/quality` to the six original pages |
+| Product pages | 8 | Adds `/refunds-disputes` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
 | Baseline automated checks | 180 | 30 cases x 6 evaluation dimensions |
 | Persisted scenario rows per run | 7 | one summary for each evaluation scenario |
 | Persisted case rows per new run | 30 | source evidence, output, checks, and review fields |
 | Human rubric dimensions | 6 | each scored from 0 to 2 |
-| Completed OpenAI evaluation runs | 0 | no API key configured at snapshot |
+| Completed OpenAI evaluation runs | 0 | API project returned insufficient quota |
+| Synthetic payment lifecycle records | 6 | 3 refunds and 3 chargebacks |
+| Payment lifecycle states | 11 | 5 refund and 6 chargeback states |
 
 ## Product surface
 
@@ -53,7 +55,7 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 4 test files, 13 tests passing
+npm test       -> 5 test files, 19 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -72,6 +74,8 @@ Browser verification also exercised:
 - case-level review scoring, persistence, and audit attribution.
 - guarded model-run state and a 390px layout with no horizontal overflow;
 - a new persisted deterministic run after migration `008`.
+- chargeback evidence completion, stage gating, timeline, and audit writes;
+- refund/chargeback mobile layout at 390px with no horizontal overflow.
 
 ## What is not measured
 

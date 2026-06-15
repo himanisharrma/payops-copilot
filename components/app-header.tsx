@@ -5,6 +5,7 @@ import {
   History,
   ListChecks,
   LogOut,
+  RotateCcw,
   Scale,
 } from "lucide-react";
 import { auth, signOut } from "@/auth";
@@ -12,7 +13,7 @@ import { auth, signOut } from "@/auth";
 export async function AppHeader({
   active,
 }: {
-  active: "operations" | "runs" | "quality" | "audit";
+  active: "operations" | "payments" | "runs" | "quality" | "audit";
 }) {
   const session = await auth();
   return (
@@ -35,6 +36,13 @@ export async function AppHeader({
         >
           <ListChecks size={15} />
           Operations
+        </Link>
+        <Link
+          href="/refunds-disputes"
+          className={`product-nav-link ${active === "payments" ? "active" : ""}`}
+        >
+          <RotateCcw size={15} />
+          Refunds & disputes
         </Link>
         <Link
           href="/runs"

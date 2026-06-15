@@ -137,7 +137,7 @@ two-reviewer scoring remain the next slice.
 
 ### Next: deepen payment operations
 
-- Add refunds and chargebacks as explicit lifecycle objects.
+- Connect refund and chargeback records to provider webhook timelines.
 - Ingest gateway webhook timelines and settlement-cycle metadata.
 - Add provider-specific reconciliation policies behind typed adapters.
 - Add bulk case assignment and operational comments.

@@ -158,9 +158,11 @@ audit event. One synthetic review was saved to verify the workflow; it is not a
 quality claim. A real release decision still requires two independent reviewers
 over a representative sample.
 
-No OpenAI evaluation was executed for this repository snapshot because no API
-key was configured. The implementation is verified; model quality, latency,
-cost, and human-review pass rates remain unmeasured.
+No OpenAI evaluation completed for this repository snapshot. A local,
+untracked API key reached OpenAI, but the project returned
+`insufficient_quota` before the first case completed. The implementation is
+verified; model quality, latency, cost, and human-review pass rates remain
+unmeasured.
 
 The design follows OpenAI's guidance to compare behavior, latency, token usage,
 and errors during an incremental Responses API rollout, and to combine
