@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
 import { accessErrorResponse, requireActor } from "@/lib/access";
 import { paymentInvestigationDataset } from "@/evals/payment-investigations-v1";
 import {
@@ -86,6 +87,18 @@ export async function POST(request: Request) {
   } catch (error) {
     const accessResponse = accessErrorResponse(error);
     if (accessResponse) return accessResponse;
+    if (
+      error instanceof OpenAI.APIError &&
+      error.code === "insufficient_quota"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "OpenAI rejected the evaluation because this API project has no available quota. Add API billing or credits, then run it again.",
+        },
+        { status: 429 },
+      );
+    }
     console.error(error);
     return NextResponse.json(
       { error: "The evaluation run could not be saved." },
