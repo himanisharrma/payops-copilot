@@ -4,6 +4,8 @@ import type {
   AIInvestigation,
   AuditEvent,
   CaseStatus,
+  EvaluationRun,
+  EvaluationScenarioResult,
   InvestigationAnalysis,
   InvestigationApproval,
   OperationsCase,
@@ -442,5 +444,135 @@ export async function listAuditEvents(
     entityId: row.entity_id,
     details: row.details,
     createdAt: row.created_at.toISOString(),
+  }));
+}
+
+export async function saveEvaluationRun(
+  evaluation: {
+    datasetVersion: string;
+    promptVersion: string;
+    provider: EvaluationRun["provider"];
+    model: string;
+    summary: {
+      total: number;
+      passing: number;
+      passRate: number;
+      checksPassed: number;
+      checksTotal: number;
+      criticalSafetyFailures: number;
+    };
+  },
+  scenarios: EvaluationScenarioResult[],
+  actor: {
+    organizationId: string;
+    id: string;
+    name: string;
+  },
+) {
+  return transaction(async (client) => {
+    const inserted = await client.query<{ id: string }>(
+      `INSERT INTO evaluation_runs (
+        organization_id, dataset_version, prompt_version, provider, model,
+        total_cases, passing_cases, pass_rate, checks_passed, checks_total,
+        critical_safety_failures, created_by, created_by_name
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      RETURNING id`,
+      [
+        actor.organizationId,
+        evaluation.datasetVersion,
+        evaluation.promptVersion,
+        evaluation.provider,
+        evaluation.model,
+        evaluation.summary.total,
+        evaluation.summary.passing,
+        evaluation.summary.passRate,
+        evaluation.summary.checksPassed,
+        evaluation.summary.checksTotal,
+        evaluation.summary.criticalSafetyFailures,
+        actor.id,
+        actor.name,
+      ],
+    );
+
+    for (const scenario of scenarios) {
+      await client.query(
+        `INSERT INTO evaluation_scenario_results (
+          evaluation_run_id, scenario, total_cases, passing_cases,
+          average_score, critical_safety_failures
+        ) VALUES ($1,$2,$3,$4,$5,$6)`,
+        [
+          inserted.rows[0].id,
+          scenario.scenario,
+          scenario.total,
+          scenario.passing,
+          scenario.averageScore,
+          scenario.criticalSafetyFailures,
+        ],
+      );
+    }
+    return inserted.rows[0].id;
+  });
+}
+
+export async function listEvaluationRuns(
+  organizationId: string,
+): Promise<EvaluationRun[]> {
+  const result = await query<{
+    id: string;
+    dataset_version: string;
+    prompt_version: string;
+    provider: EvaluationRun["provider"];
+    model: string;
+    total_cases: number;
+    passing_cases: number;
+    pass_rate: number;
+    checks_passed: number;
+    checks_total: number;
+    critical_safety_failures: number;
+    created_by_name: string;
+    created_at: Date;
+    scenarios: EvaluationScenarioResult[];
+  }>(
+    `SELECT er.*,
+       COALESCE(
+         jsonb_agg(
+           jsonb_build_object(
+             'scenario', esr.scenario,
+             'total', esr.total_cases,
+             'passing', esr.passing_cases,
+             'averageScore', esr.average_score,
+             'criticalSafetyFailures', esr.critical_safety_failures
+           ) ORDER BY esr.scenario
+         ) FILTER (WHERE esr.id IS NOT NULL),
+         '[]'::jsonb
+       ) AS scenarios
+     FROM evaluation_runs er
+     LEFT JOIN evaluation_scenario_results esr
+       ON esr.evaluation_run_id = er.id
+     WHERE er.organization_id = $1
+     GROUP BY er.id
+     ORDER BY er.created_at DESC
+     LIMIT 20`,
+    [organizationId],
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    datasetVersion: row.dataset_version,
+    promptVersion: row.prompt_version,
+    provider: row.provider,
+    model: row.model,
+    totalCases: row.total_cases,
+    passingCases: row.passing_cases,
+    passRate: row.pass_rate,
+    checksPassed: row.checks_passed,
+    checksTotal: row.checks_total,
+    criticalSafetyFailures: row.critical_safety_failures,
+    createdByName: row.created_by_name,
+    createdAt: row.created_at.toISOString(),
+    scenarios: row.scenarios.map((scenario) => ({
+      ...scenario,
+      averageScore: Number(scenario.averageScore),
+    })),
   }));
 }

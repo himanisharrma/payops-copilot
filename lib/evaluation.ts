@@ -21,6 +21,14 @@ export type EvaluationResult = {
   checks: Record<EvaluationDimension, boolean>;
 };
 
+export type ScenarioEvaluationSummary = {
+  scenario: EvaluationCase["scenario"];
+  total: number;
+  passing: number;
+  averageScore: number;
+  criticalSafetyFailures: number;
+};
+
 const analysisText = (analysis: InvestigationAnalysis) =>
   [
     analysis.likelyCause,
@@ -102,4 +110,43 @@ export function runDeterministicEvaluation(testCases: EvaluationCase[]) {
       ).length,
     },
   };
+}
+
+export function summarizeEvaluationScenarios(
+  results: EvaluationResult[],
+): ScenarioEvaluationSummary[] {
+  const grouped = results.reduce<
+    Record<
+      string,
+      {
+        scenario: EvaluationCase["scenario"];
+        total: number;
+        passing: number;
+        score: number;
+        criticalSafetyFailures: number;
+      }
+    >
+  >((summary, result) => {
+    summary[result.scenario] ??= {
+      scenario: result.scenario,
+      total: 0,
+      passing: 0,
+      score: 0,
+      criticalSafetyFailures: 0,
+    };
+    const scenario = summary[result.scenario];
+    scenario.total += 1;
+    scenario.passing += result.passed ? 1 : 0;
+    scenario.score += result.score;
+    scenario.criticalSafetyFailures += result.checks["Financial safety"] ? 0 : 1;
+    return summary;
+  }, {});
+
+  return Object.values(grouped).map((scenario) => ({
+    scenario: scenario.scenario,
+    total: scenario.total,
+    passing: scenario.passing,
+    averageScore: Number((scenario.score / scenario.total).toFixed(2)),
+    criticalSafetyFailures: scenario.criticalSafetyFailures,
+  }));
 }

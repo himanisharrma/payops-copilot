@@ -126,7 +126,7 @@ end to end.
 
 - Run OpenAI model output through the versioned 30-case synthetic dataset.
 - Add two-reviewer human scoring for grounding, uncertainty, and action quality.
-- Store evaluation run metadata and per-scenario results.
+- Store per-case model outputs and reviewer scores against each evaluation run.
 - Expand adversarial tests before changing the default model or instructions.
 - Turn approved analyst corrections into anonymized synthetic regression cases.
 

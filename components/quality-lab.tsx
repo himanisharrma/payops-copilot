@@ -1,11 +1,17 @@
+"use client";
+
 import {
   AlertTriangle,
   Check,
   FlaskConical,
+  History,
+  LoaderCircle,
+  Play,
   ShieldCheck,
 } from "lucide-react";
-import { paymentInvestigationDataset } from "@/evals/payment-investigations-v1";
-import { runDeterministicEvaluation } from "@/lib/evaluation";
+import type { ScenarioEvaluationSummary } from "@/lib/evaluation";
+import type { EvaluationRun } from "@/lib/types";
+import { useState } from "react";
 
 const scenarioLabels = {
   amount_mismatch: "Amount mismatch",
@@ -17,19 +23,48 @@ const scenarioLabels = {
   adversarial: "Adversarial notes",
 } as const;
 
-export function QualityLab() {
-  const evaluation = runDeterministicEvaluation(paymentInvestigationDataset);
-  const scenarioResults = Object.entries(
-    evaluation.results.reduce<
-      Record<string, { total: number; passing: number; score: number }>
-    >((grouped, result) => {
-      grouped[result.scenario] ??= { total: 0, passing: 0, score: 0 };
-      grouped[result.scenario].total += 1;
-      grouped[result.scenario].passing += result.passed ? 1 : 0;
-      grouped[result.scenario].score += result.score;
-      return grouped;
-    }, {}),
-  );
+export function QualityLab({
+  initialRuns,
+  canRun,
+  baseline,
+  scenarioResults,
+}: {
+  initialRuns: EvaluationRun[];
+  canRun: boolean;
+  baseline: {
+    datasetVersion: string;
+    promptVersion: string;
+    model: string;
+    summary: {
+      total: number;
+      passRate: number;
+      checksPassed: number;
+      checksTotal: number;
+      criticalSafetyFailures: number;
+    };
+  };
+  scenarioResults: ScenarioEvaluationSummary[];
+}) {
+  const [runs, setRuns] = useState(initialRuns);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState("");
+
+  async function runEvaluation() {
+    setRunning(true);
+    setError("");
+    try {
+      const response = await fetch("/api/evaluations", { method: "POST" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setRuns(payload.runs);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Evaluation failed.",
+      );
+    } finally {
+      setRunning(false);
+    }
+  }
 
   return (
     <>
@@ -48,7 +83,7 @@ export function QualityLab() {
         </div>
         <div className="quality-seal">
           <FlaskConical size={28} />
-          <strong>{evaluation.summary.passRate}%</strong>
+          <strong>{baseline.summary.passRate}%</strong>
           <span>AUTOMATED BASELINE</span>
         </div>
       </section>
@@ -66,22 +101,46 @@ export function QualityLab() {
           </div>
         </div>
 
+        <div className="quality-run-bar">
+          <div>
+            <span>PERSISTED EVALUATION</span>
+            <strong>Run and record this baseline</strong>
+            <p>
+              Saves dataset, prompt, model, aggregate metrics, scenario results,
+              initiating user, and audit evidence in PostgreSQL.
+            </p>
+          </div>
+          <button onClick={runEvaluation} disabled={!canRun || running}>
+            {running ? (
+              <LoaderCircle className="spin" size={17} />
+            ) : (
+              <Play size={17} />
+            )}
+            {running
+              ? "Running evaluation..."
+              : canRun
+                ? "Run baseline"
+                : "Viewer access"}
+          </button>
+        </div>
+        {error && <div className="error-banner">{error}</div>}
+
         <div className="quality-metrics">
           <article>
             <span>VERSIONED CASES</span>
-            <strong>{evaluation.summary.total}</strong>
+            <strong>{baseline.summary.total}</strong>
             <p>Fictional cases across seven scenarios</p>
           </article>
           <article>
             <span>CHECKS PASSED</span>
             <strong>
-              {evaluation.summary.checksPassed}/{evaluation.summary.checksTotal}
+              {baseline.summary.checksPassed}/{baseline.summary.checksTotal}
             </strong>
             <p>Six checks applied to every case</p>
           </article>
           <article>
             <span>SAFETY FAILURES</span>
-            <strong>{evaluation.summary.criticalSafetyFailures}</strong>
+            <strong>{baseline.summary.criticalSafetyFailures}</strong>
             <p>Prohibited claims found in baseline output</p>
           </article>
           <article>
@@ -101,17 +160,17 @@ export function QualityLab() {
               <ShieldCheck size={28} />
             </div>
             <div className="scenario-table">
-              {scenarioResults.map(([scenario, result]) => (
-                <article key={scenario}>
+              {scenarioResults.map((result) => (
+                <article key={result.scenario}>
                   <div>
                     <strong>
-                      {scenarioLabels[scenario as keyof typeof scenarioLabels]}
+                      {scenarioLabels[result.scenario]}
                     </strong>
                     <span>{result.total} synthetic cases</span>
                   </div>
                   <div className="scenario-score">
                     <span>
-                      {Math.round(result.score / result.total)}/12 AVG
+                      {result.averageScore}/12 AVG
                     </span>
                     <strong>
                       <Check size={14} />
@@ -163,10 +222,59 @@ export function QualityLab() {
           </aside>
         </div>
 
+        <section className="evaluation-history">
+          <div className="quality-panel-heading">
+            <div>
+              <span>POSTGRESQL HISTORY</span>
+              <h2>Recorded evaluation runs</h2>
+            </div>
+            <History size={28} />
+          </div>
+          <div className="evaluation-history-list">
+            {runs.map((run) => (
+              <article key={run.id}>
+                <div className="evaluation-run-score">
+                  <strong>{run.passRate}%</strong>
+                  <span>
+                    {run.passingCases}/{run.totalCases} CASES
+                  </span>
+                </div>
+                <div>
+                  <strong>{run.model}</strong>
+                  <p>
+                    {run.datasetVersion} · {run.promptVersion}
+                  </p>
+                </div>
+                <div className="evaluation-run-evidence">
+                  <span>
+                    {run.checksPassed}/{run.checksTotal} checks
+                  </span>
+                  <span>{run.criticalSafetyFailures} safety failures</span>
+                </div>
+                <div className="evaluation-run-actor">
+                  <strong>{run.createdByName}</strong>
+                  <time>
+                    {new Date(run.createdAt).toLocaleString("en-IN", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </time>
+                </div>
+              </article>
+            ))}
+            {!runs.length && (
+              <div className="evaluation-empty">
+                No persisted runs yet. Run the baseline to create the first
+                organization-scoped evaluation record.
+              </div>
+            )}
+          </div>
+        </section>
+
         <footer className="quality-footer">
-          <span>DATASET: {evaluation.datasetVersion}</span>
-          <span>PROMPT: {evaluation.promptVersion}</span>
-          <span>BASELINE: {evaluation.model}</span>
+          <span>DATASET: {baseline.datasetVersion}</span>
+          <span>PROMPT: {baseline.promptVersion}</span>
+          <span>BASELINE: {baseline.model}</span>
           <code>npm run eval</code>
         </footer>
       </section>

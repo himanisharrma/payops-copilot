@@ -78,6 +78,7 @@ The migration chain is append-only:
 | `003_identity_and_audit.sql` | Organizations, users, scoping, audit events |
 | `004_case_sla.sql` | Backfilled deadlines and SLA query index |
 | `005_ai_versioning.sql` | Prompt version metadata for investigations |
+| `006_evaluation_runs.sql` | Organization-scoped evaluation and scenario history |
 
 ## 3. Identity, organization, and roles
 

@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-11%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-12%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -21,7 +21,7 @@
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Build evidence** | 6 product milestones, 78 repository files, 9 API routes, 5 migrations, and 11 tests at the AI-quality snapshot |
+| **Build evidence** | 7 product milestones, 80 repository files, 10 API routes, 6 migrations, and 12 tests at the evaluation-history snapshot |
 
 ## Why this exists
 
@@ -66,6 +66,7 @@ to production gateways or move money.
 10. Generates structured AI investigations with approval and feedback controls.
 11. Records reconciliation, case, and investigation actions in an audit ledger.
 12. Runs a 30-case synthetic AI-quality baseline with versioned prompt metadata.
+13. Persists organization-scoped evaluation runs, scenario results, and audit evidence.
 
 ## The product judgment
 
@@ -154,10 +155,12 @@ For the five-minute walkthrough, use the
 | `POST` | `/api/cases/:id/investigations` | Generate an investigation |
 | `PATCH` | `/api/investigations/:id` | Review or rate an investigation |
 | `GET` | `/api/audit` | List audit events for administrators |
+| `GET/POST` | `/api/evaluations` | List or run organization-scoped AI evaluations |
 | `GET` | `/api/health` | Check application and database health |
 
 PostgreSQL stores organizations, users, reconciliation runs, row-level items,
-operations cases, AI investigations, audit events, and migration history.
+operations cases, AI investigations, evaluation runs, scenario-level results,
+audit events, and migration history.
 
 ## Quality and safety
 

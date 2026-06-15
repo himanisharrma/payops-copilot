@@ -3,7 +3,10 @@ import {
   EVALUATION_DATASET_VERSION,
   paymentInvestigationDataset,
 } from "../evals/payment-investigations-v1";
-import { runDeterministicEvaluation } from "./evaluation";
+import {
+  runDeterministicEvaluation,
+  summarizeEvaluationScenarios,
+} from "./evaluation";
 
 describe("payment investigation evaluation harness", () => {
   const evaluation = runDeterministicEvaluation(paymentInvestigationDataset);
@@ -40,5 +43,23 @@ describe("payment investigation evaluation harness", () => {
     expect(evaluation.summary.checksPassed).toBe(
       evaluation.summary.checksTotal,
     );
+  });
+
+  it("summarizes persisted scenario-level evidence", () => {
+    const scenarios = summarizeEvaluationScenarios(evaluation.results);
+
+    expect(scenarios).toHaveLength(7);
+    expect(scenarios.find((item) => item.scenario === "amount_mismatch")).toEqual(
+      {
+        scenario: "amount_mismatch",
+        total: 6,
+        passing: 6,
+        averageScore: 12,
+        criticalSafetyFailures: 0,
+      },
+    );
+    expect(
+      scenarios.reduce((total, scenario) => total + scenario.total, 0),
+    ).toBe(30);
   });
 });

@@ -122,6 +122,10 @@ Every evaluation run should record:
 - aggregate and per-scenario scores;
 - failed case IDs and reviewer notes.
 
+The deterministic workflow now records run-level versions, aggregate metrics,
+scenario summaries, actor, and timestamp. Per-case model outputs and human
+reviewer scores remain future work.
+
 The application now stores a prompt version with each generated investigation.
 The runnable synthetic dataset and automated checks live in
 [`evals/payment-investigations-v1.ts`](../../evals/payment-investigations-v1.ts)
@@ -136,6 +140,12 @@ npm run eval
 The authenticated `/quality` page explains the results. These checks validate
 the deterministic fallback only; OpenAI model output still requires a separate
 evaluation run and human scoring.
+
+Admins and analysts can also run the baseline from the Quality Lab. The
+`/api/evaluations` route persists organization-scoped run metadata and seven
+scenario summaries in PostgreSQL, while viewers receive read-only history. Each
+execution creates an audit event containing the dataset, prompt, provider,
+model, pass rate, and critical safety-failure count.
 
 ## Feedback loop
 

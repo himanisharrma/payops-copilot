@@ -10,7 +10,7 @@ team. I knew the operational pain: merchant order reports, gateway exports,
 and bank settlements rarely line up cleanly, and finding a mismatch is only the
 start of the work.
 
-Codex helped convert that knowledge into a working system in six milestones.
+Codex helped convert that knowledge into a working system in seven milestones.
 The productive pattern was not "ask AI to build an app." It was a repeated
 loop of narrowing the problem, inspecting the current repository, building one
 coherent vertical slice, verifying it in the database and browser, and pushing
@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The six milestones
+## The seven milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -43,6 +43,7 @@ The dates and commits below come directly from the repository history.
 | June 13, 2026 | `1e9a986` | Added organizations, authentication, roles, and audit controls |
 | June 14, 2026 | `8e083e1` | Added SLA policy, alerts, filters, and deadline auditability |
 | June 15, 2026 | AI quality release | Added a 30-case evaluation harness, prompt versioning, and Quality Lab |
+| June 15, 2026 | Evaluation operations release | Persisted evaluation history, scenario results, roles, and audit evidence |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -120,6 +121,18 @@ comparisons can be reconstructed.
 
 The result is deliberately bounded: passing the deterministic baseline is not
 presented as proof that an OpenAI model has passed human review.
+
+### Milestone 7: Turn evaluation into an accountable workflow
+
+A command-line result is reproducible, but it does not show who ran it or make
+comparisons durable. The next slice added an authenticated product action for
+admins and analysts, while viewers retain read-only access to quality history.
+
+Each run now stores dataset, prompt, provider, model, aggregate checks, seven
+scenario summaries, initiating user, and timestamp in PostgreSQL. The operation
+is organization-scoped, transactional, and recorded as `evaluation.completed`
+in the audit ledger. This creates the data model needed for future model-version
+comparisons without claiming those comparisons have happened yet.
 
 ## The working workflow
 

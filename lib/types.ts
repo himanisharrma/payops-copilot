@@ -125,3 +125,30 @@ export type AuditEvent = {
   details: Record<string, unknown>;
   createdAt: string;
 };
+
+export type EvaluationScenarioResult = {
+  scenario:
+    | ReconciliationStatus
+    | "adversarial";
+  total: number;
+  passing: number;
+  averageScore: number;
+  criticalSafetyFailures: number;
+};
+
+export type EvaluationRun = {
+  id: string;
+  datasetVersion: string;
+  promptVersion: string;
+  provider: "deterministic" | "openai";
+  model: string;
+  totalCases: number;
+  passingCases: number;
+  passRate: number;
+  checksPassed: number;
+  checksTotal: number;
+  criticalSafetyFailures: number;
+  createdByName: string;
+  createdAt: string;
+  scenarios: EvaluationScenarioResult[];
+};

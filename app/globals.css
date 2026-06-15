@@ -1369,6 +1369,62 @@ footer {
   line-height: 1.6;
 }
 
+.quality-run-bar {
+  margin-top: 20px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  border: 1px solid var(--ink);
+  background: var(--paper-strong);
+}
+
+.quality-run-bar > div {
+  max-width: 760px;
+}
+
+.quality-run-bar span {
+  color: var(--orange-dark);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+}
+
+.quality-run-bar strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 19px;
+}
+
+.quality-run-bar p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.quality-run-bar button {
+  min-width: 176px;
+  height: 46px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper-strong);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.quality-run-bar button:disabled {
+  border-color: var(--line);
+  background: var(--line);
+  color: var(--muted);
+}
+
 .quality-metrics {
   margin-top: 26px;
   display: grid;
@@ -1522,6 +1578,66 @@ footer {
   color: var(--muted);
   font-size: 10px;
   line-height: 1.55;
+}
+
+.evaluation-history {
+  margin-top: 32px;
+  border: 1px solid var(--ink);
+  background: var(--paper-strong);
+}
+
+.evaluation-history-list article {
+  min-height: 92px;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 180px 170px;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.evaluation-history-list article:last-child {
+  border-bottom: 0;
+}
+
+.evaluation-run-score strong {
+  display: block;
+  color: var(--green);
+  font-size: 30px;
+  letter-spacing: -0.05em;
+}
+
+.evaluation-history-list span,
+.evaluation-history-list p,
+.evaluation-history-list time {
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+}
+
+.evaluation-history-list p {
+  margin: 6px 0 0;
+}
+
+.evaluation-run-evidence,
+.evaluation-run-actor {
+  display: grid;
+  gap: 7px;
+}
+
+.evaluation-run-actor {
+  text-align: right;
+}
+
+.evaluation-run-actor strong {
+  font-size: 10px;
+}
+
+.evaluation-empty {
+  padding: 34px 20px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
 }
 
 .quality-footer {
@@ -2441,6 +2557,16 @@ button:disabled {
   .quality-grid {
     grid-template-columns: 1fr;
   }
+
+  .evaluation-history-list article {
+    grid-template-columns: 100px 1fr;
+  }
+
+  .evaluation-run-evidence,
+  .evaluation-run-actor {
+    grid-column: 2;
+    text-align: left;
+  }
 }
 
 @media (max-width: 650px) {
@@ -2508,6 +2634,24 @@ button:disabled {
 
   .quality-footer code {
     margin-left: 0;
+  }
+
+  .quality-run-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quality-run-bar button {
+    width: 100%;
+  }
+
+  .evaluation-history-list article {
+    grid-template-columns: 1fr;
+  }
+
+  .evaluation-run-evidence,
+  .evaluation-run-actor {
+    grid-column: 1;
   }
 }
 
