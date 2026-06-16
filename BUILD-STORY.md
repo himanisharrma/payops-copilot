@@ -192,13 +192,14 @@ Routes now import only the module they serve, shared pooling remains in
 `lib/db.ts`, and repository guidance prevents the catch-all file from
 returning. This is a modular monolith, not a microservices claim.
 
-The next refactor moved payment-workflow, case, evaluation, and investigation
-validation plus audit orchestration into service files. Six mutation routes
-became thin HTTP adapters. Focused service tests cover invalid lifecycle jumps,
-chargeback evidence gates, case values, evaluation providers, six-score
-reviews, and malformed or invalid investigation review payloads. The first two
-architecture commits are `eea15a4` and `3bcf4ee`; the investigation service is
-the next modular slice.
+The next refactor moved payment-workflow, case, evaluation, investigation, and
+reconciliation validation plus audit orchestration into service files. Seven
+mutation routes became thin HTTP adapters. Focused service tests cover invalid
+lifecycle jumps, chargeback evidence gates, case values, evaluation providers,
+six-score reviews, malformed investigation reviews, and malformed
+reconciliation requests. The first two architecture commits are `eea15a4` and
+`3bcf4ee`; investigation and reconciliation services continued the modular
+slice.
 
 ## The working workflow
 

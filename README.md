@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-26%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-28%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -22,7 +22,7 @@
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
 | **Backend shape** | Modular monolith with thin routes, domain services, seven repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 10 product milestones, 105 repository files, 14 API routes, 9 migrations, and 26 tests at the service-layer snapshot |
+| **Build evidence** | 10 product milestones, 106 repository files, 14 API routes, 9 migrations, and 28 tests at the service-layer snapshot |
 
 ## Why this exists
 

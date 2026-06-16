@@ -120,10 +120,11 @@ Current modules are reconciliation, cases, investigations, evaluations,
 payment workflows, audit, and system health. This preserves one deployment
 while removing the central repository as a coupling point.
 
-Payment workflows, cases, evaluations, and investigations also have service
-layers. Services validate state transitions and review payloads, coordinate
-persistence and AI execution, and write audit evidence. Their API routes handle
-authentication, JSON parsing, domain-error translation, and HTTP responses.
+Reconciliation, payment workflows, cases, evaluations, and investigations have
+service layers. Services validate state transitions, review payloads, and
+reconciliation requests; coordinate persistence, deterministic execution, and
+AI execution; and write audit evidence. Their API routes handle authentication,
+JSON parsing, domain-error translation, and HTTP responses.
 
 ## 5. SLA as policy
 

@@ -7,6 +7,7 @@ import {
 import { DomainError } from "./errors";
 import { validateInvestigationReview } from "./investigations/service";
 import { validatePaymentWorkflowPatch } from "./payment-workflows/service";
+import { validateReconciliationRequest } from "./reconciliation/service";
 import type { PaymentWorkflow } from "../types";
 
 const chargeback = {
@@ -120,5 +121,36 @@ describe("modular backend services", () => {
         approvalStatus: "accepted" as "approved",
       }),
     ).toThrow("Invalid approval.");
+  });
+
+  it("accepts valid reconciliation requests", () => {
+    expect(() =>
+      validateReconciliationRequest({
+        orders: [{ order_id: "ORD-1" }],
+        gateway: [],
+        settlements: [],
+        sourceType: "demo",
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects malformed reconciliation requests", () => {
+    expect(() => validateReconciliationRequest(null)).toThrow(
+      "Reconciliation request must be an object.",
+    );
+    expect(() =>
+      validateReconciliationRequest({
+        orders: [],
+        gateway: [],
+      }),
+    ).toThrow("Orders, gateway, and settlement records are required.");
+    expect(() =>
+      validateReconciliationRequest({
+        orders: [],
+        gateway: [],
+        settlements: [],
+        sourceType: "provider" as "demo",
+      }),
+    ).toThrow("Source type must be demo or upload.");
   });
 });
