@@ -17,12 +17,12 @@
 | | |
 | --- | --- |
 | **Problem** | Operations teams compare internal orders, gateway exports, and bank settlements across inconsistent spreadsheets |
-| **Product** | A full-stack workspace that reconciles reports, creates cases, tracks SLAs, and records an audit trail |
+| **Product** | A full-stack workspace that profiles provider files, reconciles reports, creates cases, tracks SLAs, and records an audit trail |
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
 | **Backend shape** | Modular monolith with thin routes, domain services, seven repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 10 product milestones, 107 repository files, 14 API routes, 9 migrations, and 28 tests at the service-layer snapshot |
+| **Build evidence** | 10 product milestones, 108 repository files, 14 API routes, 9 migrations, and 30 tests at the provider-adapter snapshot |
 
 ## Why this exists
 
@@ -55,23 +55,26 @@ to production gateways or move money.
 ## What the product does
 
 1. Accepts internal-order, gateway-transaction, and bank-settlement CSV files.
-2. Normalizes common header aliases without silently discarding rows.
-3. Matches records using merchant order IDs and gateway references.
-4. Calculates expected net settlement after gateway fees and GST.
-5. Detects missing gateway rows, duplicate captures, missing settlements,
+2. Profiles generic, Razorpay-style, Cashfree-style, and PayU-style synthetic
+   report formats before matching.
+3. Normalizes common and provider-specific header aliases without silently
+   discarding rows.
+4. Matches records using merchant order IDs and gateway references.
+5. Calculates expected net settlement after gateway fees and GST.
+6. Detects missing gateway rows, duplicate captures, missing settlements,
    pending payments, and amount mismatches.
-6. Persists reconciliation runs and row-level evidence in PostgreSQL.
-7. Converts actionable exceptions into organization-scoped operations cases.
-8. Supports admin, analyst, and read-only viewer roles.
-9. Applies 4-hour, 24-hour, and 72-hour SLAs by priority.
-10. Generates structured AI investigations with approval and feedback controls.
-11. Records reconciliation, case, and investigation actions in an audit ledger.
-12. Runs a 30-case synthetic AI-quality baseline with versioned prompt metadata.
-13. Persists organization-scoped evaluation runs, scenario results, and audit evidence.
-14. Stores case-level outputs and supports attributable six-dimension human review.
-15. Runs the same 30-case suite against OpenAI on explicit request and records
+7. Persists reconciliation runs and row-level evidence in PostgreSQL.
+8. Converts actionable exceptions into organization-scoped operations cases.
+9. Supports admin, analyst, and read-only viewer roles.
+10. Applies 4-hour, 24-hour, and 72-hour SLAs by priority.
+11. Generates structured AI investigations with approval and feedback controls.
+12. Records reconciliation, case, and investigation actions in an audit ledger.
+13. Runs a 30-case synthetic AI-quality baseline with versioned prompt metadata.
+14. Persists organization-scoped evaluation runs, scenario results, and audit evidence.
+15. Stores case-level outputs and supports attributable six-dimension human review.
+16. Runs the same 30-case suite against OpenAI on explicit request and records
     latency and token usage at run and case level.
-16. Manages synthetic refunds and chargebacks as separate deadline-driven
+17. Manages synthetic refunds and chargebacks as separate deadline-driven
     lifecycles with evidence gates, timelines, ownership, and audit events.
 
 ## The product judgment
@@ -188,6 +191,7 @@ quality baseline. Portfolio claims are intentionally bounded:
 
 - all data is synthetic;
 - no production payment provider is connected;
+- provider adapters are synthetic mapping policies, not live integrations;
 - no payment credentials are stored;
 - no money movement is implemented;
 - AI output is assistance, not settlement truth;

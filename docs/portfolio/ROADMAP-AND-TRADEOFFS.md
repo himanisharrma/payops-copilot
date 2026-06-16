@@ -149,6 +149,20 @@ rules that should be testable without HTTP or PostgreSQL.
 **Cost accepted:** the modular monolith now has an additional layer and needs
 clear service-to-repository contracts.
 
+### ADR-13: Synthetic provider adapters before live integrations
+
+**Chose:** typed provider mapping policies for generic, Razorpay-style,
+Cashfree-style, and PayU-style demo files.
+
+**Over:** connecting real provider APIs or accepting arbitrary spreadsheet
+columns without a visible mapping report.
+
+**Why:** provider differences are central to payment operations, but the public
+portfolio must stay credential-free and safe to clone.
+
+**Cost accepted:** the adapters demonstrate extensibility and data-quality
+controls, not production export compatibility.
+
 ## Roadmap
 
 ### Now: produce model-quality evidence
@@ -168,7 +182,8 @@ two-reviewer scoring remain the next slice.
 
 - Connect refund and chargeback records to provider webhook timelines.
 - Ingest gateway webhook timelines and settlement-cycle metadata.
-- Add provider-specific reconciliation policies behind typed adapters.
+- Add sample webhook payloads and provider settlement-cycle fixtures behind the
+  typed adapters.
 - Add bulk case assignment and operational comments.
 - Add configurable business calendars and escalation notifications.
 

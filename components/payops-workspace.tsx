@@ -25,10 +25,12 @@ import Papa from "papaparse";
 import { useMemo, useState } from "react";
 import type {
   RawRecord,
+  ProviderId,
   ReconciliationItem,
   ReconciliationResult,
   ReconciliationStatus,
 } from "@/lib/types";
+import { providerAdapters } from "@/lib/provider-adapters";
 
 type SourceKey = "orders" | "gateway" | "settlements";
 type UploadState = Record<SourceKey, RawRecord[]>;
@@ -118,17 +120,22 @@ export function PayOpsWorkspace({
   });
   const [result, setResult] = useState<ReconciliationResult | null>(null);
   const [selected, setSelected] = useState<ReconciliationItem | null>(null);
+  const [providerId, setProviderId] = useState<ProviderId>("generic");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const ready = Object.values(uploads).every((rows) => rows.length > 0);
+  const selectedProvider = providerAdapters.find(
+    (provider) => provider.id === providerId,
+  )!;
 
   async function reconcile(
     nextUploads = uploads,
     nextFileNames = fileNames,
     nextSourceType: "demo" | "upload" = "upload",
+    nextProviderId = providerId,
   ) {
     setLoading(true);
     setError("");
@@ -139,6 +146,7 @@ export function PayOpsWorkspace({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...nextUploads,
+          providerId: nextProviderId,
           runName: `Settlement run · ${new Date().toLocaleString("en-IN", {
             day: "2-digit",
             month: "short",
@@ -181,8 +189,9 @@ export function PayOpsWorkspace({
         gateway: "gateway.csv",
         settlements: "settlements.csv",
       };
+      setProviderId("generic");
       setFileNames(demoFileNames);
-      await reconcile(nextUploads, demoFileNames, "demo");
+      await reconcile(nextUploads, demoFileNames, "demo", "generic");
     } catch {
       setError("The demo files could not be loaded.");
       setLoading(false);
@@ -305,6 +314,34 @@ export function PayOpsWorkspace({
           </button>
         </div>
 
+        <div className="provider-panel" aria-label="Provider adapter">
+          <div>
+            <p className="eyebrow">PROVIDER ADAPTER</p>
+            <h3>Choose the report format before matching.</h3>
+            <p>{selectedProvider.description}</p>
+          </div>
+          <label>
+            <span>Selected adapter</span>
+            <select
+              value={providerId}
+              onChange={(event) => setProviderId(event.target.value as ProviderId)}
+              disabled={loading || !canEdit}
+            >
+              {providerAdapters.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="provider-assumptions">
+            <span>{selectedProvider.settlementCycle}</span>
+            {selectedProvider.assumptions.slice(0, 2).map((assumption) => (
+              <span key={assumption}>{assumption}</span>
+            ))}
+          </div>
+        </div>
+
         <div className="upload-flow">
           {sourceConfig.map((source, index) => {
             const rows = uploads[source.key];
@@ -409,6 +446,61 @@ export function PayOpsWorkspace({
               })}
             </p>
           </div>
+
+          {result.providerReport && (
+            <div className="provider-report">
+              <div>
+                <p className="eyebrow">PROVIDER QUALITY REPORT</p>
+                <h3>{result.providerReport.providerName}</h3>
+                <span>{result.providerReport.settlementCycle}</span>
+              </div>
+              <div className="quality-counts">
+                <span>
+                  Orders <strong>{result.providerReport.rowCounts.orders}</strong>
+                </span>
+                <span>
+                  Gateway <strong>{result.providerReport.rowCounts.gateway}</strong>
+                </span>
+                <span>
+                  Settlements{" "}
+                  <strong>{result.providerReport.rowCounts.settlements}</strong>
+                </span>
+              </div>
+              <div className="mapping-grid">
+                {Object.entries(result.providerReport.fieldCoverage).map(
+                  ([source, fields]) => (
+                    <div key={source}>
+                      <strong>{source}</strong>
+                      {fields.map((field) => (
+                        <span
+                          key={`${source}-${field.field}`}
+                          className={field.matchedHeader ? "mapped" : "missing"}
+                        >
+                          {field.field}: {field.matchedHeader ?? "unmapped"}
+                        </span>
+                      ))}
+                    </div>
+                  ),
+                )}
+              </div>
+              {result.providerReport.issues.length ? (
+                <div className="quality-issues">
+                  {result.providerReport.issues.map((issue) => (
+                    <p key={`${issue.source}-${issue.code}-${issue.message}`}>
+                      <AlertTriangle size={14} />
+                      <strong>{issue.severity}</strong>
+                      {issue.message}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <div className="quality-clear">
+                  <BadgeCheck size={16} />
+                  All required provider fields mapped for this run.
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="metric-grid">
             <article className="metric-card metric-primary">

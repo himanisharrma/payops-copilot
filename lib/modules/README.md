@@ -12,7 +12,7 @@ API route (transport and request validation)
 
 | Module | Repository | Service | Owns |
 | --- | --- | --- | --- |
-| `reconciliation` | Yes | Yes | Request validation, deterministic execution, persistence, and audit |
+| `reconciliation` | Yes | Yes | Provider profiling, request validation, deterministic execution, persistence, and audit |
 | `cases` | Yes | Yes | Ownership, priority, status, SLA, and audited updates |
 | `investigations` | Yes | Yes | AI execution, persistence, review validation, and audit |
 | `evaluations` | Yes | Yes | Runs, case results, reviewer scoring, and audit |

@@ -1,33 +1,13 @@
 import type {
-  RawRecord,
   ReconciliationItem,
   ReconciliationRequest,
   ReconciliationResult,
 } from "./types";
-
-const aliases = {
-  orderId: ["order_id", "orderid", "merchant_order_id", "merchantorderid"],
-  amount: ["amount", "order_amount", "txn_amount", "transaction_amount", "gross_amount"],
-  status: ["status", "payment_status", "txn_status", "transaction_status"],
-  paymentMode: ["payment_mode", "paymentmethod", "payment_method", "mode"],
-  gatewayReference: ["gateway_ref", "gateway_reference", "payment_id", "txn_id", "transaction_id"],
-  settledAmount: ["settled_amount", "net_amount", "settlement_amount", "net_settlement"],
-  fee: ["fee", "mdr", "gateway_fee", "processing_fee"],
-  tax: ["tax", "gst", "fee_tax"],
-  utr: ["utr", "bank_reference", "bank_ref", "settlement_utr"],
-};
-
-function normalizedKey(key: string) {
-  return key.toLowerCase().trim().replace(/[\s-]+/g, "_");
-}
-
-function read(record: RawRecord, keys: string[]) {
-  const normalized = Object.fromEntries(
-    Object.entries(record).map(([key, value]) => [normalizedKey(key), value]),
-  );
-  const match = keys.find((key) => normalized[key] !== undefined);
-  return match ? normalized[match] : undefined;
-}
+import {
+  getProviderAdapter,
+  profileProviderData,
+  readProviderField,
+} from "./provider-adapters";
 
 function text(value: unknown) {
   return String(value ?? "").trim();
@@ -42,35 +22,38 @@ function cents(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-function isSuccessful(status: string) {
-  return ["captured", "success", "successful", "paid", "settled"].includes(
-    status.toLowerCase(),
-  );
+function isSuccessful(status: string, successStatuses: string[]) {
+  return successStatuses.includes(status.toLowerCase());
 }
 
-export function reconcilePayments({
-  orders,
-  gateway,
-  settlements,
-}: ReconciliationRequest): ReconciliationResult {
+export function reconcilePayments(
+  request: ReconciliationRequest,
+): ReconciliationResult {
+  const { orders, gateway, settlements } = request;
+  const provider = getProviderAdapter(request.providerId);
+  const providerReport = profileProviderData(provider, {
+    orders,
+    gateway,
+    settlements,
+  });
   const gatewayRows = gateway.map((row) => ({
     raw: row,
-    orderId: text(read(row, aliases.orderId)),
-    reference: text(read(row, aliases.gatewayReference)),
-    amount: money(read(row, aliases.amount)),
-    status: text(read(row, aliases.status)),
-    mode: text(read(row, aliases.paymentMode)) || "Unknown",
-    fee: money(read(row, aliases.fee)),
-    tax: money(read(row, aliases.tax)),
+    orderId: text(readProviderField(row, provider, "orderId")),
+    reference: text(readProviderField(row, provider, "gatewayReference")),
+    amount: money(readProviderField(row, provider, "amount")),
+    status: text(readProviderField(row, provider, "status")),
+    mode: text(readProviderField(row, provider, "paymentMode")) || "Unknown",
+    fee: money(readProviderField(row, provider, "fee")),
+    tax: money(readProviderField(row, provider, "tax")),
   }));
 
   const settlementRows = settlements.map((row) => ({
     raw: row,
-    orderId: text(read(row, aliases.orderId)),
-    reference: text(read(row, aliases.gatewayReference)),
-    settledAmount: money(read(row, aliases.settledAmount)),
-    utr: text(read(row, aliases.utr)),
-    status: text(read(row, aliases.status)),
+    orderId: text(readProviderField(row, provider, "orderId")),
+    reference: text(readProviderField(row, provider, "gatewayReference")),
+    settledAmount: money(readProviderField(row, provider, "settledAmount")),
+    utr: text(readProviderField(row, provider, "utr")),
+    status: text(readProviderField(row, provider, "status")),
   }));
 
   const orderCounts = new Map<string, number>();
@@ -79,9 +62,10 @@ export function reconcilePayments({
   }
 
   const items: ReconciliationItem[] = orders.map((row) => {
-    const orderId = text(read(row, aliases.orderId));
-    const orderAmount = money(read(row, aliases.amount));
-    const paymentMode = text(read(row, aliases.paymentMode)) || "Unknown";
+    const orderId = text(readProviderField(row, provider, "orderId"));
+    const orderAmount = money(readProviderField(row, provider, "amount"));
+    const paymentMode =
+      text(readProviderField(row, provider, "paymentMode")) || "Unknown";
     const gatewayRow = gatewayRows.find((candidate) => candidate.orderId === orderId);
     const settlementRow = gatewayRow
       ? settlementRows.find(
@@ -128,7 +112,7 @@ export function reconcilePayments({
       };
     }
 
-    if (!isSuccessful(gatewayRow.status)) {
+    if (!isSuccessful(gatewayRow.status, provider.successStatuses)) {
       return {
         orderId,
         gatewayReference: gatewayRow.reference,
@@ -221,6 +205,7 @@ export function reconcilePayments({
 
   return {
     generatedAt: new Date().toISOString(),
+    providerReport,
     summary: {
       totalOrders: items.length,
       processedValue,

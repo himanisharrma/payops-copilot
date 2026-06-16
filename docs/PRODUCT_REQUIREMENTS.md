@@ -19,9 +19,9 @@ gateway records. Existing work is slow, repetitive, and difficult to audit.
 ## Current product outcome
 
 A user can upload three CSV files and receive a transparent reconciliation
-report with matched transactions, prioritized exceptions, row-level evidence,
-durable cases, SLA controls, bounded AI assistance, evaluation evidence, and
-separate refund and chargeback queues.
+report with provider mapping diagnostics, matched transactions, prioritized
+exceptions, row-level evidence, durable cases, SLA controls, bounded AI
+assistance, evaluation evidence, and separate refund and chargeback queues.
 
 ## User story
 
@@ -33,7 +33,11 @@ actual settlements differ.
 
 - The app accepts three CSV files: orders, gateway, and settlements.
 - A built-in synthetic dataset demonstrates the workflow without private data.
-- Common column aliases are normalized automatically.
+- The user can select a generic, Razorpay-style, Cashfree-style, or PayU-style
+  synthetic provider adapter.
+- Common and provider-specific column aliases are normalized automatically.
+- The app reports row counts, mapped fields, unmapped fields, duplicate order
+  references, invalid amounts, and unknown statuses before presenting results.
 - Matching uses merchant order ID and gateway reference.
 - Fee and GST deductions are included in expected net settlement.
 - Exceptions include missing gateway rows, duplicate captures, missing
@@ -64,6 +68,7 @@ actual settlements differ.
 
 - Moving money or initiating a provider-side refund.
 - Connecting to production payment gateways.
+- Using real provider credentials or claiming live provider compatibility.
 - Storing original uploaded file contents permanently.
 - AI-generated financial calculations.
 - Autonomous provider communication or case resolution.
@@ -83,5 +88,4 @@ actual settlements differ.
 2. Turn approved analyst corrections into governed synthetic regression cases.
 3. Add provider webhook ingestion and settlement-cycle metadata.
 4. Add configurable business calendars and external escalation notifications.
-5. Add provider-specific adapters, production identity, observability, and
-   retention controls.
+5. Add production identity, observability, and retention controls.

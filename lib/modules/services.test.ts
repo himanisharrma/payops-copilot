@@ -129,6 +129,7 @@ describe("modular backend services", () => {
         orders: [{ order_id: "ORD-1" }],
         gateway: [],
         settlements: [],
+        providerId: "razorpay_demo",
         sourceType: "demo",
       }),
     ).not.toThrow();
@@ -152,5 +153,13 @@ describe("modular backend services", () => {
         sourceType: "provider" as "demo",
       }),
     ).toThrow("Source type must be demo or upload.");
+    expect(() =>
+      validateReconciliationRequest({
+        orders: [],
+        gateway: [],
+        settlements: [],
+        providerId: "live_gateway" as "generic",
+      }),
+    ).toThrow("Unsupported provider adapter.");
   });
 });

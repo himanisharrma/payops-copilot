@@ -2,6 +2,7 @@ import type { Actor } from "@/lib/access";
 import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import { DomainError } from "@/lib/modules/errors";
 import { saveReconciliationRun } from "@/lib/modules/reconciliation/repository";
+import { providerIds } from "@/lib/provider-adapters";
 import { reconcilePayments } from "@/lib/reconciliation";
 import type {
   RawRecord,
@@ -32,6 +33,12 @@ export function validateReconciliationRequest(
     payload.sourceType !== "upload"
   ) {
     throw new DomainError("Source type must be demo or upload.", 400);
+  }
+  if (
+    payload.providerId !== undefined &&
+    !providerIds.includes(payload.providerId)
+  ) {
+    throw new DomainError("Unsupported provider adapter.", 400);
   }
   if (
     payload.runName !== undefined &&
@@ -74,6 +81,8 @@ export async function createReconciliationRun(
     details: {
       totalOrders: stored.summary.totalOrders,
       exceptionCount: stored.summary.exceptionCount,
+      providerId: input.providerId ?? "generic",
+      providerIssueCount: stored.providerReport?.issues.length ?? 0,
     },
   });
 

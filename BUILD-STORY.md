@@ -201,6 +201,20 @@ reconciliation requests. The first two architecture commits are `eea15a4` and
 `3bcf4ee`; investigation and reconciliation services continued the modular
 slice.
 
+### Provider adapter foundation: Make schema drift visible
+
+The next product slice added synthetic provider adapters for generic CSV,
+Razorpay-style, Cashfree-style, and PayU-style reports. The point was not to
+claim live integrations. It was to show the product shape needed before live
+integrations: explicit field mappings, provider assumptions, row counts,
+duplicate-reference warnings, invalid amount checks, and unknown status
+warnings.
+
+The reconciliation workspace now lets an analyst pick an adapter and see a
+data-quality report alongside deterministic results. The browser journey proved
+the generic demo path and a provider-mismatch warning path, including a 390px
+mobile layout without horizontal overflow.
+
 ## The working workflow
 
 This was the recurring delivery loop:

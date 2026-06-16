@@ -9,6 +9,7 @@
 flowchart TB
     subgraph Client["Next.js / React client"]
       Upload[CSV upload and demo loader]
+      ProviderUI[Provider adapter and data-quality report]
       Ledger[Reconciliation ledger]
       Ops[Operations inbox]
       Lifecycles[Refund and chargeback queues]
@@ -21,6 +22,7 @@ flowchart TB
       Auth[Auth.js credentials and JWT session]
       Routes[Route handlers]
       Engine[Deterministic reconciliation]
+      ProviderPolicy[Provider mapping policies]
       Investigator[AI investigation adapter]
       Access[Role and organization guard]
       Modules[Domain backend modules]
@@ -37,9 +39,11 @@ flowchart TB
     end
 
     Upload --> Routes
+    ProviderUI --> Routes
     Routes --> Access
     Access --> Auth
     Routes --> Engine
+    Routes --> ProviderPolicy
     Engine --> Modules
     Ops --> Routes
     Lifecycles --> Routes
@@ -61,7 +65,10 @@ flowchart TB
 
 It:
 
-- normalizes common header aliases;
+- applies a selected synthetic provider adapter;
+- normalizes common and provider-specific header aliases;
+- profiles mapped fields, invalid amounts, duplicate references, and unknown
+  statuses before returning the reconciliation result;
 - parses currency values into numbers;
 - matches gateway rows by merchant order ID;
 - matches settlement rows by order ID or gateway reference;
@@ -70,6 +77,19 @@ It:
 - emits a typed result and source-derived evidence.
 
 AI is not imported into this module. The same inputs produce the same outputs.
+
+Current provider adapters live in `lib/provider-adapters.ts`:
+
+| Adapter | Purpose |
+| --- | --- |
+| `generic` | The public demo CSV format and common payment-aggregator headers |
+| `razorpay_demo` | Synthetic Razorpay-like payment and settlement exports |
+| `cashfree_demo` | Synthetic Cashfree-like order, payment, and settlement exports |
+| `payu_demo` | Synthetic PayU-like transaction and settlement exports |
+
+These adapters are mapping policies, not live integrations. They do not use
+provider credentials, call provider APIs, or claim compatibility with production
+exports.
 
 ## 2. Transactional persistence
 
@@ -212,6 +232,8 @@ payment-workflow updates. The administrator ledger is organization-scoped.
 ## 9. Frontend structure
 
 - `components/payops-workspace.tsx`: upload, demo data, reconciliation results.
+  It also displays provider selection, mapped fields, row counts, and
+  data-quality warnings.
 - `components/operations-inbox.tsx`: queue, case detail, SLA, AI review.
 - `components/payment-lifecycle.tsx`: refund and chargeback queues, evidence,
   stages, and timelines.

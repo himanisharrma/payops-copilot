@@ -32,14 +32,16 @@ Three reports describe the same payment lifecycle using different fields:
 - the gateway file says what the processor observed and charged;
 - the settlement file says what reached the bank.
 
-Manual comparison creates four product problems:
+Manual comparison creates five product problems:
 
 1. **Schema friction:** the same identifier or amount has different headers.
-2. **Exception discovery:** missing, duplicated, or mismatched rows are hard to
+2. **Provider variation:** Razorpay-style, Cashfree-style, PayU-style, and
+   generic reports use different field names and status language.
+3. **Exception discovery:** missing, duplicated, or mismatched rows are hard to
    isolate reliably.
-3. **Operational follow-through:** spreadsheets do not naturally provide
+4. **Operational follow-through:** spreadsheets do not naturally provide
    ownership, status, SLA, or an investigation record.
-4. **AI risk:** a general chatbot may produce a plausible explanation that is
+5. **AI risk:** a general chatbot may produce a plausible explanation that is
    not supported by the reports.
 
 ## Product bet
@@ -109,6 +111,10 @@ mutate operations data; viewers cannot. Audit access is admin-only.
 ## Implemented outcomes
 
 - Reconciliation of three CSV sources with common alias normalization.
+- Synthetic provider adapters for generic, Razorpay-style, Cashfree-style, and
+  PayU-style report formats.
+- Provider data-quality reporting for mapped fields, unmapped fields, invalid
+  amounts, duplicate order references, unknown statuses, and row counts.
 - Six result states: matched, mismatch, missing settlement, missing gateway,
   duplicate, and pending.
 - PostgreSQL persistence for runs, items, cases, investigations, users, and
@@ -156,6 +162,7 @@ For an AI Product Manager role, the artifact demonstrates:
 ## Current limits
 
 - No production payment-provider connection.
+- No live provider credentials or production export compatibility claim.
 - No provider-side refund, payout, or money-movement action.
 - No business-day or holiday calendar in SLA calculations.
 - No outbound email, Slack, or incident notification.

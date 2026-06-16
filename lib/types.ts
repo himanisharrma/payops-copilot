@@ -4,6 +4,7 @@ export type ReconciliationRequest = {
   orders: RawRecord[];
   gateway: RawRecord[];
   settlements: RawRecord[];
+  providerId?: ProviderId;
   runName?: string;
   sourceType?: "demo" | "upload";
   sourceFiles?: {
@@ -11,6 +12,54 @@ export type ReconciliationRequest = {
     gateway?: string;
     settlements?: string;
   };
+};
+
+export type ProviderId =
+  | "generic"
+  | "razorpay_demo"
+  | "cashfree_demo"
+  | "payu_demo";
+
+export type ProviderFieldMapping =
+  | "orderId"
+  | "amount"
+  | "status"
+  | "paymentMode"
+  | "gatewayReference"
+  | "settledAmount"
+  | "fee"
+  | "tax"
+  | "utr";
+
+export type DataQualityIssue = {
+  severity: "info" | "warning" | "error";
+  source: "orders" | "gateway" | "settlements";
+  code:
+    | "missing_field_mapping"
+    | "invalid_amount"
+    | "duplicate_order_reference"
+    | "unknown_status";
+  message: string;
+};
+
+export type ProviderDataQualityReport = {
+  providerId: ProviderId;
+  providerName: string;
+  settlementCycle: string;
+  assumptions: string[];
+  rowCounts: {
+    orders: number;
+    gateway: number;
+    settlements: number;
+  };
+  fieldCoverage: Record<
+    "orders" | "gateway" | "settlements",
+    Array<{
+      field: ProviderFieldMapping;
+      matchedHeader: string | null;
+    }>
+  >;
+  issues: DataQualityIssue[];
 };
 
 export type ReconciliationStatus =
@@ -39,6 +88,7 @@ export type ReconciliationItem = {
 export type ReconciliationResult = {
   id?: string;
   generatedAt: string;
+  providerReport?: ProviderDataQualityReport;
   summary: {
     totalOrders: number;
     processedValue: number;

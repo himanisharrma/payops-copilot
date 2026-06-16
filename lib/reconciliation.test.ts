@@ -71,4 +71,55 @@ describe("reconcilePayments", () => {
     expect(result.items[0].status).toBe("amount_mismatch");
     expect(result.items[0].variance).toBe(-76.4);
   });
+
+  it("uses provider-specific aliases and exposes the selected adapter", () => {
+    const result = reconcilePayments({
+      providerId: "cashfree_demo",
+      orders: [{ cf_order_id: "CF-1", order_amount: 1200 }],
+      gateway: [
+        {
+          cf_order_id: "CF-1",
+          cf_payment_id: "CFPAY-1",
+          payment_amount: 1200,
+          payment_status: "SUCCESS",
+          payment_group: "UPI",
+          service_charge: 12,
+          service_tax: 2.16,
+        },
+      ],
+      settlements: [
+        {
+          cf_order_id: "CF-1",
+          cf_payment_id: "CFPAY-1",
+          settlement_amount: 1185.84,
+          transfer_utr: "UTR-CF-1",
+        },
+      ],
+    });
+
+    expect(result.providerReport?.providerId).toBe("cashfree_demo");
+    expect(result.items[0].status).toBe("matched");
+    expect(result.items[0].paymentMode).toBe("UPI");
+  });
+
+  it("reports provider data-quality issues without blocking reconciliation", () => {
+    const result = reconcilePayments({
+      providerId: "payu_demo",
+      orders: [{ txnid: "PU-1", amount: "₹1,000" }],
+      gateway: [
+        {
+          txnid: "PU-1",
+          mihpayid: "PAYU-1",
+          amount: "not-a-number",
+          status: "queued",
+        },
+      ],
+      settlements: [],
+    });
+
+    expect(result.providerReport?.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["invalid_amount", "unknown_status"]),
+    );
+    expect(result.items[0].status).toBe("pending");
+  });
 });
