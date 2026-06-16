@@ -27,6 +27,10 @@ evidence. Routes only handle authentication, JSON, and HTTP responses.
 Financial and lifecycle rules stay in domain policy files. Do not recreate a
 central repository or move orchestration back into routes.
 
+Synthetic provider mapping lives in `lib/provider-adapters.ts`. Synthetic
+provider webhook normalization lives in `lib/provider-webhooks.ts`. Both are
+local deterministic policies, not live integrations.
+
 `DomainError` is the shared service-to-transport error contract. Services throw
 domain errors with HTTP-safe status codes; API routes translate them through
 `lib/api-errors.ts` without learning repository details.

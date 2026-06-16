@@ -163,6 +163,19 @@ portfolio must stay credential-free and safe to clone.
 **Cost accepted:** the adapters demonstrate extensibility and data-quality
 controls, not production export compatibility.
 
+### ADR-14: Synthetic webhook fixtures before inbound webhooks
+
+**Chose:** local provider webhook fixtures normalized into case and workflow
+timelines.
+
+**Over:** exposing a live webhook endpoint or storing provider secrets.
+
+**Why:** event timelines are important to payment operations, but a public
+portfolio should not simulate live provider connectivity or signature trust.
+
+**Cost accepted:** the timeline proves the internal event model and UX, not
+delivery reliability, idempotency, or signature verification.
+
 ## Roadmap
 
 ### Now: produce model-quality evidence
@@ -180,10 +193,9 @@ two-reviewer scoring remain the next slice.
 
 ### Next: deepen payment operations
 
-- Connect refund and chargeback records to provider webhook timelines.
-- Ingest gateway webhook timelines and settlement-cycle metadata.
-- Add sample webhook payloads and provider settlement-cycle fixtures behind the
-  typed adapters.
+- Add inbound webhook ingestion, idempotency, signature verification, and
+  settlement-cycle metadata.
+- Add provider settlement-cycle fixtures behind the typed adapters.
 - Add bulk case assignment and operational comments.
 - Add configurable business calendars and escalation notifications.
 

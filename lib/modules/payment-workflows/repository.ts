@@ -1,5 +1,6 @@
 import { query, transaction } from "@/lib/db";
 import { terminalWorkflowStatuses } from "@/lib/payment-workflow";
+import { providerEventsForEntity } from "@/lib/provider-webhooks";
 import type {
   PaymentWorkflow,
   PaymentWorkflowStatus,
@@ -78,6 +79,11 @@ export async function listPaymentWorkflows(
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     events: row.events,
+    providerEvents: providerEventsForEntity({
+      orderId: row.order_id,
+      paymentReference: row.payment_reference,
+      externalReference: row.external_reference,
+    }),
   }));
 }
 

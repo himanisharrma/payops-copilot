@@ -22,7 +22,7 @@
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
 | **Backend shape** | Modular monolith with thin routes, domain services, seven repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 10 product milestones, 108 repository files, 14 API routes, 9 migrations, and 30 tests at the provider-adapter snapshot |
+| **Build evidence** | 10 product milestones, 110 repository files, 14 API routes, 9 migrations, and 33 tests at the provider-event snapshot |
 
 ## Why this exists
 
@@ -76,6 +76,8 @@ to production gateways or move money.
     latency and token usage at run and case level.
 17. Manages synthetic refunds and chargebacks as separate deadline-driven
     lifecycles with evidence gates, timelines, ownership, and audit events.
+18. Normalizes synthetic provider webhook payloads into case and workflow
+    timelines with explicit "proves / does not prove" boundaries.
 
 ## The product judgment
 
@@ -97,7 +99,7 @@ structured output is validated with Zod. If no API key is configured, a clearly
 labeled deterministic evidence-rules fallback keeps the demo usable. Neither
 path can initiate refunds, edit financial records, or contact a provider.
 
-See [AI investigation design](docs/portfolio/ARCHITECTURE.md#6-bounded-ai-investigation)
+See [AI investigation design](docs/portfolio/ARCHITECTURE.md#7-bounded-ai-investigation)
 and the implementation in [`lib/ai-investigator.ts`](lib/ai-investigator.ts).
 
 ## Architecture
@@ -192,6 +194,8 @@ quality baseline. Portfolio claims are intentionally bounded:
 - all data is synthetic;
 - no production payment provider is connected;
 - provider adapters are synthetic mapping policies, not live integrations;
+- provider webhook timelines are synthetic fixtures, not an inbound webhook
+  endpoint;
 - no payment credentials are stored;
 - no money movement is implemented;
 - AI output is assistance, not settlement truth;
@@ -243,7 +247,8 @@ constraints, and completion conditions; encode durable repository guidance in
 - Configure an API key, run the guarded OpenAI evaluation, and complete
   two-reviewer scoring before making a model-quality claim.
 - Feed approved analyst corrections into new anonymized evaluation cases.
-- Add provider webhook timelines and refund-reference verification.
+- Add inbound webhook ingestion, signature checks, and refund-reference
+  verification.
 - Add configurable business calendars and escalation notifications.
 - Add provider-specific investigation tools with scoped permissions.
 - Add tamper-evident audit retention and production observability.

@@ -62,6 +62,34 @@ export type ProviderDataQualityReport = {
   issues: DataQualityIssue[];
 };
 
+export type ProviderWebhookPayload = {
+  providerId: Exclude<ProviderId, "generic">;
+  eventType: string;
+  occurredAt: string;
+  payload: Record<string, unknown>;
+};
+
+export type NormalizedProviderEvent = {
+  id: string;
+  providerId: Exclude<ProviderId, "generic">;
+  eventType:
+    | "payment_captured"
+    | "settlement_processed"
+    | "refund_initiated"
+    | "refund_completed"
+    | "chargeback_received"
+    | "chargeback_evidence_due";
+  title: string;
+  orderId: string | null;
+  paymentReference: string | null;
+  externalReference: string | null;
+  amount: number | null;
+  status: string | null;
+  occurredAt: string;
+  proves: string;
+  doesNotProve: string;
+};
+
 export type ReconciliationStatus =
   | "matched"
   | "amount_mismatch"
@@ -131,6 +159,7 @@ export type OperationsCase = {
   createdAt: string;
   updatedAt: string;
   latestInvestigation: AIInvestigation | null;
+  providerEvents?: NormalizedProviderEvent[];
 };
 
 export type InvestigationConfidence = "low" | "medium" | "high";
@@ -287,4 +316,5 @@ export type PaymentWorkflow = {
   createdAt: string;
   updatedAt: string;
   events: PaymentWorkflowEvent[];
+  providerEvents?: NormalizedProviderEvent[];
 };

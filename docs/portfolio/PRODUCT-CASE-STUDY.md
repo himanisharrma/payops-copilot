@@ -115,6 +115,10 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   PayU-style report formats.
 - Provider data-quality reporting for mapped fields, unmapped fields, invalid
   amounts, duplicate order references, unknown statuses, and row counts.
+- Synthetic provider webhook normalization for payment, settlement, refund, and
+  chargeback events.
+- Case and workflow timelines that distinguish what provider events prove from
+  what they do not prove.
 - Six result states: matched, mismatch, missing settlement, missing gateway,
   duplicate, and pending.
 - PostgreSQL persistence for runs, items, cases, investigations, users, and
@@ -163,6 +167,7 @@ For an AI Product Manager role, the artifact demonstrates:
 
 - No production payment-provider connection.
 - No live provider credentials or production export compatibility claim.
+- No live webhook endpoint or provider signature verification.
 - No provider-side refund, payout, or money-movement action.
 - No business-day or holiday calendar in SLA calculations.
 - No outbound email, Slack, or incident notification.

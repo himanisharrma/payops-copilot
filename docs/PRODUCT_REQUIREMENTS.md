@@ -61,6 +61,8 @@ actual settlements differ.
   timeline events, and audit history without moving money.
 - Chargeback evidence cannot advance to submitted until the checklist is
   complete.
+- Synthetic provider webhook payloads normalize into case and workflow
+  timelines that state what each event proves and does not prove.
 - No real payment is initiated and no payment-provider credentials are
   collected.
 
@@ -69,6 +71,7 @@ actual settlements differ.
 - Moving money or initiating a provider-side refund.
 - Connecting to production payment gateways.
 - Using real provider credentials or claiming live provider compatibility.
+- Receiving live webhooks or exposing a public webhook endpoint.
 - Storing original uploaded file contents permanently.
 - AI-generated financial calculations.
 - Autonomous provider communication or case resolution.

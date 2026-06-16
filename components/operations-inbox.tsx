@@ -518,6 +518,42 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
                 ))}
               </div>
 
+              <section className="provider-event-panel">
+                <div className="timeline-heading">
+                  <span>SYNTHETIC PROVIDER EVENTS</span>
+                  <small>{selected.providerEvents?.length ?? 0} events</small>
+                </div>
+                {selected.providerEvents?.length ? (
+                  selected.providerEvents.map((event) => (
+                    <article key={event.id}>
+                      <i />
+                      <div>
+                        <strong>{event.title}</strong>
+                        <p>
+                          {event.paymentReference ?? event.externalReference} ·{" "}
+                          {formatDateTime(event.occurredAt)}
+                        </p>
+                        <dl>
+                          <div>
+                            <dt>Proves</dt>
+                            <dd>{event.proves}</dd>
+                          </div>
+                          <div>
+                            <dt>Does not prove</dt>
+                            <dd>{event.doesNotProve}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <div className="provider-event-empty">
+                    <AlertTriangle size={15} />
+                    No synthetic provider event matched this case.
+                  </div>
+                )}
+              </section>
+
               <section className="ai-investigation">
                 <div className="ai-investigation-head">
                   <div>

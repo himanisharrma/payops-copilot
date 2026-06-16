@@ -215,6 +215,19 @@ data-quality report alongside deterministic results. The browser journey proved
 the generic demo path and a provider-mismatch warning path, including a 390px
 mobile layout without horizontal overflow.
 
+### Provider event timelines: Add context without live connectivity
+
+The next slice added synthetic webhook fixtures for payment captures,
+settlements, refunds, and chargebacks. A deterministic normalizer converts
+Razorpay-style, Cashfree-style, and PayU-style payloads into one internal event
+model.
+
+Those events appear in operations cases and refund/chargeback workflows with
+two explicit statements: what the event proves and what it does not prove. That
+keeps the portfolio honest. The product can demonstrate event reasoning without
+claiming live webhook ingestion, provider credentials, signature verification,
+or production delivery guarantees.
+
 ## The working workflow
 
 This was the recurring delivery loop:

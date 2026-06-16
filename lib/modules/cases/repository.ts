@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { providerEventsForEntity } from "@/lib/provider-webhooks";
 import { getSlaStatus } from "@/lib/sla";
 import type {
   AIInvestigation,
@@ -124,6 +125,10 @@ export async function listCases(
             updatedAt: row.investigation_updated_at!.toISOString(),
           }
         : null,
+      providerEvents: providerEventsForEntity({
+        orderId: row.order_id,
+        paymentReference: row.gateway_reference,
+      }),
     };
   });
 }

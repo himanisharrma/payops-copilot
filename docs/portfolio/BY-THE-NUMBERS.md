@@ -12,17 +12,17 @@
 | Product milestones | 10 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
 | Latest product milestone | Refund and chargeback operations | commit `ae7cea0`, migration `009` |
-| Latest architecture milestone | Provider adapter foundation | `lib/provider-adapters.ts` |
+| Latest architecture milestone | Synthetic provider event timelines | `lib/provider-webhooks.ts` |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 108 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 7,132 | repository file list piped to `wc -l` |
+| Repository files | 110 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 7,679 | repository file list piped to `wc -l` |
 | Next.js API route files | 14 | `find app/api -name route.ts` |
 | PostgreSQL migrations | 9 | `db/migrations/` |
-| Automated test cases | 30 | Vitest output |
+| Automated test cases | 33 | Vitest output |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 8 | Adds `/refunds-disputes` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
@@ -34,6 +34,7 @@
 | Synthetic payment lifecycle records | 6 | 3 refunds and 3 chargebacks |
 | Payment lifecycle states | 11 | 5 refund and 6 chargeback states |
 | Synthetic provider adapters | 4 | generic, Razorpay-style, Cashfree-style, PayU-style |
+| Synthetic provider webhook fixtures | 10 | payment, settlement, refund, and chargeback events |
 
 ## Product surface
 
@@ -41,6 +42,7 @@
 | --- | --- |
 | Reconciliation result states | 6 typed states in `lib/types.ts` |
 | Provider data-quality issue types | 4 typed issue codes in `lib/types.ts` |
+| Normalized provider event types | 6 typed event states in `lib/types.ts` |
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
 | Backend domain modules | 7 repositories under `lib/modules/` |
@@ -60,7 +62,7 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 6 test files, 30 tests passing
+npm test       -> 7 test files, 33 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -72,6 +74,8 @@ Browser verification also exercised:
 - synthetic reconciliation persistence;
 - provider-adapter selection, mapped-field display, data-quality warnings, and
   390px layout without horizontal overflow;
+- synthetic provider event timelines in operations and refund/chargeback
+  details;
 - operations-case loading;
 - overdue filtering;
 - deadline inspection;

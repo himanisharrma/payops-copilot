@@ -13,6 +13,7 @@ flowchart TB
       Ledger[Reconciliation ledger]
       Ops[Operations inbox]
       Lifecycles[Refund and chargeback queues]
+      ProviderEvents[Provider event timelines]
       Quality[Quality Lab]
       History[Run history]
       AuditUI[Audit ledger]
@@ -23,6 +24,7 @@ flowchart TB
       Routes[Route handlers]
       Engine[Deterministic reconciliation]
       ProviderPolicy[Provider mapping policies]
+      WebhookPolicy[Synthetic webhook normalizer]
       Investigator[AI investigation adapter]
       Access[Role and organization guard]
       Modules[Domain backend modules]
@@ -44,9 +46,11 @@ flowchart TB
     Access --> Auth
     Routes --> Engine
     Routes --> ProviderPolicy
+    Routes --> WebhookPolicy
     Engine --> Modules
     Ops --> Routes
     Lifecycles --> Routes
+    ProviderEvents --> Routes
     Quality --> Routes
     Routes --> Investigator
     Investigator --> Modules
@@ -91,7 +95,27 @@ These adapters are mapping policies, not live integrations. They do not use
 provider credentials, call provider APIs, or claim compatibility with production
 exports.
 
-## 2. Transactional persistence
+## 2. Synthetic provider event timelines
+
+`lib/provider-webhooks.ts` contains fictional webhook fixtures and a
+deterministic normalizer for Razorpay-style, Cashfree-style, and PayU-style
+payloads.
+
+The normalizer converts provider-specific shapes into one internal event model:
+
+- payment captured;
+- settlement processed;
+- refund initiated;
+- refund completed;
+- chargeback received;
+- chargeback evidence due.
+
+Cases and payment workflows attach matching normalized events in their read
+models. The UI explains both what an event proves and what it does not prove.
+There is no public webhook endpoint, no signature verification, no provider
+secret, and no live provider call in this portfolio slice.
+
+## 3. Transactional persistence
 
 `lib/modules/reconciliation/repository.ts` writes a reconciliation run, its
 row-level items, and its operations cases inside one database transaction. If
@@ -111,7 +135,7 @@ The migration chain is append-only:
 | `008_model_evaluation_metrics.sql` | Run and case latency plus token usage |
 | `009_refunds_and_disputes.sql` | Refund/chargeback lifecycles and decision timelines |
 
-## 3. Identity, organization, and roles
+## 4. Identity, organization, and roles
 
 Auth.js credentials authentication provides a JWT-backed session for the local
 portfolio demo. Every protected route calls `requireActor`.
@@ -126,7 +150,7 @@ Domain repository reads and writes receive `organizationId`, and SQL predicates
 scope records to that organization. UI controls are disabled for viewers, but
 the server guard remains authoritative.
 
-## 4. Modular backend
+## 5. Modular backend
 
 The backend is a modular monolith. Next.js route handlers are the transport
 layer, domain policy remains in typed TypeScript files, and each business area
@@ -148,7 +172,7 @@ JSON parsing, and HTTP responses. `lib/api-errors.ts` centralizes access,
 domain-error, and generic service-error translation so each route uses the same
 transport behavior.
 
-## 5. SLA as policy
+## 6. SLA as policy
 
 `lib/sla.ts` centralizes the deadline policy:
 
@@ -163,7 +187,7 @@ frontend derives live labels from those timestamps.
 Changing priority recalculates the deadline from the original case creation
 time. The update is included in the audit details.
 
-## 6. Bounded AI investigation
+## 7. Bounded AI investigation
 
 `lib/ai-investigator.ts` is deliberately downstream of deterministic evidence.
 
@@ -201,7 +225,7 @@ A Zod-validated object containing:
 
 This is an assistance workflow, not an autonomous agent.
 
-## 7. Refund and chargeback control plane
+## 8. Refund and chargeback control plane
 
 `payment_workflows` keeps refunds and chargebacks separate from reconciliation
 cases because they have different states and evidence requirements.
@@ -212,9 +236,11 @@ cases because they have different states and evidence requirements.
 - Evidence, owner, deadline, priority, value, and notes are organization-scoped.
 - Chargeback evidence cannot be submitted until every checklist item is complete.
 - Every update appends a workflow event and an administrator audit event.
+- Matching synthetic provider events are shown beside the internal decision
+  timeline.
 - The product records decisions but has no integration that moves money.
 
-## 8. Auditability
+## 9. Auditability
 
 Important mutations call `recordAuditEvent` with:
 
@@ -229,14 +255,15 @@ Current audited actions include reconciliation creation, case updates,
 investigation generation and review, evaluation completion and case review, and
 payment-workflow updates. The administrator ledger is organization-scoped.
 
-## 9. Frontend structure
+## 10. Frontend structure
 
 - `components/payops-workspace.tsx`: upload, demo data, reconciliation results.
   It also displays provider selection, mapped fields, row counts, and
   data-quality warnings.
-- `components/operations-inbox.tsx`: queue, case detail, SLA, AI review.
+- `components/operations-inbox.tsx`: queue, case detail, SLA, synthetic
+  provider events, AI review.
 - `components/payment-lifecycle.tsx`: refund and chargeback queues, evidence,
-  stages, and timelines.
+  stages, synthetic provider events, and timelines.
 - `components/quality-lab.tsx`: evaluation execution, history, case evidence,
   and human scoring.
 - `components/run-history.tsx`: historical quality and value metrics.

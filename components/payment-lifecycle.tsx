@@ -443,6 +443,42 @@ export function PaymentLifecycle({ canEdit }: { canEdit: boolean }) {
                 />
               </label>
 
+              <section className="provider-event-panel">
+                <div className="timeline-heading">
+                  <span>SYNTHETIC PROVIDER EVENTS</span>
+                  <small>{selected.providerEvents?.length ?? 0} events</small>
+                </div>
+                {selected.providerEvents?.length ? (
+                  selected.providerEvents.map((event) => (
+                    <article key={event.id}>
+                      <i />
+                      <div>
+                        <strong>{event.title}</strong>
+                        <p>
+                          {event.externalReference ?? event.paymentReference} ·{" "}
+                          {dateTime(event.occurredAt)}
+                        </p>
+                        <dl>
+                          <div>
+                            <dt>Proves</dt>
+                            <dd>{event.proves}</dd>
+                          </div>
+                          <div>
+                            <dt>Does not prove</dt>
+                            <dd>{event.doesNotProve}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <div className="provider-event-empty">
+                    <AlertTriangle size={15} />
+                    No synthetic provider event matched this workflow.
+                  </div>
+                )}
+              </section>
+
               <section className="workflow-timeline">
                 <div className="timeline-heading">
                   <span>DECISION TIMELINE</span>
