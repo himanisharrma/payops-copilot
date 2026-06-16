@@ -28,5 +28,5 @@ Financial and lifecycle rules stay in domain policy files. Do not recreate a
 central repository or move orchestration back into routes.
 
 `DomainError` is the shared service-to-transport error contract. Services throw
-domain errors with HTTP-safe status codes; routes translate them into JSON
-without learning repository details.
+domain errors with HTTP-safe status codes; API routes translate them through
+`lib/api-errors.ts` without learning repository details.

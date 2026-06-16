@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { apiErrorResponse } from "@/lib/api-errors";
 import { accessErrorResponse, requireActor } from "@/lib/access";
 import {
   executeEvaluation,
@@ -8,7 +9,6 @@ import {
 import {
   listEvaluationRuns,
 } from "@/lib/modules/evaluations/repository";
-import { DomainError } from "@/lib/modules/errors";
 
 export const maxDuration = 300;
 
@@ -46,12 +46,6 @@ export async function POST(request: Request) {
   } catch (error) {
     const accessResponse = accessErrorResponse(error);
     if (accessResponse) return accessResponse;
-    if (error instanceof DomainError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.status },
-      );
-    }
     if (
       error instanceof OpenAI.APIError &&
       error.code === "insufficient_quota"
@@ -64,10 +58,6 @@ export async function POST(request: Request) {
         { status: 429 },
       );
     }
-    console.error(error);
-    return NextResponse.json(
-      { error: "The evaluation run could not be saved." },
-      { status: 503 },
-    );
+    return apiErrorResponse(error, "The evaluation run could not be saved.");
   }
 }

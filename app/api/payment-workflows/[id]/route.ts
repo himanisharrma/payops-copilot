@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { accessErrorResponse, requireActor } from "@/lib/access";
+import { apiErrorResponse } from "@/lib/api-errors";
+import { requireActor } from "@/lib/access";
 import {
   changePaymentWorkflow,
   type PaymentWorkflowPatch,
 } from "@/lib/modules/payment-workflows/service";
-import { DomainError } from "@/lib/modules/errors";
 
 export async function PATCH(
   request: Request,
@@ -18,18 +18,9 @@ export async function PATCH(
       workflow: await changePaymentWorkflow(id, payload, actor),
     });
   } catch (error) {
-    const accessResponse = accessErrorResponse(error);
-    if (accessResponse) return accessResponse;
-    if (error instanceof DomainError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.status },
-      );
-    }
-    console.error(error);
-    return NextResponse.json(
-      { error: "The payment workflow could not be updated." },
-      { status: 503 },
+    return apiErrorResponse(
+      error,
+      "The payment workflow could not be updated.",
     );
   }
 }

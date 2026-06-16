@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { accessErrorResponse, requireActor } from "@/lib/access";
-import { DomainError } from "@/lib/modules/errors";
+import { apiErrorResponse } from "@/lib/api-errors";
+import { requireActor } from "@/lib/access";
 import { reviewInvestigation } from "@/lib/modules/investigations/service";
 
 export async function PATCH(
@@ -15,18 +15,6 @@ export async function PATCH(
       case: await reviewInvestigation(id, payload, actor),
     });
   } catch (error) {
-    const accessResponse = accessErrorResponse(error);
-    if (accessResponse) return accessResponse;
-    if (error instanceof DomainError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.status },
-      );
-    }
-    console.error(error);
-    return NextResponse.json(
-      { error: "The investigation could not be updated." },
-      { status: 503 },
-    );
+    return apiErrorResponse(error, "The investigation could not be updated.");
   }
 }

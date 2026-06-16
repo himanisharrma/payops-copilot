@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { accessErrorResponse, requireActor } from "@/lib/access";
-import { DomainError } from "@/lib/modules/errors";
+import { apiErrorResponse } from "@/lib/api-errors";
+import { requireActor } from "@/lib/access";
 import { createReconciliationRun } from "@/lib/modules/reconciliation/service";
 
 export async function POST(request: Request) {
@@ -12,21 +12,9 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    const accessResponse = accessErrorResponse(error);
-    if (accessResponse) return accessResponse;
-    if (error instanceof DomainError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.status },
-      );
-    }
-    console.error(error);
-    return NextResponse.json(
-      {
-        error:
-          "The reports could not be saved. Confirm PostgreSQL is running and migrations are applied.",
-      },
-      { status: 503 },
+    return apiErrorResponse(
+      error,
+      "The reports could not be saved. Confirm PostgreSQL is running and migrations are applied.",
     );
   }
 }

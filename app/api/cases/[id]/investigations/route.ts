@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { accessErrorResponse, requireActor } from "@/lib/access";
-import { DomainError } from "@/lib/modules/errors";
+import { apiErrorResponse } from "@/lib/api-errors";
+import { requireActor } from "@/lib/access";
 import { generateInvestigation } from "@/lib/modules/investigations/service";
 
 export async function POST(
@@ -15,18 +15,9 @@ export async function POST(
       { status: 201 },
     );
   } catch (error) {
-    const accessResponse = accessErrorResponse(error);
-    if (accessResponse) return accessResponse;
-    if (error instanceof DomainError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.status },
-      );
-    }
-    console.error(error);
-    return NextResponse.json(
-      { error: "The investigation could not be generated." },
-      { status: 503 },
+    return apiErrorResponse(
+      error,
+      "The investigation could not be generated.",
     );
   }
 }

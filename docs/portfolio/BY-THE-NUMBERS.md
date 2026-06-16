@@ -18,8 +18,8 @@
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 106 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 6,662 | repository file list piped to `wc -l` |
+| Repository files | 107 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 6,611 | repository file list piped to `wc -l` |
 | Next.js API route files | 14 | `find app/api -name route.ts` |
 | PostgreSQL migrations | 9 | `db/migrations/` |
 | Automated test cases | 28 | Vitest output |

@@ -124,7 +124,9 @@ Reconciliation, payment workflows, cases, evaluations, and investigations have
 service layers. Services validate state transitions, review payloads, and
 reconciliation requests; coordinate persistence, deterministic execution, and
 AI execution; and write audit evidence. Their API routes handle authentication,
-JSON parsing, domain-error translation, and HTTP responses.
+JSON parsing, and HTTP responses. `lib/api-errors.ts` centralizes access,
+domain-error, and generic service-error translation so each route uses the same
+transport behavior.
 
 ## 5. SLA as policy
 

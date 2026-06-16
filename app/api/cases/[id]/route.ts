@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { accessErrorResponse, requireActor } from "@/lib/access";
+import { apiErrorResponse } from "@/lib/api-errors";
+import { requireActor } from "@/lib/access";
 import {
   changeCase,
   type CasePatch,
 } from "@/lib/modules/cases/service";
-import { DomainError } from "@/lib/modules/errors";
 
 export async function PATCH(
   request: Request,
@@ -16,18 +16,6 @@ export async function PATCH(
     const payload = (await request.json()) as CasePatch;
     return NextResponse.json({ case: await changeCase(id, payload, actor) });
   } catch (error) {
-    const accessResponse = accessErrorResponse(error);
-    if (accessResponse) return accessResponse;
-    if (error instanceof DomainError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.status },
-      );
-    }
-    console.error(error);
-    return NextResponse.json(
-      { error: "The case could not be updated." },
-      { status: 503 },
-    );
+    return apiErrorResponse(error, "The case could not be updated.");
   }
 }
