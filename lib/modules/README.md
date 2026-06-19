@@ -17,6 +17,8 @@ API route (transport and request validation)
 | `investigations` | Yes | Yes | AI execution, persistence, review validation, and audit |
 | `evaluations` | Yes | Yes | Runs, case results, reviewer scoring, and audit |
 | `payment-workflows` | Yes | Yes | Refunds, chargebacks, evidence gates, timelines, and audit |
+| `provider-events` | Yes | Yes | Signed synthetic ingestion, idempotency, normalization persistence, and matching |
+| `notifications` | Yes | Yes | SLA/provider signals, organization inbox, read policy, and audit |
 | `audit` | Yes | No | Organization-scoped writes and administrator reads |
 | `system` | Yes | No | Database health checks |
 
@@ -28,8 +30,10 @@ Financial and lifecycle rules stay in domain policy files. Do not recreate a
 central repository or move orchestration back into routes.
 
 Synthetic provider mapping lives in `lib/provider-adapters.ts`. Synthetic
-provider webhook normalization lives in `lib/provider-webhooks.ts`. Both are
-local deterministic policies, not live integrations.
+provider webhook normalization lives in `lib/provider-webhooks.ts`. The
+provider-events module exposes a signed synthetic ingestion boundary that
+stores normalized evidence and body hashes, not raw payloads or credentials.
+These remain deterministic demo policies, not live integrations.
 
 `DomainError` is the shared service-to-transport error contract. Services throw
 domain errors with HTTP-safe status codes; API routes translate them through

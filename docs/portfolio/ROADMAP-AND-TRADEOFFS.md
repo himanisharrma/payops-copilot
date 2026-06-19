@@ -163,7 +163,7 @@ portfolio must stay credential-free and safe to clone.
 **Cost accepted:** the adapters demonstrate extensibility and data-quality
 controls, not production export compatibility.
 
-### ADR-14: Synthetic webhook fixtures before inbound webhooks
+### ADR-14: Synthetic fixtures before signed inbound delivery
 
 **Chose:** local provider webhook fixtures normalized into case and workflow
 timelines.
@@ -173,8 +173,24 @@ timelines.
 **Why:** event timelines are important to payment operations, but a public
 portfolio should not simulate live provider connectivity or signature trust.
 
-**Cost accepted:** the timeline proves the internal event model and UX, not
-delivery reliability, idempotency, or signature verification.
+**Cost accepted:** the first slice proved the internal event model and UX before
+delivery reliability and trust controls were added.
+
+### ADR-15: A signed synthetic boundary before production connectivity
+
+**Chose:** one environment-managed demo signing key, exact-body HMAC
+verification, tenant/provider/event idempotency, normalized-event persistence,
+and hash-only delivery evidence.
+
+**Over:** storing raw payloads, provider credentials, or claiming compatibility
+with a production provider signature scheme.
+
+**Why:** the portfolio can now demonstrate the security and replay boundaries
+of inbound events without pretending to operate a live payment integration.
+
+**Cost accepted:** real deployment still needs provider-specific verification,
+secret rotation, delivery observability, retention policy, and incident
+response.
 
 ## Roadmap
 
@@ -210,6 +226,16 @@ attributed evidence-backed case resolution.
 - Run details calculate assigned reviewers, reviewed cases, disagreement counts,
   adjudication counts, and aggregate human score.
 
+### Completed foundation: signed events and operational signals
+
+- The synthetic provider endpoint verifies an HMAC over organization, external
+  event ID, and exact body before parsing.
+- Deliveries are idempotent and persist only a body hash plus normalized event.
+- Tenant-owned cases and payment workflows receive matching persisted evidence.
+- The header inbox surfaces provider events and deterministic SLA risk.
+- All roles can inspect signals; only administrators and analysts can mark them
+  read, with an audit event.
+
 ### Next: complete measured model evidence
 
 - Configure a controlled API key and execute the implemented 30-case OpenAI run.
@@ -225,11 +251,11 @@ representative scoring remain the next evidence-collection slice.
 
 ### After that: deepen payment operations
 
-- Add inbound webhook ingestion, idempotency, signature verification, and
-  settlement-cycle metadata.
+- Add provider-specific signature contracts, secret rotation, delivery
+  observability, and settlement-cycle metadata.
 - Add provider settlement-cycle fixtures behind the typed adapters.
 - Add bulk case assignment and operational comments.
-- Add configurable business calendars and escalation notifications.
+- Add configurable business calendars and outbound escalation notifications.
 
 ### Then: production controls
 

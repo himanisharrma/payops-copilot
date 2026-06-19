@@ -122,6 +122,9 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   amounts, duplicate order references, unknown statuses, and row counts.
 - Synthetic provider webhook normalization for payment, settlement, refund, and
   chargeback events.
+- HMAC-signed, idempotent synthetic event ingestion with hash-only delivery
+  evidence and organization-scoped matching.
+- In-app provider and SLA notification controls with role-aware read state.
 - Case and workflow timelines that distinguish what provider events prove from
   what they do not prove.
 - Six result states: matched, mismatch, missing settlement, missing gateway,
@@ -137,7 +140,7 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   six-score human review, latency, token metadata, and audit attribution.
 - Separate refund and chargeback queues with lifecycle transitions, ownership,
   deadlines, evidence gates, notes, and timelines.
-- A modular monolith backend with thin API routes, domain services, seven
+- A modular monolith backend with thin API routes, domain services, nine
   repositories, and shared PostgreSQL infrastructure.
 
 ## Success metrics
@@ -172,10 +175,11 @@ For an AI Product Manager role, the artifact demonstrates:
 
 - No production payment-provider connection.
 - No live provider credentials or production export compatibility claim.
-- No live webhook endpoint or provider signature verification.
+- No production provider webhook compatibility, credential storage, or
+  provider-specific signature policy.
 - No provider-side refund, payout, or money-movement action.
 - No business-day or holiday calendar in SLA calculations.
-- No outbound email, Slack, or incident notification.
+- No outbound email, Slack, or incident notification; alerts are in-app only.
 - No enterprise SSO or production secrets system.
 - No production-derived or representative two-reviewer evaluation dataset yet.
 - No production telemetry or load testing.

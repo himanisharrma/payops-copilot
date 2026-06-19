@@ -1,6 +1,10 @@
 import type { PoolClient } from "pg";
 import { query } from "@/lib/db";
-import { providerEventsForEntity } from "@/lib/provider-webhooks";
+import {
+  mergeProviderEvents,
+  providerEventsForEntity,
+} from "@/lib/provider-webhooks";
+import { listPersistedProviderEvents } from "@/lib/modules/provider-events/repository";
 import { getSlaStatus } from "@/lib/sla";
 import type {
   AIInvestigation,
@@ -105,6 +109,10 @@ export async function listCases(
        c.created_at DESC`,
     [organizationId],
   );
+  const persistedProviderEvents = await listPersistedProviderEvents(
+    organizationId,
+    client,
+  );
 
   return result.rows.map((row) => {
     const createdAt = row.created_at.toISOString();
@@ -161,10 +169,17 @@ export async function listCases(
             updatedAt: row.investigation_updated_at!.toISOString(),
           }
         : null,
-      providerEvents: providerEventsForEntity({
-        orderId: row.order_id,
-        paymentReference: row.gateway_reference,
-      }),
+      providerEvents: mergeProviderEvents(
+        providerEventsForEntity({
+          orderId: row.order_id,
+          paymentReference: row.gateway_reference,
+        }),
+        persistedProviderEvents.filter(
+          (providerEvent) =>
+            providerEvent.orderId === row.order_id ||
+            providerEvent.paymentReference === row.gateway_reference,
+        ),
+      ),
     };
   });
 }

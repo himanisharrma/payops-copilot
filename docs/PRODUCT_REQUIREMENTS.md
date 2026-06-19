@@ -70,6 +70,12 @@ actual settlements differ.
   complete.
 - Synthetic provider webhook payloads normalize into case and workflow
   timelines that state what each event proves and does not prove.
+- A synthetic-only inbound boundary verifies an HMAC signature over the
+  organization, external event ID, and exact body; duplicate deliveries are
+  idempotent and raw payloads are not stored.
+- Matched provider events and deterministic SLA risk appear as
+  organization-scoped in-app notifications. Viewers may read them; only admins
+  and analysts may update read state.
 - No real payment is initiated and no payment-provider credentials are
   collected.
 
@@ -78,7 +84,8 @@ actual settlements differ.
 - Moving money or initiating a provider-side refund.
 - Connecting to production payment gateways.
 - Using real provider credentials or claiming live provider compatibility.
-- Receiving live webhooks or exposing a public webhook endpoint.
+- Claiming production webhook compatibility or accepting unsigned events.
+- Persisting raw webhook payloads or provider credentials.
 - Storing original uploaded file contents permanently.
 - AI-generated financial calculations.
 - Autonomous provider communication or case resolution.
@@ -96,6 +103,7 @@ actual settlements differ.
 
 1. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
 2. Turn approved analyst corrections into governed synthetic regression cases.
-3. Add provider webhook ingestion and settlement-cycle metadata.
-4. Add configurable business calendars and external escalation notifications.
+3. Add provider-specific signature policies, managed secret rotation,
+   delivery observability, and settlement-cycle metadata.
+4. Add configurable business calendars and outbound escalation notifications.
 5. Add production identity, observability, and retention controls.

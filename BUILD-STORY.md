@@ -284,6 +284,21 @@ Database integration tests prove that two reviewers remain independent and that
 an adjudicated score supersedes their disagreement without deleting either
 original judgment.
 
+### Milestone 15: Make inbound evidence trustworthy without claiming live connectivity
+
+The final roadmap slice turns the fictional provider-event model into a
+controlled inbound boundary. A request is accepted only when its HMAC covers
+the organization slug, external event ID, and exact body. PostgreSQL prevents
+replay within an organization and provider, while persistence keeps only a
+SHA-256 body hash and the deterministic normalized event.
+
+Matching events appear beside the existing case and payment-workflow evidence.
+The header evidence inbox also surfaces linked provider events and cases that
+enter the last 25% of their SLA or become overdue. Read state is
+organization-scoped, viewer-safe, and audited for administrators and analysts.
+Nothing in the release contacts a provider, sends an external notification, or
+moves money.
+
 ## The working workflow
 
 This was the recurring delivery loop:
@@ -379,8 +394,9 @@ must all reinforce the same boundary. Safety cannot live in one sentence.
 
 This is a portfolio MVP, not a production payment system. It has synthetic
 data, local credentials, a simple SLA calendar, and a focused test suite. It
-does not ingest provider APIs or webhooks, initiate provider-side refunds, store
-payment credentials, send notifications, or use production-derived labeled
+does not connect to provider APIs, claim production webhook compatibility,
+initiate provider-side refunds, store payment credentials or raw webhook
+payloads, send external notifications, or use production-derived labeled
 evaluation data.
 
 Those are not hidden gaps. They are the next product and engineering decisions,

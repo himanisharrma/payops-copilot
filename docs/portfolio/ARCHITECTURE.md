@@ -24,7 +24,8 @@ flowchart TB
       Routes[Route handlers]
       Engine[Deterministic reconciliation]
       ProviderPolicy[Provider mapping policies]
-      WebhookPolicy[Synthetic webhook normalizer]
+      WebhookPolicy[Signed synthetic webhook boundary]
+      Notifications[Operational notification service]
       Investigator[AI investigation adapter]
       Access[Role and organization guard]
       Modules[Domain backend modules]
@@ -38,6 +39,8 @@ flowchart TB
       Workflows[Payment workflows and timelines]
       Identity[Organizations and users]
       Events[Audit events]
+      ProviderStore[Webhook hashes and normalized events]
+      SignalStore[Operational notifications]
     end
 
     Upload --> Routes
@@ -47,6 +50,10 @@ flowchart TB
     Routes --> Engine
     Routes --> ProviderPolicy
     Routes --> WebhookPolicy
+    WebhookPolicy --> Modules
+    Routes --> Notifications
+    WebhookPolicy --> ProviderStore
+    Notifications --> SignalStore
     Engine --> Modules
     Ops --> Routes
     Lifecycles --> Routes
@@ -97,7 +104,7 @@ These adapters are mapping policies, not live integrations. They do not use
 provider credentials, call provider APIs, or claim compatibility with production
 exports.
 
-## 2. Synthetic provider event timelines
+## 2. Signed synthetic provider event timelines
 
 `lib/provider-webhooks.ts` contains fictional webhook fixtures and a
 deterministic normalizer for Razorpay-style, Cashfree-style, and PayU-style
@@ -112,10 +119,19 @@ The normalizer converts provider-specific shapes into one internal event model:
 - chargeback received;
 - chargeback evidence due.
 
-Cases and payment workflows attach matching normalized events in their read
-models. The UI explains both what an event proves and what it does not prove.
-There is no public webhook endpoint, no signature verification, no provider
-secret, and no live provider call in this portfolio slice.
+The route `/api/provider-webhooks/:providerId` accepts only the three demo
+providers. It verifies HMAC-SHA256 over the organization slug, external event
+ID, and exact request body using an environment-managed demo secret. The
+database enforces idempotency per organization, provider, and event ID.
+
+Only a SHA-256 body hash and the normalized event are persisted. Raw payloads
+are discarded. Deterministic identifier matching attaches persisted events to
+tenant-owned cases and payment workflows, where the UI states both what an
+event proves and what it does not prove.
+
+This is an executable integration boundary, not a production-provider claim.
+It has no provider credentials, outbound provider call, money-moving action,
+or provider-specific production signature contract.
 
 ## 3. Transactional persistence
 
@@ -145,6 +161,7 @@ The migration chain is append-only:
 | `009_refunds_and_disputes.sql` | Refund/chargeback lifecycles and decision timelines |
 | `010_evidence_integrity.sql` | Tenant-linked source-row ledger, hashes, and controlled case resolution |
 | `011_two_reviewer_evaluations.sql` | Reviewer slots, independent case reviews, disagreement, and adjudication |
+| `012_provider_event_ingestion_notifications.sql` | Idempotent signed deliveries, normalized events, and in-app operational notifications |
 
 ## 4. Identity, organization, and roles
 
@@ -172,11 +189,13 @@ route handler -> domain policy/service -> domain repository -> lib/db.ts
 ```
 
 Current modules are reconciliation, cases, investigations, evaluations,
-payment workflows, audit, and system health. This preserves one deployment
+payment workflows, provider events, notifications, audit, and system health.
+This preserves one deployment
 while removing the central repository as a coupling point.
 
-Reconciliation, payment workflows, cases, evaluations, and investigations have
-service layers. Services validate state transitions, review payloads, and
+Reconciliation, payment workflows, cases, evaluations, investigations,
+provider events, and notifications have service layers. Services validate
+state transitions, signed payloads, review payloads, and
 reconciliation requests; coordinate persistence, deterministic execution, and
 AI execution; and write audit evidence. Their API routes handle authentication,
 JSON parsing, and HTTP responses. `lib/api-errors.ts` centralizes access,
@@ -197,6 +216,10 @@ frontend derives live labels from those timestamps.
 
 Changing priority recalculates the deadline from the original case creation
 time. The update is included in the audit details.
+
+The notification service applies the same 25% warning window when a signed-in
+user requests their inbox. It inserts deduplicated at-risk and overdue signals;
+it does not require a scheduler or send an external message.
 
 ## 7. Bounded AI investigation
 
@@ -280,6 +303,8 @@ payment-workflow updates. The administrator ledger is organization-scoped.
 - `components/run-history.tsx`: historical quality and value metrics.
 - `components/audit-log.tsx`: admin audit ledger.
 - `components/app-header.tsx`: role-aware product navigation.
+- `components/notification-center.tsx`: responsive provider-event and SLA
+  evidence inbox with role-aware read controls.
 - `components/ui/`: shared search, evidence-ledger, and provider-event
   presentation primitives.
 - `components/cases/`: case queue and controlled-resolution components.

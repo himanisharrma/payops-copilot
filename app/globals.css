@@ -1342,6 +1342,197 @@ footer {
   background: transparent;
 }
 
+.notification-center {
+  position: relative;
+}
+
+.notification-trigger {
+  position: relative;
+}
+
+.notification-trigger > span {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--paper);
+  border-radius: 50%;
+  background: var(--orange);
+  color: white;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.notification-panel {
+  position: absolute;
+  top: calc(100% + 18px);
+  right: 0;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(660px, calc(100vh - 96px));
+  overflow: hidden;
+  border: 1px solid var(--ink);
+  background: var(--paper-strong);
+  box-shadow: 12px 12px 0 rgba(21, 23, 19, 0.16);
+  text-align: left;
+}
+
+.notification-panel > header {
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--ink);
+  background:
+    linear-gradient(90deg, transparent 97%, rgba(21, 23, 19, 0.08) 97%),
+    var(--paper);
+  background-size: 16px 16px;
+}
+
+.notification-panel header span,
+.notification-panel header > strong,
+.notification-list article span,
+.notification-panel footer {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.notification-panel h2 {
+  margin: 5px 0 0;
+  font-size: 22px;
+}
+
+.notification-panel header > strong {
+  color: var(--orange-dark);
+}
+
+.notification-list {
+  max-height: 510px;
+  overflow-y: auto;
+}
+
+.notification-list article {
+  padding: 17px 18px;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.notification-list article.unread {
+  background: rgba(255, 92, 53, 0.055);
+}
+
+.notification-list article.read {
+  opacity: 0.62;
+}
+
+.notification-signal {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ink);
+}
+
+.notification-list article.warning .notification-signal {
+  background: #fff0cf;
+  color: #8a5a00;
+}
+
+.notification-list article.critical .notification-signal {
+  background: var(--red-soft);
+  color: #9b2f1b;
+}
+
+.notification-list article.info .notification-signal {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.notification-list article span {
+  color: var(--muted);
+}
+
+.notification-list article strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.notification-list article p,
+.notification-empty p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.notification-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.notification-actions a,
+.notification-actions button {
+  min-height: 28px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+  font-weight: 800;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.notification-actions button {
+  width: auto;
+  height: auto;
+}
+
+.notification-empty {
+  padding: 38px 24px;
+  text-align: center;
+}
+
+.notification-empty svg {
+  color: var(--green);
+}
+
+.notification-empty strong {
+  display: block;
+  margin-top: 10px;
+}
+
+.notification-panel footer {
+  padding: 11px 18px;
+  border-top: 1px solid var(--ink);
+  color: var(--muted);
+}
+
+.notification-error {
+  margin: 0;
+  padding: 10px 18px;
+  border-bottom: 1px solid #b64027;
+  background: var(--red-soft);
+  color: #7c2515;
+  font-size: 9px;
+}
+
 .login-page {
   min-height: 100vh;
   display: grid;
@@ -3970,6 +4161,20 @@ button:disabled {
 }
 
 @media (max-width: 650px) {
+  .notification-panel {
+    position: fixed;
+    top: 66px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+    max-height: calc(100vh - 82px);
+    box-shadow: 7px 7px 0 rgba(21, 23, 19, 0.16);
+  }
+
+  .notification-list {
+    max-height: calc(100vh - 215px);
+  }
+
   .compact-hero {
     align-items: flex-start;
     flex-direction: column;

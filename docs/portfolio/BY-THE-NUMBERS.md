@@ -9,20 +9,20 @@
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
-| Product milestones | 14 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 15 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
 | Latest product milestone | Refund and chargeback operations | commit `ae7cea0`, migration `009` |
-| Latest architecture milestone | Two-reviewer evaluation and adjudication | migration `011`, Quality Lab |
+| Latest architecture milestone | Signed synthetic ingestion and operational notifications | migration `012`, notification center |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 110 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 9,698 | repository file list piped to `wc -l` |
-| Next.js API route files | 14 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 11 | `db/migrations/` |
-| Automated test cases | 46 | 41 unit/policy plus 5 PostgreSQL integration tests |
+| Repository files | 134 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 10,843 | repository file list piped to `wc -l` |
+| Next.js API route files | 17 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 12 | `db/migrations/` |
+| Automated test cases | 49 | 43 unit/policy plus 6 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 8 | Adds `/refunds-disputes` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
@@ -35,6 +35,7 @@
 | Payment lifecycle states | 11 | 5 refund and 6 chargeback states |
 | Synthetic provider adapters | 4 | generic, Razorpay-style, Cashfree-style, PayU-style |
 | Synthetic provider webhook fixtures | 10 | payment, settlement, refund, and chargeback events |
+| Signed synthetic webhook providers | 3 | Razorpay-style, Cashfree-style, and PayU-style demo routes |
 | Source snapshots in the standard 10-order demo | 27 | 10 order, 10 gateway, and 7 settlement rows |
 
 ## Product surface
@@ -46,8 +47,8 @@
 | Normalized provider event types | 6 typed event states in `lib/types.ts` |
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
-| Backend domain modules | 7 repositories under `lib/modules/` |
-| Domain service layers | 5: reconciliation, payment workflows, cases, evaluations, investigations |
+| Backend domain modules | 9 repositories under `lib/modules/` |
+| Domain service layers | 7: reconciliation, payment workflows, cases, evaluations, investigations, provider events, notifications |
 | Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
@@ -60,6 +61,7 @@
 | Shared frontend primitives | search, evidence ledger, provider timeline, case queue, resolution control |
 | Evaluation reviewer slots | 2 independent reviewers per run |
 | Human review states | unreviewed, single, agreed, disputed, adjudicated |
+| Operational notification types | provider event, SLA at risk, SLA overdue |
 
 ## Quality evidence
 
@@ -67,8 +69,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 8 test files, 41 tests passing
-npm run test:integration -> 2 test files, 5 tests passing
+npm test       -> 8 test files, 43 tests passing
+npm run test:integration -> 3 test files, 6 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -95,6 +97,11 @@ Browser verification also exercised:
 - refund/chargeback mobile layout at 390px with no horizontal overflow;
 - a payment-workflow priority mutation through the service layer with matching
   PostgreSQL audit events.
+- forged, accepted, and duplicate synthetic webhook responses through the real
+  HTTP route;
+- persisted provider evidence in a refund timeline and audited notification
+  read state;
+- the notification evidence inbox at 390px with no horizontal overflow.
 
 ## What is not measured
 

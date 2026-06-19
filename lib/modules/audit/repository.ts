@@ -4,7 +4,7 @@ import type { AuditEvent } from "@/lib/types";
 
 export async function recordAuditEvent(input: {
   organizationId: string;
-  actorUserId: string;
+  actorUserId: string | null;
   actorName: string;
   action: string;
   entityType: string;

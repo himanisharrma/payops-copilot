@@ -90,6 +90,18 @@ export type NormalizedProviderEvent = {
   doesNotProve: string;
 };
 
+export type OperationalNotification = {
+  id: string;
+  type: "provider_event" | "sla_at_risk" | "sla_overdue";
+  severity: "info" | "warning" | "critical";
+  title: string;
+  message: string;
+  entityType: "operations_case" | "payment_workflow" | null;
+  entityId: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
 export type ReconciliationStatus =
   | "matched"
   | "amount_mismatch"

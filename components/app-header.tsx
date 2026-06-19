@@ -9,6 +9,8 @@ import {
   Scale,
 } from "lucide-react";
 import { auth, signOut } from "@/auth";
+import { NotificationCenter } from "@/components/notification-center";
+import { getOperationalNotifications } from "@/lib/modules/notifications/service";
 
 export async function AppHeader({
   active,
@@ -16,6 +18,18 @@ export async function AppHeader({
   active: "operations" | "payments" | "runs" | "quality" | "audit";
 }) {
   const session = await auth();
+  const actor = session?.user
+    ? {
+        id: session.user.id,
+        name: session.user.name ?? "Unknown user",
+        role: session.user.role,
+        organizationId: session.user.organizationId,
+        organizationName: session.user.organizationName,
+      }
+    : null;
+  const notifications = actor
+    ? await getOperationalNotifications(actor)
+    : [];
   return (
     <header className="topbar app-page-header">
       <Link className="brand" href="/" aria-label="PayOps Copilot home">
@@ -69,6 +83,10 @@ export async function AppHeader({
         )}
       </nav>
       <div className="session-identity">
+        <NotificationCenter
+          initialNotifications={notifications}
+          canManage={actor?.role !== "viewer"}
+        />
         <span>
           <strong>{session?.user.organizationName}</strong>
           {session?.user.name} · {session?.user.role}

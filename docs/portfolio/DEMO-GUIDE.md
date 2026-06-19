@@ -25,6 +25,9 @@ PayOpsDemo123!
 The demo works without an OpenAI key. In that mode, investigations are clearly
 labeled `Evidence rules - demo mode`.
 
+Set `SYNTHETIC_WEBHOOK_SECRET` to a fictional local value if demonstrating the
+signed event endpoint. Never reuse a real provider secret.
+
 ## Five-minute script
 
 ### 0:00-0:40 - Frame the problem
@@ -111,6 +114,11 @@ Show that reconciliation and case activity records the actor, entity, action,
 and timestamp. Explain that audit access is admin-only and records are scoped
 to the organization.
 
+Open the bell in the header and show the evidence inbox. Explain that SLA
+signals are derived from the deterministic deadline policy and provider
+signals come only from signed synthetic deliveries. Marking a signal read is
+an audited admin/analyst action.
+
 ### 4:30-5:00 - Demonstrate role boundaries
 
 Sign out and use:
@@ -149,6 +157,8 @@ Close with:
 - Do not describe AI output as a confirmed root cause.
 - Do not describe the deterministic evaluation baseline as OpenAI model proof.
 - Do not describe local credentials as production authentication.
+- Do not describe the signed synthetic endpoint as a live provider connection
+  or production signature implementation.
 - Do not claim measured analyst savings or AI accuracy.
 - Do not upload private company reports to the public portfolio instance.
 

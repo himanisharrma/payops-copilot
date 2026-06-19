@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-28%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-49%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -21,8 +21,8 @@
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Backend shape** | Modular monolith with thin routes, domain services, seven repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 14 product milestones, 14 API routes, 11 migrations, and 46 unit/integration tests at the two-reviewer snapshot |
+| **Backend shape** | Modular monolith with thin routes, domain services, nine repositories, and shared PostgreSQL infrastructure |
+| **Build evidence** | 15 product milestones, 17 API routes, 12 migrations, and 49 unit/integration tests at the signed-ingestion snapshot |
 
 ## Why this exists
 
@@ -83,6 +83,11 @@ to production gateways or move money.
     timelines with explicit "proves / does not prove" boundaries.
 19. Requires an attributed resolution reason and explicit source-evidence
     confirmation before an operations case can be resolved.
+20. Accepts HMAC-signed synthetic provider events through an idempotent,
+    organization-scoped boundary that stores hashes and normalized evidence,
+    never raw payloads.
+21. Surfaces matched provider evidence and deterministic SLA risk in a
+    role-aware in-app notification center.
 
 ## The product judgment
 
@@ -176,7 +181,16 @@ For the five-minute walkthrough, use the
 | `PATCH` | `/api/evaluations/:id/cases/:caseId` | Save an independent review or admin adjudication |
 | `GET` | `/api/payment-workflows` | List organization refund and chargeback workflows |
 | `PATCH` | `/api/payment-workflows/:id` | Update stage, owner, evidence, priority, or notes |
+| `POST` | `/api/provider-webhooks/:providerId` | Receive a signed synthetic provider event |
+| `GET` | `/api/notifications` | List organization-scoped provider and SLA signals |
+| `PATCH` | `/api/notifications/:id` | Mark a notification read as admin or analyst |
 | `GET` | `/api/health` | Check application and database health |
+
+The synthetic webhook route requires `x-payops-organization`,
+`x-payops-event-id`, and `x-payops-signature`. Its JSON body is
+`{ eventType, occurredAt, payload }`; the signature is HMAC-SHA256 over
+`organizationSlug.externalEventId.exactBody` using
+`SYNTHETIC_WEBHOOK_SECRET`.
 
 PostgreSQL stores organizations, users, reconciliation runs, row-level items,
 source-evidence snapshots and hashes, operations cases and resolution records,
@@ -190,8 +204,8 @@ and migration history.
 npm run verify
 ```
 
-The verification command runs lint, 40 unit/policy tests, four PostgreSQL-backed
-tenant-isolation tests, a production build, and `git diff --check`. GitHub
+The verification command runs lint, 43 unit/policy tests, six PostgreSQL-backed
+integration tests, a production build, and `git diff --check`. GitHub
 Actions runs the same command against a clean PostgreSQL 17 service.
 
 The current suite covers reconciliation, deterministic investigations, SLA
@@ -201,8 +215,9 @@ quality baseline. Portfolio claims are intentionally bounded:
 - all data is synthetic;
 - no production payment provider is connected;
 - provider adapters are synthetic mapping policies, not live integrations;
-- provider webhook timelines are synthetic fixtures, not an inbound webhook
-  endpoint;
+- inbound webhook support is a synthetic-only HMAC boundary, not a live
+  provider connection or production compatibility claim;
+- raw webhook payloads and provider credentials are not stored;
 - no payment credentials are stored;
 - no money movement is implemented;
 - AI output is assistance, not settlement truth;
@@ -255,9 +270,9 @@ constraints, and completion conditions; encode durable repository guidance in
 - Configure an API key, run the guarded OpenAI evaluation, and complete a
   representative two-reviewer sample before making a model-quality claim.
 - Feed approved analyst corrections into new anonymized evaluation cases.
-- Add inbound webhook ingestion, signature checks, and refund-reference
-  verification.
-- Add configurable business calendars and escalation notifications.
+- Add provider-specific signature policies, secret rotation, delivery
+  observability, and settlement-cycle metadata before any real integration.
+- Add configurable business calendars and outbound escalation channels.
 - Add provider-specific investigation tools with scoped permissions.
 - Add tamper-evident audit retention and production observability.
 
