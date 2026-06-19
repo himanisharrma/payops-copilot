@@ -89,14 +89,19 @@ payment records, and the app does not persist original upload contents.
 
 ### Evidence before explanation
 
-Every reconciliation item carries source-derived evidence. The AI assistant is
-downstream of this bundle and is instructed not to invent payment events,
-policies, provider responses, or money movement.
+Every new reconciliation item carries source-derived evidence plus minimal
+snapshots of its contributing report rows, including original row numbers,
+normalized values, retained source values, and integrity hashes. The AI
+assistant is downstream of this bundle and is instructed not to invent payment
+events, policies, provider responses, or money movement.
 
 ### Operations, not only analytics
 
 Exceptions automatically become cases. This changes the product from a report
 viewer into a work-management system.
+
+Cases require a reason, evidence-review confirmation, and resolver attribution
+before they can become resolved.
 
 ### Human authority
 

@@ -148,11 +148,17 @@ execution creates an audit event containing the dataset, prompt, provider,
 model, pass rate, critical safety-failure count, duration, and total tokens.
 Run-level and case-level latency and token usage are stored in PostgreSQL.
 
-The run-detail workspace separates automated checks from human judgment.
-Reviewers score six dimensions from 0 to 2, add notes, and create an attributable
-audit event. One synthetic review was saved to verify the workflow; it is not a
-quality claim. A real release decision still requires two independent reviewers
-over a representative sample.
+The run-detail workspace separates automated checks from human judgment. Two
+distinct users claim reviewer slots at run level. Each reviewer independently
+scores six dimensions from 0 to 2 and adds notes without overwriting the other.
+Cases are classified as unreviewed, single review, agreed, disputed, or
+adjudicated. Administrators can record final rubric scores and rationale after
+two reviews, and run details aggregate reviewer coverage, disagreements,
+adjudications, and human score.
+
+Synthetic two-reviewer disagreement and adjudication records verify the
+workflow; they are not a model-quality claim. A real release decision still
+requires representative scoring by two payment-operations reviewers.
 
 No OpenAI evaluation completed for this repository snapshot. A local,
 untracked API key reached OpenAI, but the project returned

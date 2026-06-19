@@ -43,12 +43,17 @@ actual settlements differ.
 - Exceptions include missing gateway rows, duplicate captures, missing
   settlements, and amount mismatches.
 - Every finding shows evidence from the source records.
+- New reconciliation runs persist the contributing source-row number, selected
+  normalized values, original source values, and an integrity hash without
+  retaining the complete uploaded file.
 - Reconciliation runs and findings persist in PostgreSQL.
 - Actionable exceptions automatically create operations cases.
 - Analysts can assign an owner, change status and priority, and save notes.
 - Priority automatically sets a case SLA: high in 4 hours, medium in 24
   hours, and low in 72 hours.
 - Operators can filter at-risk and overdue cases and see an in-app SLA alert.
+- A case cannot move to resolved until an analyst supplies a resolution reason
+  and confirms review of its durable source evidence; the resolver is recorded.
 - Analysts can generate a structured investigation grounded in case evidence.
 - AI suggestions require explicit approval or rejection before operational use.
 - Analyst usefulness ratings persist as input for governed evaluation-set
@@ -57,6 +62,8 @@ actual settlements differ.
   explicitly request a guarded OpenAI evaluation.
 - Reviewers can inspect case-level evaluation evidence and save six rubric
   scores with notes and attribution.
+- Two distinct reviewers can claim run-level slots, review independently, see
+  disagreement, and leave an administrator to record the adjudicated score.
 - Refund and chargeback workflows track owner, deadline, evidence, stage, notes,
   timeline events, and audit history without moving money.
 - Chargeback evidence cannot advance to submitted until the checklist is

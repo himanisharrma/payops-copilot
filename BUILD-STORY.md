@@ -10,7 +10,7 @@ team. I knew the operational pain: merchant order reports, gateway exports,
 and bank settlements rarely line up cleanly, and finding a mismatch is only the
 start of the work.
 
-Codex helped convert that knowledge into a working system in ten milestones.
+Codex helped convert that knowledge into a working system in fourteen milestones.
 The productive pattern was not "ask AI to build an app." It was a repeated
 loop of narrowing the problem, inspecting the current repository, building one
 coherent vertical slice, verifying it in the database and browser, and pushing
@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The ten milestones
+## The fourteen milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -47,6 +47,10 @@ The dates and commits below come directly from the repository history.
 | June 15, 2026 | `1597d5f` | Added case-level outputs, six-score review, notes, attribution, and audit |
 | June 15, 2026 | `489d5dd` | Added guarded OpenAI execution with latency and token evidence |
 | June 15, 2026 | `ae7cea0` | Added refunds, chargebacks, evidence gates, deadlines, and timelines |
+| June 19, 2026 | current release | Added source-row integrity evidence and controlled case resolution |
+| June 19, 2026 | current release | Added PostgreSQL-backed CI, tenancy attacks, and role tests |
+| June 19, 2026 | current release | Extracted the operations-console design system and workflow components |
+| June 19, 2026 | current release | Added independent reviewers, disagreement, and adjudication |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -227,6 +231,58 @@ two explicit statements: what the event proves and what it does not prove. That
 keeps the portfolio honest. The product can demonstrate event reasoning without
 claiming live webhook ingestion, provider credentials, signature verification,
 or production delivery guarantees.
+
+### Milestone 11: Make financial evidence reconstructable
+
+The evidence-integrity release persists the contributing order, gateway, and
+settlement row snapshots for each new reconciliation item. Each snapshot keeps
+the original row number, selected normalized values, retained source values,
+and a SHA-256 integrity hash without storing the complete uploaded file.
+
+Tenant-linked foreign keys keep runs, items, cases, and evidence inside the
+same organization. Reconciliation creation and case updates now commit their
+audit events in the same database transaction. A case cannot be resolved until
+an analyst provides a reason, confirms the persisted evidence was reviewed, and
+accepts resolver attribution.
+
+### Milestone 12: Turn repository rules into executable gates
+
+The next release replaced the self-attested PR checklist with one
+`npm run verify` contract used locally and in GitHub Actions. CI starts a clean
+PostgreSQL 17 service, applies every migration, and then runs lint, unit tests,
+database integration tests, the production build, and diff checks.
+
+The integration suite creates two organizations and attempts cross-tenant reads,
+writes, and mixed-tenant relationships. It also forces a transaction failure to
+prove that case mutations and audit events roll back together. Separate role
+tests cover administrator, analyst, viewer, and unauthenticated behavior.
+
+### Milestone 13: Make the interface system reusable
+
+The frontend already had a distinct visual language, but repeated search
+controls, source evidence, provider timelines, case queues, and resolution
+controls were embedded in large workflow files. This release extracted those
+patterns into `components/ui/`, `components/cases/`, and
+`components/reconciliation/`.
+
+The design-system document names the product direction—an evidence-dense
+editorial operations console—and records its paper grid, ink borders, mono
+control labels, semantic colors, responsive rules, and evidence-rail signature.
+Domain components still own workflow state and mutations; shared components own
+repeated presentation and accessibility.
+
+### Milestone 14: Make human evaluation genuinely independent
+
+The first Quality Lab stored one review directly on each case, which meant a
+second reviewer would overwrite the first. The new schema adds two run-level
+reviewer slots, reviewer-owned case scores, and a separate administrator
+adjudication record.
+
+Quality Lab now exposes assignment coverage, double-reviewed cases,
+disagreements, adjudications, reviewer comparison, and aggregate human score.
+Database integration tests prove that two reviewers remain independent and that
+an adjudicated score supersedes their disagreement without deleting either
+original judgment.
 
 ## The working workflow
 

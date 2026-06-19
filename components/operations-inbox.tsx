@@ -2,38 +2,31 @@
 
 import {
   AlertTriangle,
-  ArrowRight,
   BellRing,
   CheckCircle2,
   CircleDot,
   Clock3,
   Copy,
   LoaderCircle,
-  Search,
   ShieldCheck,
   Sparkles,
   ThumbsDown,
   ThumbsUp,
-  UserRound,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import {
+  CaseQueue,
+  caseSlaLabels as slaLabels,
+} from "@/components/cases/case-queue";
+import {
+  CaseResolutionControl,
+  CaseResolutionRecord,
+} from "@/components/cases/case-resolution-control";
+import { ProviderEventTimeline } from "@/components/ui/provider-event-timeline";
+import { SourceEvidenceLedger } from "@/components/ui/source-evidence-ledger";
 import { formatSlaDistance, getSlaStatus, SLA_HOURS } from "@/lib/sla";
-import type { CaseStatus, OperationsCase, SlaStatus } from "@/lib/types";
-
-const statusLabels: Record<CaseStatus, string> = {
-  open: "Open",
-  investigating: "Investigating",
-  resolved: "Resolved",
-};
-
-const slaLabels: Record<SlaStatus, string> = {
-  on_track: "On track",
-  at_risk: "At risk",
-  overdue: "Overdue",
-  met: "SLA met",
-  breached: "SLA breached",
-};
+import type { CaseStatus, OperationsCase } from "@/lib/types";
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -70,6 +63,9 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
   const [saving, setSaving] = useState(false);
   const [investigating, setInvestigating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pendingResolution, setPendingResolution] = useState(false);
+  const [resolutionReason, setResolutionReason] = useState("");
+  const [evidenceConfirmed, setEvidenceConfirmed] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -98,6 +94,17 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
     };
   }, []);
 
+  function clearResolutionDraft() {
+    setPendingResolution(false);
+    setResolutionReason("");
+    setEvidenceConfirmed(false);
+  }
+
+  function selectCase(paymentCase: OperationsCase | null) {
+    setSelected(paymentCase);
+    clearResolutionDraft();
+  }
+
   async function updateSelected(patch: Partial<OperationsCase>) {
     if (!selected) return;
     setSaving(true);
@@ -113,11 +120,14 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
             ? patch.owner
             : undefined,
           notes: patch.notes,
+          resolutionReason: patch.resolutionReason,
+          resolutionEvidenceConfirmed: patch.resolutionEvidenceConfirmed,
         }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error);
       setSelected(payload.case);
+      clearResolutionDraft();
       setCases((current) =>
         current.map((item) => (item.id === payload.case.id ? payload.case : item)),
       );
@@ -293,119 +303,30 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
       )}
 
       <section className="operations-layout">
-        <div className="case-list-panel">
-          <div className="case-toolbar">
-            <div className="case-filter-stack">
-              <div className="filter-group">
-                {(["all", "open", "investigating", "resolved"] as const).map(
-                  (value) => (
-                    <button
-                      key={value}
-                      className={filter === value ? "active" : ""}
-                      onClick={() => setFilter(value)}
-                    >
-                      {value === "all" ? "All" : statusLabels[value]}
-                    </button>
-                  ),
-                )}
-              </div>
-              <div className="filter-group sla-filter-group">
-                {(["all", "at_risk", "overdue"] as const).map((value) => (
-                  <button
-                    key={value}
-                    className={slaFilter === value ? "active" : ""}
-                    onClick={() => setSlaFilter(value)}
-                  >
-                    {value === "all"
-                      ? "Any SLA"
-                      : value === "at_risk"
-                        ? "At risk"
-                        : "Overdue"}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <label className="search-box">
-              <Search size={16} />
-              <span className="sr-only">Search cases</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search order, owner or issue"
-              />
-            </label>
-          </div>
-
-          {error && <div className="error-banner">{error}</div>}
-          {loading ? (
-            <div className="loading-state">
-              <LoaderCircle className="spin" />
-              Loading PostgreSQL cases…
-            </div>
-          ) : visible.length ? (
-            <div className="case-list">
-              {visible.map((item) => (
-                (() => {
-                  const slaStatus = currentSlaStatus(item);
-                  return (
-                    <button
-                      key={item.id}
-                      className={`case-card ${
-                        selected?.id === item.id ? "selected" : ""
-                      }`}
-                      onClick={() => setSelected(item)}
-                    >
-                      <div className="case-card-top">
-                        <span className={`priority-chip ${item.priority}`}>
-                          {item.priority} priority
-                        </span>
-                        <span className={`case-status ${item.status}`}>
-                          {item.status === "resolved" ? (
-                            <CheckCircle2 size={13} />
-                          ) : (
-                            <CircleDot size={13} />
-                          )}
-                          {statusLabels[item.status]}
-                        </span>
-                      </div>
-                      <h2>{item.orderId}</h2>
-                      <p>{item.summary}</p>
-                      <div className={`sla-card-status ${slaStatus}`}>
-                        <Clock3 size={13} />
-                        <strong>{slaLabels[slaStatus]}</strong>
-                        <span>
-                          {item.status === "resolved"
-                            ? `Resolved ${formatDateTime(item.resolvedAt!)}`
-                            : formatSlaDistance(item.dueAt)}
-                        </span>
-                      </div>
-                      <div className="case-card-meta">
-                        <span>
-                          <UserRound size={13} />
-                          {item.owner || "Unassigned"}
-                        </span>
-                        <strong>{formatMoney(Math.abs(item.variance))}</strong>
-                        <ArrowRight size={15} />
-                      </div>
-                    </button>
-                  );
-                })()
-              ))}
-            </div>
-          ) : (
-            <div className="loading-state">
-              <CheckCircle2 />
-              No cases match this view.
-            </div>
-          )}
-        </div>
+        <CaseQueue
+          filter={filter}
+          slaFilter={slaFilter}
+          query={query}
+          error={error}
+          loading={loading}
+          visible={visible}
+          selectedId={selected?.id ?? null}
+          onFilterChange={setFilter}
+          onSlaFilterChange={setSlaFilter}
+          onQueryChange={setQuery}
+          onSelect={selectCase}
+          getSlaStatus={currentSlaStatus}
+          formatDateTime={formatDateTime}
+          formatSlaDistance={formatSlaDistance}
+          formatMoney={formatMoney}
+        />
 
         <aside className="case-detail-panel">
           {selected ? (
             <>
               <button
                 className="mobile-close"
-                onClick={() => setSelected(null)}
+                onClick={() => selectCase(null)}
                 aria-label="Close case"
               >
                 <X size={18} />
@@ -454,11 +375,14 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
                   <select
                     value={selected.status}
                     disabled={saving || !canEdit}
-                    onChange={(event) =>
-                      updateSelected({
-                        status: event.target.value as CaseStatus,
-                      })
-                    }
+                    onChange={(event) => {
+                      const status = event.target.value as CaseStatus;
+                      if (status === "resolved") {
+                        setPendingResolution(true);
+                        return;
+                      }
+                      updateSelected({ status });
+                    }}
                   >
                     <option value="open">Open</option>
                     <option value="investigating">Investigating</option>
@@ -508,6 +432,33 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
                 </label>
               </div>
 
+              {pendingResolution && selected.status !== "resolved" && (
+                <CaseResolutionControl
+                  saving={saving}
+                  reason={resolutionReason}
+                  evidenceConfirmed={evidenceConfirmed}
+                  onReasonChange={setResolutionReason}
+                  onEvidenceConfirmedChange={setEvidenceConfirmed}
+                  onCancel={() => setPendingResolution(false)}
+                  onResolve={() =>
+                    updateSelected({
+                      status: "resolved",
+                      resolutionReason,
+                      resolutionEvidenceConfirmed: evidenceConfirmed,
+                    })
+                  }
+                />
+              )}
+
+              {selected.status === "resolved" && (
+                <CaseResolutionRecord
+                  reason={selected.resolutionReason}
+                  resolvedByName={selected.resolvedByName}
+                  resolvedAt={selected.resolvedAt!}
+                  formatDateTime={formatDateTime}
+                />
+              )}
+
               <div className="case-evidence">
                 <p>EVIDENCE</p>
                 {selected.evidence.map((line) => (
@@ -518,41 +469,16 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
                 ))}
               </div>
 
-              <section className="provider-event-panel">
-                <div className="timeline-heading">
-                  <span>SYNTHETIC PROVIDER EVENTS</span>
-                  <small>{selected.providerEvents?.length ?? 0} events</small>
-                </div>
-                {selected.providerEvents?.length ? (
-                  selected.providerEvents.map((event) => (
-                    <article key={event.id}>
-                      <i />
-                      <div>
-                        <strong>{event.title}</strong>
-                        <p>
-                          {event.paymentReference ?? event.externalReference} ·{" "}
-                          {formatDateTime(event.occurredAt)}
-                        </p>
-                        <dl>
-                          <div>
-                            <dt>Proves</dt>
-                            <dd>{event.proves}</dd>
-                          </div>
-                          <div>
-                            <dt>Does not prove</dt>
-                            <dd>{event.doesNotProve}</dd>
-                          </div>
-                        </dl>
-                      </div>
-                    </article>
-                  ))
-                ) : (
-                  <div className="provider-event-empty">
-                    <AlertTriangle size={15} />
-                    No synthetic provider event matched this case.
-                  </div>
-                )}
-              </section>
+              <SourceEvidenceLedger
+                evidence={selected.sourceEvidence}
+                emptyMessage="Historical case created before source-row persistence."
+              />
+
+              <ProviderEventTimeline
+                events={selected.providerEvents}
+                emptyMessage="No synthetic provider event matched this case."
+                formatDateTime={formatDateTime}
+              />
 
               <section className="ai-investigation">
                 <div className="ai-investigation-head">

@@ -1,7 +1,7 @@
 # By the Numbers
 
 > Every implemented-project figure below was measured from the AI-quality
-> working snapshot prepared on June 16, 2026. It is repository evidence, not a
+> working snapshot prepared on June 19, 2026. It is repository evidence, not a
 > production-performance claim.
 
 ## Delivery
@@ -9,20 +9,20 @@
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
-| Product milestones | 10 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 14 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
 | Latest product milestone | Refund and chargeback operations | commit `ae7cea0`, migration `009` |
-| Latest architecture milestone | Synthetic provider event timelines | `lib/provider-webhooks.ts` |
+| Latest architecture milestone | Two-reviewer evaluation and adjudication | migration `011`, Quality Lab |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
 | Repository files | 110 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 7,679 | repository file list piped to `wc -l` |
+| TypeScript and TSX lines | 9,698 | repository file list piped to `wc -l` |
 | Next.js API route files | 14 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 9 | `db/migrations/` |
-| Automated test cases | 33 | Vitest output |
+| PostgreSQL migrations | 11 | `db/migrations/` |
+| Automated test cases | 46 | 41 unit/policy plus 5 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 8 | Adds `/refunds-disputes` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
@@ -35,6 +35,7 @@
 | Payment lifecycle states | 11 | 5 refund and 6 chargeback states |
 | Synthetic provider adapters | 4 | generic, Razorpay-style, Cashfree-style, PayU-style |
 | Synthetic provider webhook fixtures | 10 | payment, settlement, refund, and chargeback events |
+| Source snapshots in the standard 10-order demo | 27 | 10 order, 10 gateway, and 7 settlement rows |
 
 ## Product surface
 
@@ -55,6 +56,10 @@
 | Versioned AI inputs | dataset, prompt, provider, and model identifiers |
 | Evaluation authorization | admin/analyst run, all roles read within organization |
 | Review attribution | reviewer, timestamp, notes, and audit event |
+| Case resolution controls | durable evidence, reason, confirmation, resolver, timestamp |
+| Shared frontend primitives | search, evidence ledger, provider timeline, case queue, resolution control |
+| Evaluation reviewer slots | 2 independent reviewers per run |
+| Human review states | unreviewed, single, agreed, disputed, adjudicated |
 
 ## Quality evidence
 
@@ -62,7 +67,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 7 test files, 33 tests passing
+npm test       -> 8 test files, 41 tests passing
+npm run test:integration -> 2 test files, 5 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```

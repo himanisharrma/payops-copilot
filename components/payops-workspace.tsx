@@ -8,7 +8,6 @@ import {
   Check,
   ChevronRight,
   CircleHelp,
-  Clock3,
   FileSpreadsheet,
   Filter,
   Landmark,
@@ -19,10 +18,11 @@ import {
   ShieldCheck,
   Sparkles,
   Upload,
-  X,
 } from "lucide-react";
 import Papa from "papaparse";
 import { useMemo, useState } from "react";
+import { ReconciliationEvidenceDrawer } from "@/components/reconciliation/evidence-drawer";
+import { OpsSearchField } from "@/components/ui/ops-search-field";
 import type {
   RawRecord,
   ProviderId,
@@ -557,15 +557,12 @@ export function PayOpsWorkspace({
                   </button>
                 ))}
               </div>
-              <label className="search-box">
-                <Search size={16} />
-                <span className="sr-only">Search transactions</span>
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search order or reference"
-                />
-              </label>
+              <OpsSearchField
+                label="Search transactions"
+                value={query}
+                onChange={setQuery}
+                placeholder="Search order or reference"
+              />
               <button className="filter-button" title="More filters">
                 <Filter size={16} /> Filters
               </button>
@@ -659,90 +656,11 @@ export function PayOpsWorkspace({
       </footer>
 
       {selected && (
-        <div
-          className="drawer-backdrop"
-          onClick={() => setSelected(null)}
-          role="presentation"
-        >
-          <aside
-            className="evidence-drawer"
-            aria-label={`Evidence for ${selected.orderId}`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              className="drawer-close"
-              onClick={() => setSelected(null)}
-              aria-label="Close evidence"
-            >
-              <X size={19} />
-            </button>
-            <p className="eyebrow">EXCEPTION EVIDENCE</p>
-            <div className={`drawer-icon ${selected.status}`}>
-              {selected.status === "matched" ? (
-                <BadgeCheck size={28} />
-              ) : selected.status === "pending" ? (
-                <Clock3 size={28} />
-              ) : (
-                <AlertTriangle size={28} />
-              )}
-            </div>
-            <h2>{selected.orderId}</h2>
-            <span className={`status-pill ${selected.status}`}>
-              <i />
-              {statusLabels[selected.status]}
-            </span>
-            <p className="drawer-summary">{selected.summary}</p>
-
-            <div className="money-trail">
-              <div>
-                <span>ORDER</span>
-                <strong>{formatMoney(selected.orderAmount)}</strong>
-              </div>
-              <ArrowRight size={17} />
-              <div>
-                <span>EXPECTED</span>
-                <strong>
-                  {selected.expectedNet === null
-                    ? "—"
-                    : formatMoney(selected.expectedNet)}
-                </strong>
-              </div>
-              <ArrowRight size={17} />
-              <div>
-                <span>SETTLED</span>
-                <strong>
-                  {selected.settledAmount === null
-                    ? "—"
-                    : formatMoney(selected.settledAmount)}
-                </strong>
-              </div>
-            </div>
-
-            <div className="evidence-list">
-              <p>EVIDENCE TRAIL</p>
-              {selected.evidence.map((evidence, index) => (
-                <div key={evidence}>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <p>{evidence}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="suggested-action">
-              <Sparkles size={18} />
-              <div>
-                <span>SUGGESTED NEXT STEP</span>
-                <p>
-                  {selected.status === "matched"
-                    ? "No action needed. Keep this transaction in the audit record."
-                    : selected.status === "pending"
-                      ? "Wait for the gateway status to become final, then run reconciliation again."
-                      : "Confirm the source row with the payment provider before changing any financial record."}
-                </p>
-              </div>
-            </div>
-          </aside>
-        </div>
+        <ReconciliationEvidenceDrawer
+          selected={selected}
+          onClose={() => setSelected(null)}
+          formatMoney={formatMoney}
+        />
       )}
     </main>
   );

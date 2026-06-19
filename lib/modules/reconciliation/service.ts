@@ -1,4 +1,5 @@
 import type { Actor } from "@/lib/access";
+import { transaction } from "@/lib/db";
 import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import { DomainError } from "@/lib/modules/errors";
 import { saveReconciliationRun } from "@/lib/modules/reconciliation/repository";
@@ -62,31 +63,37 @@ export async function createReconciliationRun(
 ) {
   validateReconciliationRequest(input);
   const result = reconcilePayments(input);
-  const stored = await saveReconciliationRun(result, {
-    organizationId: actor.organizationId,
-    name:
-      input.runName?.trim() ||
-      `Reconciliation ${new Date().toLocaleDateString("en-IN")}`,
-    sourceType: input.sourceType ?? "upload",
-    sourceFiles: input.sourceFiles ?? {},
-  });
+  return transaction(async (client) => {
+    const stored = await saveReconciliationRun(client, result, {
+      organizationId: actor.organizationId,
+      name:
+        input.runName?.trim() ||
+        `Reconciliation ${new Date().toLocaleDateString("en-IN")}`,
+      sourceType: input.sourceType ?? "upload",
+      sourceFiles: input.sourceFiles ?? {},
+    });
 
-  await recordAuditEvent({
-    organizationId: actor.organizationId,
-    actorUserId: actor.id,
-    actorName: actor.name,
-    action: "reconciliation.created",
-    entityType: "reconciliation_run",
-    entityId: stored.id!,
-    details: {
-      totalOrders: stored.summary.totalOrders,
-      exceptionCount: stored.summary.exceptionCount,
-      providerId: input.providerId ?? "generic",
-      providerIssueCount: stored.providerReport?.issues.length ?? 0,
-    },
-  });
+    await recordAuditEvent({
+      organizationId: actor.organizationId,
+      actorUserId: actor.id,
+      actorName: actor.name,
+      action: "reconciliation.created",
+      entityType: "reconciliation_run",
+      entityId: stored.id!,
+      details: {
+        totalOrders: stored.summary.totalOrders,
+        exceptionCount: stored.summary.exceptionCount,
+        providerId: input.providerId ?? "generic",
+        providerIssueCount: stored.providerReport?.issues.length ?? 0,
+        sourceEvidenceRows: stored.items.reduce(
+          (total, item) => total + item.sourceEvidence.length,
+          0,
+        ),
+      },
+    }, client);
 
-  return stored;
+    return stored;
+  });
 }
 
 function isRecordArray(value: unknown): value is RawRecord[] {

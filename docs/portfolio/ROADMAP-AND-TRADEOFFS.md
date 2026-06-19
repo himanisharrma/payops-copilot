@@ -178,20 +178,52 @@ delivery reliability, idempotency, or signature verification.
 
 ## Roadmap
 
-### Now: produce model-quality evidence
+### Completed foundation: automate release confidence
+
+- GitHub Actions now runs migration verification, lint, 40 unit/policy tests,
+  four PostgreSQL-backed integration tests, production build, and diff checks.
+- Organization isolation tests cover scoped reads, blocked cross-tenant writes,
+  database tenant constraints, and mutation/audit rollback.
+- Authorization tests cover administrator, analyst, viewer, and unauthenticated
+  behavior for reads, mutations, and audit access.
+
+The evidence-integrity release now persists hashed source-row snapshots,
+enforces tenant relationships across reconciliation records, and requires an
+attributed evidence-backed case resolution.
+
+### Completed foundation: extract the frontend system
+
+- Shared operations-console primitives now own queue search, source-evidence
+  ledgers, and provider-event timelines.
+- Case queue and controlled-resolution UI are workflow-owned components.
+- The reconciliation evidence drawer is isolated from upload and matching state.
+- The visual direction, responsive rules, and evidence-rail differentiator are
+  documented in `DESIGN-SYSTEM.md`.
+
+### Completed foundation: governed model-quality review
+
+- Two distinct reviewers can claim run-level assignments and save independent
+  six-dimension scores without overwriting each other.
+- Case results classify review state as unreviewed, single review, agreed,
+  disputed, or adjudicated.
+- Administrators can record a final adjudication after two reviews.
+- Run details calculate assigned reviewers, reviewed cases, disagreement counts,
+  adjudication counts, and aggregate human score.
+
+### Next: complete measured model evidence
 
 - Configure a controlled API key and execute the implemented 30-case OpenAI run.
-- Add two-reviewer human scoring for grounding, uncertainty, and action quality.
-- Add reviewer assignment, disagreement resolution, and aggregate human scores.
+- Complete representative two-reviewer scoring rather than relying on the
+  workflow-verification cases.
 - Expand adversarial tests before changing the default model or instructions.
 - Turn approved analyst corrections into anonymized synthetic regression cases.
 
 The evaluation design and initial release thresholds are documented in
 [AI Model Evaluation](AI-MODEL-EVALUATION.md). Deterministic and guarded model
 execution are implemented; actual model evidence and representative
-two-reviewer scoring remain the next slice.
+representative scoring remain the next evidence-collection slice.
 
-### Next: deepen payment operations
+### After that: deepen payment operations
 
 - Add inbound webhook ingestion, idempotency, signature verification, and
   settlement-cycle metadata.

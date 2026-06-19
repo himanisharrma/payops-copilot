@@ -1,11 +1,12 @@
 import type { PoolClient } from "pg";
-import { query, transaction } from "@/lib/db";
+import { query } from "@/lib/db";
 import type {
   ReconciliationResult,
   RunSummary,
 } from "@/lib/types";
 
 export async function saveReconciliationRun(
+  client: PoolClient,
   result: ReconciliationResult,
   metadata: {
     organizationId: string;
@@ -14,8 +15,7 @@ export async function saveReconciliationRun(
     sourceFiles: Record<string, string>;
   },
 ) {
-  return transaction(async (client) => {
-    const run = await client.query<{ id: string; created_at: Date }>(
+  const run = await client.query<{ id: string; created_at: Date }>(
       `INSERT INTO reconciliation_runs (
         organization_id, name, source_type, total_orders, processed_value, matched_value,
         unmatched_value, matched_count, exception_count, match_rate, source_files
@@ -35,12 +35,35 @@ export async function saveReconciliationRun(
         metadata.sourceFiles,
       ],
     );
-    const runId = run.rows[0].id;
+  const runId = run.rows[0].id;
 
-    for (const item of result.items) {
-      const storedItem = await insertItem(client, runId, item);
-      if (!["matched", "pending"].includes(item.status)) {
-        await client.query(
+  for (const item of result.items) {
+    const storedItem = await insertItem(
+      client,
+      metadata.organizationId,
+      runId,
+      item,
+    );
+    for (const evidence of item.sourceEvidence) {
+      await client.query(
+        `INSERT INTO reconciliation_source_evidence (
+           organization_id, run_id, item_id, source_type, row_number,
+           normalized_values, source_values, integrity_hash
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [
+          metadata.organizationId,
+          runId,
+          storedItem.id,
+          evidence.sourceType,
+          evidence.rowNumber,
+          JSON.stringify(evidence.normalizedValues),
+          JSON.stringify(evidence.sourceValues),
+          evidence.integrityHash,
+        ],
+      );
+    }
+    if (!["matched", "pending"].includes(item.status)) {
+      await client.query(
           `INSERT INTO operations_cases (
              organization_id, item_id, run_id, priority, due_at
            )
@@ -51,33 +74,34 @@ export async function saveReconciliationRun(
                WHEN 'medium' THEN INTERVAL '24 hours'
                ELSE INTERVAL '72 hours'
              END
-           )`,
+          )`,
           [metadata.organizationId, storedItem.id, runId, item.severity],
         );
-      }
     }
+  }
 
-    return {
-      ...result,
-      id: runId,
-      generatedAt: run.rows[0].created_at.toISOString(),
-    };
-  });
+  return {
+    ...result,
+    id: runId,
+    generatedAt: run.rows[0].created_at.toISOString(),
+  };
 }
 
 async function insertItem(
   client: PoolClient,
+  organizationId: string,
   runId: string,
   item: ReconciliationResult["items"][number],
 ) {
   const inserted = await client.query<{ id: string }>(
     `INSERT INTO reconciliation_items (
-      run_id, order_id, gateway_reference, payment_mode, order_amount,
+      organization_id, run_id, order_id, gateway_reference, payment_mode, order_amount,
       gateway_amount, settled_amount, expected_net, variance,
       reconciliation_status, severity, summary, evidence
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
     RETURNING id`,
     [
+      organizationId,
       runId,
       item.orderId,
       item.gatewayReference,

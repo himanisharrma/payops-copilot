@@ -98,6 +98,16 @@ export type ReconciliationStatus =
   | "duplicate"
   | "pending";
 
+export type EvidenceSourceType = "orders" | "gateway" | "settlements";
+
+export type SourceEvidence = {
+  sourceType: EvidenceSourceType;
+  rowNumber: number;
+  normalizedValues: Record<string, string | number | null>;
+  sourceValues: Record<string, string | number | null>;
+  integrityHash: string;
+};
+
 export type ReconciliationItem = {
   orderId: string;
   gatewayReference: string;
@@ -111,6 +121,7 @@ export type ReconciliationItem = {
   severity: "low" | "medium" | "high";
   summary: string;
   evidence: string[];
+  sourceEvidence: SourceEvidence[];
 };
 
 export type ReconciliationResult = {
@@ -149,12 +160,16 @@ export type OperationsCase = {
   reconciliationStatus: ReconciliationStatus;
   summary: string;
   evidence: string[];
+  sourceEvidence: SourceEvidence[];
   priority: "low" | "medium" | "high";
   status: CaseStatus;
   owner: string | null;
   notes: string;
   dueAt: string;
   resolvedAt: string | null;
+  resolutionReason: string | null;
+  resolutionEvidenceConfirmed: boolean;
+  resolvedByName: string | null;
   slaStatus: SlaStatus;
   createdAt: string;
   updatedAt: string;
@@ -245,6 +260,39 @@ export type EvaluationReviewScores = {
   completeness: number | null;
 };
 
+export type EvaluationReviewerAssignment = {
+  slot: 1 | 2;
+  reviewerUserId: string;
+  reviewerName: string;
+  assignedAt: string;
+};
+
+export type EvaluationCaseReview = {
+  id: string;
+  reviewerUserId: string;
+  reviewerName: string;
+  reviewerSlot: 1 | 2;
+  scores: EvaluationReviewScores;
+  notes: string;
+  totalScore: number;
+  reviewedAt: string;
+};
+
+export type EvaluationCaseAdjudication = {
+  scores: EvaluationReviewScores;
+  notes: string;
+  totalScore: number;
+  adjudicatedByName: string;
+  adjudicatedAt: string;
+};
+
+export type EvaluationReviewStatus =
+  | "unreviewed"
+  | "single_review"
+  | "agreed"
+  | "disputed"
+  | "adjudicated";
+
 export type EvaluationCaseResult = {
   id: string;
   caseKey: string;
@@ -263,10 +311,23 @@ export type EvaluationCaseResult = {
   reviewerNotes: string;
   reviewedByName: string | null;
   reviewedAt: string | null;
+  reviews: EvaluationCaseReview[];
+  adjudication: EvaluationCaseAdjudication | null;
+  reviewStatus: EvaluationReviewStatus;
+  averageHumanScore: number | null;
 };
 
 export type EvaluationRunDetail = EvaluationRun & {
   cases: EvaluationCaseResult[];
+  reviewerAssignments: EvaluationReviewerAssignment[];
+  humanSummary: {
+    assignedReviewers: number;
+    reviewedCases: number;
+    doubleReviewedCases: number;
+    disputedCases: number;
+    adjudicatedCases: number;
+    averageScore: number | null;
+  };
 };
 
 export type PaymentWorkflowType = "refund" | "chargeback";

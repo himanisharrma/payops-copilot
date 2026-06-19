@@ -8,10 +8,8 @@ export default defineConfig({
     },
   },
   test: {
-    exclude: [
-      "**/*.integration.test.ts",
-      "**/node_modules/**",
-      "**/.git/**",
-    ],
+    include: ["lib/**/*.integration.test.ts"],
+    fileParallelism: false,
+    testTimeout: 20_000,
   },
 });

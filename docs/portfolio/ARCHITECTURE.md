@@ -78,7 +78,9 @@ It:
 - matches settlement rows by order ID or gateway reference;
 - calculates expected net as gateway amount minus fee and tax;
 - rounds financial outputs to two decimals;
-- emits a typed result and source-derived evidence.
+- emits a typed result, explanatory evidence, and minimal source-row snapshots;
+- hashes each snapshot with SHA-256 over its source type, original row number,
+  normalized values, and retained source values.
 
 AI is not imported into this module. The same inputs produce the same outputs.
 
@@ -118,8 +120,15 @@ secret, and no live provider call in this portfolio slice.
 ## 3. Transactional persistence
 
 `lib/modules/reconciliation/repository.ts` writes a reconciliation run, its
-row-level items, and its operations cases inside one database transaction. If
-persistence fails, the workflow does not leave a partially written run.
+row-level items, source-evidence snapshots, and operations cases inside one
+database transaction. The reconciliation audit event is committed in that same
+transaction. If any write fails, the workflow does not leave a partial run or
+an unaudited successful result.
+
+Case updates and their audit events also share one transaction. Resolution
+requires durable source evidence, a reason of at least ten characters, explicit
+evidence confirmation, and resolver attribution. Composite foreign keys ensure
+that each run, item, case, and source snapshot belongs to the same organization.
 
 The migration chain is append-only:
 
@@ -134,6 +143,8 @@ The migration chain is append-only:
 | `007_evaluation_case_reviews.sql` | Case outputs and attributable human rubric reviews |
 | `008_model_evaluation_metrics.sql` | Run and case latency plus token usage |
 | `009_refunds_and_disputes.sql` | Refund/chargeback lifecycles and decision timelines |
+| `010_evidence_integrity.sql` | Tenant-linked source-row ledger, hashes, and controlled case resolution |
+| `011_two_reviewer_evaluations.sql` | Reviewer slots, independent case reviews, disagreement, and adjudication |
 
 ## 4. Identity, organization, and roles
 
@@ -265,14 +276,22 @@ payment-workflow updates. The administrator ledger is organization-scoped.
 - `components/payment-lifecycle.tsx`: refund and chargeback queues, evidence,
   stages, synthetic provider events, and timelines.
 - `components/quality-lab.tsx`: evaluation execution, history, case evidence,
-  and human scoring.
+  independent human scoring, disagreement comparison, and adjudication.
 - `components/run-history.tsx`: historical quality and value metrics.
 - `components/audit-log.tsx`: admin audit ledger.
 - `components/app-header.tsx`: role-aware product navigation.
+- `components/ui/`: shared search, evidence-ledger, and provider-event
+  presentation primitives.
+- `components/cases/`: case queue and controlled-resolution components.
+- `components/reconciliation/`: reconciliation-owned evidence drawer.
 
 The visual language intentionally resembles an operations console: dense
 evidence, compact labels, visible control states, and restrained color for
 urgency.
+
+The reusable visual contract is documented in
+[Design System](DESIGN-SYSTEM.md). Domain components own data and mutations;
+shared UI components own repeated presentation and accessibility behavior.
 
 ## Failure behavior
 
@@ -286,6 +305,24 @@ urgency.
 | OpenAI key absent | Deterministic fallback |
 | OpenAI evaluation key absent | Paid model action is disabled and API returns `409` |
 | Model output fails schema | Investigation request fails instead of storing malformed output |
+
+## Verification architecture
+
+`npm run verify` is the local and CI contract. It runs lint, unit/policy tests,
+PostgreSQL-backed integration tests, the production build, and a whitespace
+diff check.
+
+The integration suite creates isolated organizations and verifies:
+
+- organization-scoped case and audit reads;
+- rejected cross-organization updates;
+- composite foreign-key enforcement across runs, items, and cases;
+- rollback of a case mutation and its audit event in one transaction.
+
+Role tests independently verify administrator-only audit access,
+administrator/analyst mutation access, viewer read-only behavior, and
+unauthenticated rejection. GitHub Actions applies every migration to a clean
+PostgreSQL 17 service before running the same verification command.
 
 ## Production evolution
 

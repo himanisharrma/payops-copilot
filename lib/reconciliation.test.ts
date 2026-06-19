@@ -4,7 +4,14 @@ import { reconcilePayments } from "./reconciliation";
 describe("reconcilePayments", () => {
   it("matches a payment when order, fee, tax, and settlement agree", () => {
     const result = reconcilePayments({
-      orders: [{ order_id: "ORD-1", amount: 1000, payment_mode: "UPI" }],
+      orders: [
+        {
+          order_id: "ORD-1",
+          amount: 1000,
+          payment_mode: "UPI",
+          customer_email: "synthetic@example.test",
+        },
+      ],
       gateway: [
         {
           merchant_order_id: "ORD-1",
@@ -27,6 +34,18 @@ describe("reconcilePayments", () => {
 
     expect(result.items[0].status).toBe("matched");
     expect(result.summary.matchRate).toBe(100);
+    expect(result.items[0].sourceEvidence).toHaveLength(3);
+    expect(result.items[0].sourceEvidence[0]).toMatchObject({
+      sourceType: "orders",
+      rowNumber: 1,
+      normalizedValues: { orderId: "ORD-1", amount: 1000 },
+    });
+    expect(result.items[0].sourceEvidence[0].integrityHash).toMatch(
+      /^[a-f0-9]{64}$/,
+    );
+    expect(result.items[0].sourceEvidence[0].sourceValues).not.toHaveProperty(
+      "customer_email",
+    );
   });
 
   it("flags a successful payment with no settlement", () => {
@@ -46,6 +65,9 @@ describe("reconcilePayments", () => {
 
     expect(result.items[0].status).toBe("missing_settlement");
     expect(result.items[0].expectedNet).toBe(494.1);
+    expect(result.items[0].sourceEvidence.map((item) => item.sourceType)).toEqual(
+      ["orders", "gateway"],
+    );
   });
 
   it("normalizes common column aliases and detects amount variance", () => {

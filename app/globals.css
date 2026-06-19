@@ -1880,6 +1880,64 @@ footer {
   background: transparent;
 }
 
+.review-summary-strip {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(4, minmax(88px, 1fr));
+  margin-left: auto;
+}
+
+.review-summary-strip span {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  display: grid;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+  gap: 4px;
+  padding: 9px 11px;
+}
+
+.review-summary-strip strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.reviewer-assignment-bar {
+  align-items: stretch;
+  border-bottom: 1px solid var(--ink);
+  display: flex;
+  gap: 1px;
+  padding: 12px 18px;
+}
+
+.reviewer-assignment-bar > div {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+  min-width: 170px;
+  padding: 10px 12px;
+}
+
+.reviewer-assignment-bar span,
+.reviewer-assignment-bar small {
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+}
+
+.reviewer-assignment-bar button {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+  margin-left: auto;
+}
+
+.reviewer-assignment-bar > small {
+  align-self: center;
+  margin-left: auto;
+}
+
 .review-layout {
   min-height: 720px;
   display: grid;
@@ -2034,6 +2092,55 @@ footer {
   margin-top: 24px;
   padding: 20px;
   border: 1px solid var(--ink);
+}
+
+.review-comparison {
+  border: 1px solid var(--ink);
+  margin-top: 20px;
+  padding: 16px;
+}
+
+.review-comparison > div:nth-child(2) {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.review-comparison article,
+.review-comparison aside {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 5px;
+  padding: 13px;
+}
+
+.review-comparison article span,
+.review-comparison aside span {
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+}
+
+.review-comparison article b {
+  color: var(--green);
+}
+
+.review-comparison article p,
+.review-comparison aside p {
+  font-size: 11px;
+  margin: 4px 0 0;
+}
+
+.review-comparison aside {
+  border-left: 3px solid var(--green);
+  margin-top: 10px;
+}
+
+.review-save-row .adjudicate-button {
+  background: var(--orange);
+  color: var(--ink);
 }
 
 .review-rubric-heading {
@@ -2696,6 +2803,193 @@ button:disabled {
 .case-evidence svg {
   color: var(--orange-dark);
   flex: 0 0 auto;
+}
+
+.case-resolution-panel,
+.case-resolution-record,
+.source-evidence-panel,
+.source-row-preview {
+  border: 1px solid var(--line);
+  background: rgba(255, 253, 247, 0.58);
+}
+
+.case-resolution-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 20px;
+}
+
+.case-resolution-panel h3,
+.case-resolution-panel p,
+.case-resolution-panel span,
+.case-resolution-panel label,
+.case-resolution-record p,
+.case-resolution-record small,
+.source-row-preview p {
+  margin: 0;
+}
+
+.case-resolution-panel > div:first-child > p,
+.case-resolution-panel > label,
+.case-resolution-record > div,
+.source-row-preview > div > p {
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.case-resolution-panel > div:first-child > span {
+  color: var(--muted);
+  display: block;
+  font-size: 11px;
+  margin-top: 5px;
+}
+
+.case-resolution-panel textarea {
+  margin-top: 7px;
+  min-height: 92px;
+  width: 100%;
+}
+
+.resolution-confirmation {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  letter-spacing: normal !important;
+  text-transform: none;
+}
+
+.resolution-confirmation input {
+  margin-top: 3px;
+}
+
+.resolution-confirmation span {
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.resolution-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.resolution-actions button {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+}
+
+.case-resolution-record {
+  border-left: 3px solid var(--green);
+  margin-top: 20px;
+  padding: 17px 19px;
+}
+
+.case-resolution-record > div {
+  align-items: center;
+  color: var(--green);
+  display: flex;
+  gap: 8px;
+}
+
+.case-resolution-record p {
+  font-size: 12px;
+  margin-top: 11px;
+}
+
+.case-resolution-record small {
+  color: var(--muted);
+  display: block;
+  margin-top: 8px;
+}
+
+.source-evidence-panel {
+  margin-top: 28px;
+  padding: 18px;
+}
+
+.source-evidence-panel article {
+  border-top: 1px solid var(--line);
+  padding: 15px 0;
+}
+
+.source-evidence-panel article > div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.source-evidence-panel code,
+.source-row-preview code {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.source-evidence-panel dl {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 11px 0 0;
+}
+
+.source-evidence-panel dl div {
+  display: flex;
+  gap: 7px;
+  min-width: 0;
+}
+
+.source-evidence-panel dt {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.source-evidence-panel dd {
+  font-size: 10px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.source-row-preview {
+  margin-top: 18px;
+  padding: 16px;
+}
+
+.source-row-preview > div,
+.source-row-preview article > div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.source-row-preview > div > span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.source-row-preview article {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.source-row-preview article strong {
+  display: block;
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.source-row-preview article p {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+  margin-top: 7px;
 }
 
 .provider-event-panel {
@@ -3838,6 +4132,29 @@ button:disabled {
 
   .review-save-row button {
     width: 100%;
+  }
+
+  .review-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .reviewer-assignment-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reviewer-assignment-bar > div {
+    min-width: 0;
+  }
+
+  .reviewer-assignment-bar button,
+  .reviewer-assignment-bar > small {
+    margin-left: 0;
+  }
+
+  .review-comparison > div:nth-child(2) {
+    grid-template-columns: 1fr;
   }
 }
 

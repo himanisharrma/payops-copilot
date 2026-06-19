@@ -1,3 +1,4 @@
+import type { PoolClient } from "pg";
 import { query } from "@/lib/db";
 import { providerEventsForEntity } from "@/lib/provider-webhooks";
 import { getSlaStatus } from "@/lib/sla";
@@ -5,12 +6,15 @@ import type {
   AIInvestigation,
   CaseStatus,
   OperationsCase,
+  SourceEvidence,
 } from "@/lib/types";
 
 export async function listCases(
   organizationId: string,
+  client?: PoolClient,
 ): Promise<OperationsCase[]> {
-  const result = await query<{
+  const execute = client ? client.query.bind(client) : query;
+  const result = await execute<{
     id: string;
     run_id: string;
     run_name: string;
@@ -22,12 +26,16 @@ export async function listCases(
     reconciliation_status: OperationsCase["reconciliationStatus"];
     summary: string;
     evidence: string[];
+    source_evidence: SourceEvidence[] | null;
     priority: OperationsCase["priority"];
     case_status: CaseStatus;
     owner: string | null;
     notes: string;
     due_at: Date;
     resolved_at: Date | null;
+    resolution_reason: string | null;
+    resolution_evidence_confirmed: boolean;
+    resolved_by_name: string | null;
     created_at: Date;
     updated_at: Date;
     investigation_id: string | null;
@@ -48,7 +56,7 @@ export async function listCases(
   }>(
     `SELECT c.*, r.name AS run_name, i.order_id, i.gateway_reference,
        i.payment_mode, i.order_amount, i.variance, i.reconciliation_status,
-       i.summary, i.evidence,
+       i.summary, i.evidence, evidence.source_evidence,
        ai.id AS investigation_id, ai.provider AS investigation_provider,
        ai.model AS investigation_model,
        ai.prompt_version AS investigation_prompt_version,
@@ -58,8 +66,32 @@ export async function listCases(
        ai.feedback_notes, ai.created_at AS investigation_created_at,
        ai.updated_at AS investigation_updated_at
      FROM operations_cases c
-     JOIN reconciliation_runs r ON r.id = c.run_id
-     JOIN reconciliation_items i ON i.id = c.item_id
+     JOIN reconciliation_runs r
+       ON r.id = c.run_id AND r.organization_id = c.organization_id
+     JOIN reconciliation_items i
+       ON i.id = c.item_id
+      AND i.run_id = c.run_id
+      AND i.organization_id = c.organization_id
+     LEFT JOIN LATERAL (
+       SELECT JSONB_AGG(
+         JSONB_BUILD_OBJECT(
+           'sourceType', source_type,
+           'rowNumber', row_number,
+           'normalizedValues', normalized_values,
+           'sourceValues', source_values,
+           'integrityHash', integrity_hash
+         )
+         ORDER BY
+           CASE source_type
+             WHEN 'orders' THEN 1
+             WHEN 'gateway' THEN 2
+             ELSE 3
+           END,
+           row_number
+       ) AS source_evidence
+       FROM reconciliation_source_evidence
+       WHERE item_id = i.id AND organization_id = c.organization_id
+     ) evidence ON TRUE
      LEFT JOIN LATERAL (
        SELECT * FROM ai_investigations
        WHERE case_id = c.id
@@ -90,12 +122,16 @@ export async function listCases(
       reconciliationStatus: row.reconciliation_status,
       summary: row.summary,
       evidence: row.evidence,
+      sourceEvidence: row.source_evidence ?? [],
       priority: row.priority,
       status: row.case_status,
       owner: row.owner,
       notes: row.notes,
       dueAt,
       resolvedAt,
+      resolutionReason: row.resolution_reason,
+      resolutionEvidenceConfirmed: row.resolution_evidence_confirmed,
+      resolvedByName: row.resolved_by_name,
       slaStatus: getSlaStatus({
         createdAt,
         dueAt,
@@ -133,11 +169,18 @@ export async function listCases(
   });
 }
 
-export async function getCase(id: string, organizationId: string) {
-  return (await listCases(organizationId)).find((item) => item.id === id) ?? null;
+export async function getCase(
+  id: string,
+  organizationId: string,
+  client?: PoolClient,
+) {
+  return (await listCases(organizationId, client)).find(
+    (item) => item.id === id,
+  ) ?? null;
 }
 
 export async function updateCase(
+  client: PoolClient,
   id: string,
   organizationId: string,
   patch: {
@@ -145,15 +188,19 @@ export async function updateCase(
     priority?: OperationsCase["priority"];
     owner?: string | null;
     notes?: string;
+    resolutionReason?: string;
+    resolutionEvidenceConfirmed?: boolean;
+    resolvedByUserId?: string;
+    resolvedByName?: string;
   },
 ) {
-  const existing = await query<{ case_status: CaseStatus }>(
+  const existing = await client.query<{ case_status: CaseStatus }>(
     "SELECT case_status FROM operations_cases WHERE id = $1 AND organization_id = $2",
     [id, organizationId],
   );
   if (!existing.rowCount) return null;
 
-  await query(
+  await client.query(
     `UPDATE operations_cases SET
        case_status = COALESCE($2, case_status),
        priority = COALESCE($3, priority),
@@ -166,12 +213,32 @@ export async function updateCase(
        owner = CASE WHEN $4::boolean THEN $5 ELSE owner END,
        notes = COALESCE($6, notes),
        resolved_at = CASE
-         WHEN $2 = 'resolved' THEN NOW()
+         WHEN $2 = 'resolved' THEN COALESCE(resolved_at, NOW())
          WHEN $2 IS NOT NULL AND $2 <> 'resolved' THEN NULL
          ELSE resolved_at
        END,
+       resolution_reason = CASE
+         WHEN $2 = 'resolved' THEN $7
+         WHEN $2 IS NOT NULL AND $2 <> 'resolved' THEN NULL
+         ELSE resolution_reason
+       END,
+       resolution_evidence_confirmed = CASE
+         WHEN $2 = 'resolved' THEN $8
+         WHEN $2 IS NOT NULL AND $2 <> 'resolved' THEN FALSE
+         ELSE resolution_evidence_confirmed
+       END,
+       resolved_by_user_id = CASE
+         WHEN $2 = 'resolved' THEN $9
+         WHEN $2 IS NOT NULL AND $2 <> 'resolved' THEN NULL
+         ELSE resolved_by_user_id
+       END,
+       resolved_by_name = CASE
+         WHEN $2 = 'resolved' THEN $10
+         WHEN $2 IS NOT NULL AND $2 <> 'resolved' THEN NULL
+         ELSE resolved_by_name
+       END,
        updated_at = NOW()
-     WHERE id = $1 AND organization_id = $7`,
+     WHERE id = $1 AND organization_id = $11`,
     [
       id,
       patch.status ?? null,
@@ -179,8 +246,12 @@ export async function updateCase(
       Object.prototype.hasOwnProperty.call(patch, "owner"),
       patch.owner ?? null,
       patch.notes ?? null,
+      patch.resolutionReason ?? null,
+      patch.resolutionEvidenceConfirmed ?? false,
+      patch.resolvedByUserId ?? null,
+      patch.resolvedByName ?? null,
       organizationId,
     ],
   );
-  return getCase(id, organizationId);
+  return getCase(id, organizationId, client);
 }

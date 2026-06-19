@@ -50,7 +50,8 @@ On the reconciliation page, point out:
 3. Select **Run reconciliation**.
 4. Point out match rate, processed value, value to investigate, and control
    status.
-5. Open one exception and read its evidence.
+5. Open one exception and show its order, gateway, and settlement source-row
+   snapshots and integrity hashes.
 
 Explain that header normalization and financial calculations happen in code,
 not in the AI assistant.
@@ -66,6 +67,8 @@ Show:
 - status and SLA filters;
 - owner, priority, notes, and evidence;
 - the deadline and target in the SLA control.
+- the controlled resolution flow, which requires a reason and evidence-review
+  confirmation before recording the resolver and audit event.
 
 Use one case to explain the transition from a report finding to an owned piece
 of work.

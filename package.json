@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "verify": "npm run lint && npm test && npm run test:integration && npm run build && git diff --check",
     "eval": "vitest run lib/evaluation.test.ts --reporter=verbose",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
