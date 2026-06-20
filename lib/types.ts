@@ -164,6 +164,7 @@ export type OperationsCase = {
   id: string;
   runId: string;
   runName: string;
+  providerId: ProviderId;
   orderId: string;
   gatewayReference: string;
   paymentMode: string;
@@ -218,8 +219,102 @@ export type RunSummary = ReconciliationResult["summary"] & {
   id: string;
   name: string;
   sourceType: string;
+  providerId: ProviderId;
   status: string;
   createdAt: string;
+};
+
+export type InsightsRange = "7d" | "30d" | "90d";
+
+export type InsightsFilters = {
+  range: InsightsRange;
+  provider: ProviderId | "all";
+  paymentMode: string | "all";
+  priority: OperationsCase["priority"] | "all";
+};
+
+export type OperationsFilters = {
+  status: "all" | CaseStatus;
+  sla: "all" | "at_risk" | "overdue";
+  exception: "all" | ReconciliationStatus;
+  provider: "all" | ProviderId;
+  paymentMode: "all" | string;
+  priority: "all" | OperationsCase["priority"];
+  owner: "all" | "assigned" | "unassigned";
+  age: "all" | "under_4h" | "4h_24h" | "1d_3d" | "over_3d";
+  query: string;
+  caseId: string | null;
+};
+
+export type InsightsMetric = {
+  value: number | null;
+  previousValue: number | null;
+  changePercent: number | null;
+};
+
+export type InsightsDashboard = {
+  filters: InsightsFilters;
+  options: {
+    providers: ProviderId[];
+    paymentModes: string[];
+  };
+  period: {
+    startAt: string;
+    endAt: string;
+    previousStartAt: string;
+    previousEndAt: string;
+  };
+  hasData: boolean;
+  kpis: {
+    processedValue: InsightsMetric;
+    matchRate: InsightsMetric;
+    actionableExceptions: InsightsMetric;
+    medianResolutionHours: InsightsMetric;
+  };
+  currentQueue: {
+    active: number;
+    atRisk: number;
+    overdue: number;
+    unassigned: number;
+  };
+  periodOutcomes: {
+    resolvedCases: number;
+    slaBreachRate: number | null;
+  };
+  dailyTrend: Array<{
+    date: string;
+    orders: number;
+    exceptions: number;
+    resolved: number;
+  }>;
+  exceptionMix: Array<{
+    status: ReconciliationStatus;
+    count: number;
+    amount: number;
+  }>;
+  aging: Array<{
+    bucket: "under_4h" | "4h_24h" | "1d_3d" | "over_3d";
+    count: number;
+  }>;
+  providerPerformance: Array<{
+    providerId: ProviderId;
+    totalOrders: number;
+    matchRate: number | null;
+    exceptionCount: number;
+    processedValue: number;
+  }>;
+  aiGovernance: {
+    investigations: number;
+    approvalRate: number | null;
+    helpfulnessRate: number | null;
+    reviewerDisagreementRate: number | null;
+    criticalSafetyFailures: number;
+  };
+  inboundEvidence: Array<{
+    providerId: Exclude<ProviderId, "generic">;
+    deliveries: number;
+    matchedEvents: number;
+  }>;
 };
 
 export type AuditEvent = {

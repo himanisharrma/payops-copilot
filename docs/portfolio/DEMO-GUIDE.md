@@ -104,6 +104,11 @@ moves money.
 
 ### 4:05-4:30 - Show quality and accountability
 
+Open **Insights** first. Show the 30-day KPI ledger, current queue, daily
+activity signal, exception mix, aging, and provider comparison. Change the
+range to seven days, then open one exception bar to demonstrate that management
+metrics drill into the actual filtered case queue.
+
 Open **Quality** and show the versioned 30-case baseline, persisted run history,
 case-level evidence, and six-score human rubric. Do not claim OpenAI model
 quality: no paid model run completed in this repository snapshot.
@@ -146,6 +151,7 @@ Close with:
 | Operations and SLA | `http://127.0.0.1:4317/operations` |
 | Refunds and disputes | `http://127.0.0.1:4317/refunds-disputes` |
 | AI Quality Lab | `http://127.0.0.1:4317/quality` |
+| Operations Intelligence | `http://127.0.0.1:4317/insights` |
 | Historical runs | `http://127.0.0.1:4317/runs` |
 | Administrator audit | `http://127.0.0.1:4317/audit` |
 | Product summary | `http://127.0.0.1:4317/product-brief` |

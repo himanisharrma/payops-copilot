@@ -14,7 +14,8 @@
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:migrate": "node scripts/migrate.mjs",
-    "db:seed": "node scripts/seed-users.mjs"
+    "db:seed": "node scripts/seed-users.mjs && node scripts/seed-insights.mjs",
+    "db:seed:insights": "node scripts/seed-insights.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

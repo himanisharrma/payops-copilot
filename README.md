@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-49%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-54%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -21,8 +21,8 @@
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Backend shape** | Modular monolith with thin routes, domain services, nine repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 15 product milestones, 17 API routes, 12 migrations, and 49 unit/integration tests at the signed-ingestion snapshot |
+| **Backend shape** | Modular monolith with thin routes, domain services, ten repositories, and shared PostgreSQL infrastructure |
+| **Build evidence** | 16 product milestones, 18 API routes, 13 migrations, and 54 unit/integration tests at the operations-intelligence snapshot |
 
 ## Why this exists
 
@@ -88,6 +88,9 @@ to production gateways or move money.
     never raw payloads.
 21. Surfaces matched provider evidence and deterministic SLA risk in a
     role-aware in-app notification center.
+22. Provides manager-focused Operations Intelligence with period comparisons,
+    queue health, exception mix, aging, provider performance, governed AI
+    evidence, and URL-backed drill-down into underlying cases.
 
 ## The product judgment
 
@@ -184,6 +187,7 @@ For the five-minute walkthrough, use the
 | `POST` | `/api/provider-webhooks/:providerId` | Receive a signed synthetic provider event |
 | `GET` | `/api/notifications` | List organization-scoped provider and SLA signals |
 | `PATCH` | `/api/notifications/:id` | Mark a notification read as admin or analyst |
+| `GET` | `/api/insights` | Return deterministic organization-scoped operations metrics |
 | `GET` | `/api/health` | Check application and database health |
 
 The synthetic webhook route requires `x-payops-organization`,
@@ -204,7 +208,7 @@ and migration history.
 npm run verify
 ```
 
-The verification command runs lint, 43 unit/policy tests, six PostgreSQL-backed
+The verification command runs lint, 47 unit/policy tests, seven PostgreSQL-backed
 integration tests, a production build, and `git diff --check`. GitHub
 Actions runs the same command against a clean PostgreSQL 17 service.
 
@@ -270,6 +274,7 @@ constraints, and completion conditions; encode durable repository guidance in
 - Configure an API key, run the guarded OpenAI evaluation, and complete a
   representative two-reviewer sample before making a model-quality claim.
 - Feed approved analyst corrections into new anonymized evaluation cases.
+- Add bulk case assignment and internal operational comments.
 - Add provider-specific signature policies, secret rotation, delivery
   observability, and settlement-cycle metadata before any real integration.
 - Add configurable business calendars and outbound escalation channels.

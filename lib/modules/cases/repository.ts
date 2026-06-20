@@ -22,6 +22,7 @@ export async function listCases(
     id: string;
     run_id: string;
     run_name: string;
+    provider_id: OperationsCase["providerId"];
     order_id: string;
     gateway_reference: string;
     payment_mode: string;
@@ -58,7 +59,7 @@ export async function listCases(
     investigation_created_at: Date | null;
     investigation_updated_at: Date | null;
   }>(
-    `SELECT c.*, r.name AS run_name, i.order_id, i.gateway_reference,
+    `SELECT c.*, r.name AS run_name, r.provider_id, i.order_id, i.gateway_reference,
        i.payment_mode, i.order_amount, i.variance, i.reconciliation_status,
        i.summary, i.evidence, evidence.source_evidence,
        ai.id AS investigation_id, ai.provider AS investigation_provider,
@@ -122,6 +123,7 @@ export async function listCases(
       id: row.id,
       runId: row.run_id,
       runName: row.run_name,
+      providerId: row.provider_id,
       orderId: row.order_id,
       gatewayReference: row.gateway_reference,
       paymentMode: row.payment_mode,

@@ -70,6 +70,7 @@ export async function createReconciliationRun(
         input.runName?.trim() ||
         `Reconciliation ${new Date().toLocaleDateString("en-IN")}`,
       sourceType: input.sourceType ?? "upload",
+      providerId: input.providerId ?? "generic",
       sourceFiles: input.sourceFiles ?? {},
     });
 

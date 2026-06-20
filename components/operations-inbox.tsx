@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CaseQueue,
   caseSlaLabels as slaLabels,
@@ -26,7 +27,11 @@ import {
 import { ProviderEventTimeline } from "@/components/ui/provider-event-timeline";
 import { SourceEvidenceLedger } from "@/components/ui/source-evidence-ledger";
 import { formatSlaDistance, getSlaStatus, SLA_HOURS } from "@/lib/sla";
-import type { CaseStatus, OperationsCase } from "@/lib/types";
+import type {
+  CaseStatus,
+  OperationsCase,
+  OperationsFilters,
+} from "@/lib/types";
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -51,14 +56,38 @@ const currentSlaStatus = (item: OperationsCase) =>
     priority: item.priority,
   });
 
-export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
+export function OperationsInbox({
+  canEdit,
+  initialFilters,
+}: {
+  canEdit: boolean;
+  initialFilters: OperationsFilters;
+}) {
+  const router = useRouter();
   const [cases, setCases] = useState<OperationsCase[]>([]);
   const [selected, setSelected] = useState<OperationsCase | null>(null);
-  const [filter, setFilter] = useState<"all" | CaseStatus>("all");
+  const [filter, setFilter] = useState<"all" | CaseStatus>(
+    initialFilters.status,
+  );
   const [slaFilter, setSlaFilter] = useState<
     "all" | "at_risk" | "overdue"
-  >("all");
-  const [query, setQuery] = useState("");
+  >(initialFilters.sla);
+  const [query, setQuery] = useState(initialFilters.query);
+  const [exceptionFilter, setExceptionFilter] = useState(
+    initialFilters.exception,
+  );
+  const [providerFilter, setProviderFilter] = useState(
+    initialFilters.provider,
+  );
+  const [paymentModeFilter, setPaymentModeFilter] = useState(
+    initialFilters.paymentMode,
+  );
+  const [priorityFilter, setPriorityFilter] = useState(
+    initialFilters.priority,
+  );
+  const [ownerFilter, setOwnerFilter] = useState(initialFilters.owner);
+  const [ageFilter, setAgeFilter] = useState(initialFilters.age);
+  const [filterNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [investigating, setInvestigating] = useState(false);
@@ -77,7 +106,15 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
         return payload.cases as OperationsCase[];
       })
       .then((loadedCases) => {
-        if (active) setCases(loadedCases);
+        if (active) {
+          setCases(loadedCases);
+          if (initialFilters.caseId) {
+            setSelected(
+              loadedCases.find((item) => item.id === initialFilters.caseId) ??
+                null,
+            );
+          }
+        }
       })
       .catch((caught: unknown) => {
         if (active) {
@@ -92,7 +129,32 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialFilters.caseId]);
+
+  function replaceFilters(
+    patch: Partial<OperationsFilters>,
+  ) {
+    const next = {
+      status: filter,
+      sla: slaFilter,
+      exception: exceptionFilter,
+      provider: providerFilter,
+      paymentMode: paymentModeFilter,
+      priority: priorityFilter,
+      owner: ownerFilter,
+      age: ageFilter,
+      query,
+      caseId: selected?.id ?? initialFilters.caseId,
+      ...patch,
+    };
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(next)) {
+      if (value && value !== "all") params.set(key, value);
+    }
+    router.replace(`/operations${params.size ? `?${params}` : ""}`, {
+      scroll: false,
+    });
+  }
 
   function clearResolutionDraft() {
     setPendingResolution(false);
@@ -102,6 +164,7 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
 
   function selectCase(paymentCase: OperationsCase | null) {
     setSelected(paymentCase);
+    replaceFilters({ caseId: paymentCase?.id ?? null });
     clearResolutionDraft();
   }
 
@@ -216,9 +279,27 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
     return cases.filter(
       (item) => {
         const slaStatus = currentSlaStatus(item);
+        const ageHours =
+          (filterNow - new Date(item.createdAt).getTime()) / 3_600_000;
+        const matchesAge =
+          ageFilter === "all" ||
+          (ageFilter === "under_4h" && ageHours < 4) ||
+          (ageFilter === "4h_24h" && ageHours >= 4 && ageHours < 24) ||
+          (ageFilter === "1d_3d" && ageHours >= 24 && ageHours < 72) ||
+          (ageFilter === "over_3d" && ageHours >= 72);
         return (
           (filter === "all" || item.status === filter) &&
           (slaFilter === "all" || slaStatus === slaFilter) &&
+          (exceptionFilter === "all" ||
+            item.reconciliationStatus === exceptionFilter) &&
+          (providerFilter === "all" || item.providerId === providerFilter) &&
+          (paymentModeFilter === "all" ||
+            item.paymentMode === paymentModeFilter) &&
+          (priorityFilter === "all" || item.priority === priorityFilter) &&
+          (ownerFilter === "all" ||
+            (ownerFilter === "assigned" && Boolean(item.owner)) ||
+            (ownerFilter === "unassigned" && !item.owner)) &&
+          matchesAge &&
         (!normalized ||
           item.orderId.toLowerCase().includes(normalized) ||
           item.owner?.toLowerCase().includes(normalized) ||
@@ -226,7 +307,58 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
         );
       },
     );
-  }, [cases, filter, query, slaFilter]);
+  }, [
+    ageFilter,
+    cases,
+    exceptionFilter,
+    filterNow,
+    filter,
+    ownerFilter,
+    paymentModeFilter,
+    priorityFilter,
+    providerFilter,
+    query,
+    slaFilter,
+  ]);
+
+  const advancedFilters = [
+    exceptionFilter !== "all"
+      ? ["exception", exceptionFilter, () => {
+          setExceptionFilter("all");
+          replaceFilters({ exception: "all" });
+        }]
+      : null,
+    providerFilter !== "all"
+      ? ["provider", providerFilter, () => {
+          setProviderFilter("all");
+          replaceFilters({ provider: "all" });
+        }]
+      : null,
+    paymentModeFilter !== "all"
+      ? ["payment mode", paymentModeFilter, () => {
+          setPaymentModeFilter("all");
+          replaceFilters({ paymentMode: "all" });
+        }]
+      : null,
+    priorityFilter !== "all"
+      ? ["priority", priorityFilter, () => {
+          setPriorityFilter("all");
+          replaceFilters({ priority: "all" });
+        }]
+      : null,
+    ownerFilter !== "all"
+      ? ["owner", ownerFilter, () => {
+          setOwnerFilter("all");
+          replaceFilters({ owner: "all" });
+        }]
+      : null,
+    ageFilter !== "all"
+      ? ["age", ageFilter.replaceAll("_", " "), () => {
+          setAgeFilter("all");
+          replaceFilters({ age: "all" });
+        }]
+      : null,
+  ].filter(Boolean) as Array<[string, string, () => void]>;
 
   const slaCounts = cases.reduce(
     (counts, item) => {
@@ -294,11 +426,39 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
               onClick={() => {
                 setFilter("all");
                 setSlaFilter("overdue");
+                replaceFilters({ status: "all", sla: "overdue" });
               }}
             >
               Review overdue
             </button>
           )}
+        </section>
+      )}
+
+      {advancedFilters.length > 0 && (
+        <section className="operations-filter-context">
+          <span>INSIGHTS DRILL-DOWN</span>
+          <div>
+            {advancedFilters.map(([label, value, clear]) => (
+              <button key={label} onClick={clear}>
+                {label}: <strong>{value}</strong> <X size={11} />
+              </button>
+            ))}
+            <button
+              className="clear-all"
+              onClick={() => {
+                setExceptionFilter("all");
+                setProviderFilter("all");
+                setPaymentModeFilter("all");
+                setPriorityFilter("all");
+                setOwnerFilter("all");
+                setAgeFilter("all");
+                router.replace("/operations", { scroll: false });
+              }}
+            >
+              Clear all
+            </button>
+          </div>
         </section>
       )}
 
@@ -311,9 +471,18 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
           loading={loading}
           visible={visible}
           selectedId={selected?.id ?? null}
-          onFilterChange={setFilter}
-          onSlaFilterChange={setSlaFilter}
-          onQueryChange={setQuery}
+          onFilterChange={(value) => {
+            setFilter(value);
+            replaceFilters({ status: value });
+          }}
+          onSlaFilterChange={(value) => {
+            setSlaFilter(value);
+            replaceFilters({ sla: value });
+          }}
+          onQueryChange={(value) => {
+            setQuery(value);
+            replaceFilters({ query: value });
+          }}
           onSelect={selectCase}
           getSlaStatus={currentSlaStatus}
           formatDateTime={formatDateTime}

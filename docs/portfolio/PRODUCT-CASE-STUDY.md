@@ -125,6 +125,8 @@ mutate operations data; viewers cannot. Audit access is admin-only.
 - HMAC-signed, idempotent synthetic event ingestion with hash-only delivery
   evidence and organization-scoped matching.
 - In-app provider and SLA notification controls with role-aware read state.
+- Manager Operations Intelligence for period trends, queue pressure, SLA
+  outcome, provider comparison, AI governance, and evidence-linked drill-down.
 - Case and workflow timelines that distinguish what provider events prove from
   what they do not prove.
 - Six result states: matched, mismatch, missing settlement, missing gateway,
@@ -140,7 +142,7 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   six-score human review, latency, token metadata, and audit attribution.
 - Separate refund and chargeback queues with lifecycle transitions, ownership,
   deadlines, evidence gates, notes, and timelines.
-- A modular monolith backend with thin API routes, domain services, nine
+- A modular monolith backend with thin API routes, domain services, ten
   repositories, and shared PostgreSQL infrastructure.
 
 ## Success metrics

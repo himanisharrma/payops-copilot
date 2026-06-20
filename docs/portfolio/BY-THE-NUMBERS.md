@@ -1,30 +1,30 @@
 # By the Numbers
 
-> Every implemented-project figure below was measured from the AI-quality
-> working snapshot prepared on June 19, 2026. It is repository evidence, not a
-> production-performance claim.
+> Every implemented-project figure below was measured from the Operations
+> Intelligence working snapshot prepared on June 20, 2026. It is repository
+> evidence, not a production-performance claim.
 
 ## Delivery
 
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
-| Product milestones | 15 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 16 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
 | Latest product milestone | Refund and chargeback operations | commit `ae7cea0`, migration `009` |
-| Latest architecture milestone | Signed synthetic ingestion and operational notifications | migration `012`, notification center |
+| Latest architecture milestone | Deterministic Operations Intelligence | migration `013`, `/insights` |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 134 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 10,843 | repository file list piped to `wc -l` |
-| Next.js API route files | 17 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 12 | `db/migrations/` |
-| Automated test cases | 49 | 43 unit/policy plus 6 PostgreSQL integration tests |
+| Repository files | 144 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 12,653 | repository source file list piped to `wc -l` |
+| Next.js API route files | 18 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 13 | `db/migrations/` |
+| Automated test cases | 54 | 47 unit/policy plus 7 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
-| Product pages | 8 | Adds `/refunds-disputes` |
+| Product pages | 9 | Adds `/insights` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
 | Baseline automated checks | 180 | 30 cases x 6 evaluation dimensions |
 | Persisted scenario rows per run | 7 | one summary for each evaluation scenario |
@@ -47,8 +47,8 @@
 | Normalized provider event types | 6 typed event states in `lib/types.ts` |
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
-| Backend domain modules | 9 repositories under `lib/modules/` |
-| Domain service layers | 7: reconciliation, payment workflows, cases, evaluations, investigations, provider events, notifications |
+| Backend domain modules | 10 repositories under `lib/modules/` |
+| Domain service layers | 8: reconciliation, payment workflows, cases, evaluations, investigations, provider events, notifications, insights |
 | Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
@@ -62,6 +62,8 @@
 | Evaluation reviewer slots | 2 independent reviewers per run |
 | Human review states | unreviewed, single, agreed, disputed, adjudicated |
 | Operational notification types | provider event, SLA at risk, SLA overdue |
+| Insights reporting windows | 7, 30, and 90 days |
+| Seeded fictional Insights history | 18 runs, 144 items, 72 cases, 8 signed evidence records |
 
 ## Quality evidence
 
@@ -69,8 +71,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 8 test files, 43 tests passing
-npm run test:integration -> 3 test files, 6 tests passing
+npm test       -> 9 test files, 47 tests passing
+npm run test:integration -> 4 test files, 7 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -102,6 +104,10 @@ Browser verification also exercised:
 - persisted provider evidence in a refund timeline and audited notification
   read state;
 - the notification evidence inbox at 390px with no horizontal overflow.
+- the manager Insights dashboard, shareable 7-day filter, exception drill-down,
+  direct case selection, and 390px layout without horizontal overflow;
+- fictional Insights seeding twice with stable seed-owned counts and preserved
+  user-created run counts.
 
 ## What is not measured
 

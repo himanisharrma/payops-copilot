@@ -196,8 +196,8 @@ response.
 
 ### Completed foundation: automate release confidence
 
-- GitHub Actions now runs migration verification, lint, 40 unit/policy tests,
-  four PostgreSQL-backed integration tests, production build, and diff checks.
+- GitHub Actions now runs migration verification, lint, 47 unit/policy tests,
+  seven PostgreSQL-backed integration tests, production build, and diff checks.
 - Organization isolation tests cover scoped reads, blocked cross-tenant writes,
   database tenant constraints, and mutation/audit rollback.
 - Authorization tests cover administrator, analyst, viewer, and unauthenticated
@@ -235,6 +235,18 @@ attributed evidence-backed case resolution.
 - The header inbox surfaces provider events and deterministic SLA risk.
 - All roles can inspect signals; only administrators and analysts can mark them
   read, with an audit event.
+
+### Completed foundation: operations intelligence
+
+- Manager-focused 7/30/90-day metrics compare throughput, match rate,
+  actionable exceptions, and median resolution with the preceding period.
+- Current queue health, SLA breach outcome, exception mix, aging, provider
+  performance, AI governance, and inbound evidence are deterministic SQL
+  aggregates.
+- URL-backed filters and chart drill-downs connect management signals to
+  underlying cases instead of creating a detached reporting surface.
+- The fictional demo-history seed is idempotent and deletes only records
+  carrying its explicit marker.
 
 ### Next: complete measured model evidence
 

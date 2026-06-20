@@ -1,0 +1,360 @@
+import { createHash } from "node:crypto";
+import pg from "pg";
+
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  "postgresql://payops:payops_local@127.0.0.1:5438/payops";
+const client = new pg.Client({ connectionString: databaseUrl });
+const marker = "operations-insights-v1";
+const providers = [
+  "generic",
+  "razorpay_demo",
+  "cashfree_demo",
+  "payu_demo",
+];
+const paymentModes = ["UPI", "Card", "Netbanking", "Wallet"];
+const statuses = [
+  "matched",
+  "matched",
+  "matched",
+  "amount_mismatch",
+  "missing_settlement",
+  "gateway_missing",
+  "duplicate",
+  "pending",
+];
+
+function ago(days, hours = 0) {
+  return new Date(Date.now() - (days * 24 + hours) * 3_600_000);
+}
+
+function hashEvidence(value) {
+  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+await client.connect();
+await client.query("BEGIN");
+try {
+  const organization = await client.query(
+    "SELECT id FROM organizations WHERE slug = 'payops-portfolio'",
+  );
+  const organizationId = organization.rows[0]?.id;
+  if (!organizationId) throw new Error("Run npm run db:seed after migrations.");
+  const users = await client.query(
+    `SELECT id, name, role FROM users
+     WHERE organization_id = $1 AND role IN ('admin', 'analyst')`,
+    [organizationId],
+  );
+  const admin = users.rows.find((user) => user.role === "admin");
+  const analyst = users.rows.find((user) => user.role === "analyst") ?? admin;
+  if (!admin || !analyst) throw new Error("Seed demo users first.");
+
+  await client.query(
+    `DELETE FROM provider_webhook_deliveries
+     WHERE organization_id = $1
+       AND external_event_id LIKE 'insights-seed-%'`,
+    [organizationId],
+  );
+  await client.query(
+    `DELETE FROM reconciliation_runs
+     WHERE organization_id = $1
+       AND source_files->>'seed' = $2`,
+    [organizationId, marker],
+  );
+
+  const seededItems = [];
+  for (let runIndex = 0; runIndex < 18; runIndex += 1) {
+    const createdAt = ago(runIndex * 2 + 1, runIndex % 6);
+    const providerId = providers[runIndex % providers.length];
+    const runItems = Array.from({ length: 8 }, (_, itemIndex) => {
+      const status = statuses[(runIndex + itemIndex) % statuses.length];
+      const amount = 1200 + runIndex * 175 + itemIndex * 430;
+      const variance =
+        status === "amount_mismatch"
+          ? -75 - itemIndex * 5
+          : status === "missing_settlement"
+            ? amount
+            : status === "duplicate"
+              ? amount
+              : 0;
+      return {
+        status,
+        amount,
+        variance,
+        paymentMode: paymentModes[(runIndex + itemIndex) % paymentModes.length],
+      };
+    });
+    const processedValue = runItems.reduce(
+      (total, item) => total + item.amount,
+      0,
+    );
+    const matchedCount = runItems.filter(
+      (item) => item.status === "matched",
+    ).length;
+    const exceptionCount = runItems.filter(
+      (item) => !["matched", "pending"].includes(item.status),
+    ).length;
+    const run = await client.query(
+      `INSERT INTO reconciliation_runs (
+         organization_id, name, source_type, provider_id, status,
+         total_orders, processed_value, matched_value, unmatched_value,
+         matched_count, exception_count, match_rate, source_files, created_at
+       ) VALUES (
+         $1,$2,'demo',$3,'completed',$4,$5,$6,$7,$8,$9,$10,$11,$12
+       ) RETURNING id`,
+      [
+        organizationId,
+        `Insights synthetic day ${String(runIndex + 1).padStart(2, "0")}`,
+        providerId,
+        runItems.length,
+        processedValue,
+        runItems
+          .filter((item) => item.status === "matched")
+          .reduce((total, item) => total + item.amount, 0),
+        runItems
+          .filter((item) => item.status !== "matched")
+          .reduce((total, item) => total + item.amount, 0),
+        matchedCount,
+        exceptionCount,
+        Number(((matchedCount / runItems.length) * 100).toFixed(2)),
+        JSON.stringify({ seed: marker, fictional: true }),
+        createdAt,
+      ],
+    );
+
+    for (let itemIndex = 0; itemIndex < runItems.length; itemIndex += 1) {
+      const item = runItems[itemIndex];
+      const orderId = `INS-${String(runIndex + 1).padStart(2, "0")}-${String(
+        itemIndex + 1,
+      ).padStart(2, "0")}`;
+      const paymentReference = `PAY-${orderId}`;
+      const summary = {
+        matched: "Order, gateway, and settlement evidence agree.",
+        amount_mismatch:
+          "Bank settlement differs from gateway amount less fees and tax.",
+        missing_settlement:
+          "Captured gateway payment is missing from the settlement report.",
+        gateway_missing:
+          "Internal order is missing from the gateway report.",
+        duplicate: "Multiple gateway rows use the same merchant order ID.",
+        pending: "Gateway payment remains pending and is not yet settleable.",
+      }[item.status];
+      const insertedItem = await client.query(
+        `INSERT INTO reconciliation_items (
+           organization_id, run_id, order_id, gateway_reference, payment_mode,
+           order_amount, gateway_amount, settled_amount, expected_net,
+           variance, reconciliation_status, severity, summary, evidence,
+           created_at
+         ) VALUES (
+           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+         ) RETURNING id`,
+        [
+          organizationId,
+          run.rows[0].id,
+          orderId,
+          paymentReference,
+          item.paymentMode,
+          item.amount,
+          item.status === "gateway_missing" ? null : item.amount,
+          ["missing_settlement", "gateway_missing", "pending"].includes(
+            item.status,
+          )
+            ? null
+            : item.amount + item.variance,
+          item.status === "gateway_missing" ? null : item.amount,
+          item.variance,
+          item.status,
+          ["duplicate", "gateway_missing"].includes(item.status)
+            ? "high"
+            : item.status === "amount_mismatch"
+              ? "medium"
+              : "low",
+          summary,
+          JSON.stringify([
+            `Synthetic ${providerId} evidence`,
+            `Payment mode: ${item.paymentMode}`,
+          ]),
+          createdAt,
+        ],
+      );
+      const evidence = {
+        orderId,
+        amount: item.amount,
+        paymentReference,
+        fictional: true,
+      };
+      await client.query(
+        `INSERT INTO reconciliation_source_evidence (
+           organization_id, run_id, item_id, source_type, row_number,
+           normalized_values, source_values, integrity_hash, created_at
+         ) VALUES ($1,$2,$3,'orders',$4,$5,$5,$6,$7)`,
+        [
+          organizationId,
+          run.rows[0].id,
+          insertedItem.rows[0].id,
+          itemIndex + 1,
+          JSON.stringify(evidence),
+          hashEvidence(evidence),
+          createdAt,
+        ],
+      );
+      seededItems.push({
+        ...item,
+        id: insertedItem.rows[0].id,
+        runId: run.rows[0].id,
+        orderId,
+        paymentReference,
+        providerId,
+        createdAt,
+        summary,
+      });
+    }
+  }
+
+  const actionable = seededItems.filter(
+    (item) => !["matched", "pending"].includes(item.status),
+  );
+  for (let index = 0; index < actionable.length; index += 1) {
+    const item = actionable[index];
+    const priority = ["high", "medium", "low"][index % 3];
+    const state = index % 6;
+    const resolved = state === 3 || state === 4;
+    const breached = state === 4;
+    const investigating = state === 1 || state === 5;
+    const unassigned = state === 0 || state === 4;
+    const dueAt =
+      state === 2
+        ? new Date(Date.now() + 30 * 60_000)
+        : new Date(
+            item.createdAt.getTime() +
+              { high: 4, medium: 24, low: 72 }[priority] * 3_600_000,
+          );
+    const resolvedAt = resolved
+      ? new Date(
+          dueAt.getTime() + (breached ? 4 : -2) * 3_600_000,
+        )
+      : null;
+    const paymentCase = await client.query(
+      `INSERT INTO operations_cases (
+         organization_id, item_id, run_id, case_status, priority, owner,
+         notes, due_at, resolved_at, resolution_reason,
+         resolution_evidence_confirmed, resolved_by_user_id, resolved_by_name,
+         created_at, updated_at
+       ) VALUES (
+         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+       ) RETURNING id`,
+      [
+        organizationId,
+        item.id,
+        item.runId,
+        resolved ? "resolved" : investigating ? "investigating" : "open",
+        priority,
+        unassigned ? null : analyst.name,
+        investigating
+          ? "Synthetic investigation is awaiting provider confirmation."
+          : "",
+        dueAt,
+        resolvedAt,
+        resolved
+          ? "Synthetic evidence reviewed and discrepancy documented."
+          : null,
+        resolved,
+        resolved ? admin.id : null,
+        resolved ? admin.name : null,
+        item.createdAt,
+        resolvedAt ?? item.createdAt,
+      ],
+    );
+
+    if (index % 2 === 0) {
+      const approval =
+        index % 4 === 0 ? "approved" : index % 4 === 2 ? "rejected" : "pending";
+      const rating =
+        approval === "approved"
+          ? "helpful"
+          : approval === "rejected"
+            ? "not_helpful"
+            : null;
+      await client.query(
+        `INSERT INTO ai_investigations (
+           case_id, provider, model, prompt_version, likely_cause, confidence,
+           supporting_evidence, recommended_actions, provider_message,
+           limitations, approval_status, feedback_rating, feedback_notes,
+           approved_at, created_at, updated_at
+         ) VALUES (
+           $1,'deterministic','evidence-rules-v1','payment-investigation-v1',
+           $2,'medium',$3,$4,$5,$6,$7,$8,'Synthetic reviewer outcome.',
+           $9,$10,$10
+         )`,
+        [
+          paymentCase.rows[0].id,
+          "The supplied evidence indicates an exception that needs verification.",
+          JSON.stringify([item.summary]),
+          JSON.stringify([
+            "Confirm the settlement cycle.",
+            "Record provider confirmation before changing financial records.",
+          ]),
+          `Please verify ${item.orderId}; no financial action has been taken.`,
+          JSON.stringify([
+            "Synthetic evidence cannot confirm provider-side events.",
+          ]),
+          approval,
+          rating,
+          approval === "approved" ? item.createdAt : null,
+          item.createdAt,
+        ],
+      );
+    }
+  }
+
+  for (let index = 0; index < 8; index += 1) {
+    const item = actionable[index];
+    const providerId = ["razorpay_demo", "cashfree_demo", "payu_demo"][
+      index % 3
+    ];
+    const delivery = await client.query(
+      `INSERT INTO provider_webhook_deliveries (
+         organization_id, provider_id, external_event_id, event_type,
+         payload_hash, occurred_at, received_at
+       ) VALUES ($1,$2,$3,'payment.captured',$4,$5,$5)
+       RETURNING id`,
+      [
+        organizationId,
+        providerId,
+        `insights-seed-${index + 1}`,
+        hashEvidence({ providerId, orderId: item.orderId }),
+        ago(index + 1),
+      ],
+    );
+    await client.query(
+      `INSERT INTO provider_events (
+         organization_id, delivery_id, provider_id, event_type, title,
+         order_id, payment_reference, status, occurred_at, proves,
+         does_not_prove
+       ) VALUES (
+         $1,$2,$3,'payment_captured','Payment captured',$4,$5,'captured',
+         $6,$7,$8
+       )`,
+      [
+        organizationId,
+        delivery.rows[0].id,
+        providerId,
+        item.orderId,
+        item.paymentReference,
+        ago(index + 1),
+        "Synthetic provider evidence references this payment.",
+        "It does not prove that bank settlement has arrived.",
+      ],
+    );
+  }
+
+  await client.query("COMMIT");
+  console.log(
+    `Seeded ${18} runs, ${seededItems.length} items, ${actionable.length} cases, and 8 signed evidence records.`,
+  );
+} catch (error) {
+  await client.query("ROLLBACK");
+  throw error;
+} finally {
+  await client.end();
+}

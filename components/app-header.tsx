@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   FileClock,
   FlaskConical,
+  ChartNoAxesCombined,
   History,
   ListChecks,
   LogOut,
@@ -15,7 +16,13 @@ import { getOperationalNotifications } from "@/lib/modules/notifications/service
 export async function AppHeader({
   active,
 }: {
-  active: "operations" | "payments" | "runs" | "quality" | "audit";
+  active:
+    | "operations"
+    | "payments"
+    | "runs"
+    | "insights"
+    | "quality"
+    | "audit";
 }) {
   const session = await auth();
   const actor = session?.user
@@ -64,6 +71,13 @@ export async function AppHeader({
         >
           <History size={15} />
           Run history
+        </Link>
+        <Link
+          href="/insights"
+          className={`product-nav-link ${active === "insights" ? "active" : ""}`}
+        >
+          <ChartNoAxesCombined size={15} />
+          Insights
         </Link>
         <Link
           href="/quality"

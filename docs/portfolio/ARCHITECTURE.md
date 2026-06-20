@@ -15,6 +15,7 @@ flowchart TB
       Lifecycles[Refund and chargeback queues]
       ProviderEvents[Provider event timelines]
       Quality[Quality Lab]
+      Insights[Operations Intelligence]
       History[Run history]
       AuditUI[Audit ledger]
     end
@@ -41,6 +42,7 @@ flowchart TB
       Events[Audit events]
       ProviderStore[Webhook hashes and normalized events]
       SignalStore[Operational notifications]
+      Metrics[Deterministic aggregate queries]
     end
 
     Upload --> Routes
@@ -52,6 +54,7 @@ flowchart TB
     Routes --> WebhookPolicy
     WebhookPolicy --> Modules
     Routes --> Notifications
+    Routes --> Metrics
     WebhookPolicy --> ProviderStore
     Notifications --> SignalStore
     Engine --> Modules
@@ -66,6 +69,7 @@ flowchart TB
     Data --> Ops
     Data --> Lifecycles
     Data --> Quality
+    Data --> Insights
     Data --> History
     Data --> AuditUI
 ```
@@ -162,6 +166,7 @@ The migration chain is append-only:
 | `010_evidence_integrity.sql` | Tenant-linked source-row ledger, hashes, and controlled case resolution |
 | `011_two_reviewer_evaluations.sql` | Reviewer slots, independent case reviews, disagreement, and adjudication |
 | `012_provider_event_ingestion_notifications.sql` | Idempotent signed deliveries, normalized events, and in-app operational notifications |
+| `013_operations_intelligence.sql` | Provider-aware runs and aggregate-query indexes |
 
 ## 4. Identity, organization, and roles
 
@@ -189,12 +194,12 @@ route handler -> domain policy/service -> domain repository -> lib/db.ts
 ```
 
 Current modules are reconciliation, cases, investigations, evaluations,
-payment workflows, provider events, notifications, audit, and system health.
+payment workflows, provider events, notifications, insights, audit, and system health.
 This preserves one deployment
 while removing the central repository as a coupling point.
 
 Reconciliation, payment workflows, cases, evaluations, investigations,
-provider events, and notifications have service layers. Services validate
+provider events, notifications, and insights have service layers. Services validate
 state transitions, signed payloads, review payloads, and
 reconciliation requests; coordinate persistence, deterministic execution, and
 AI execution; and write audit evidence. Their API routes handle authentication,
@@ -289,7 +294,25 @@ Current audited actions include reconciliation creation, case updates,
 investigation generation and review, evaluation completion and case review, and
 payment-workflow updates. The administrator ledger is organization-scoped.
 
-## 10. Frontend structure
+## 10. Operations intelligence
+
+`lib/modules/insights/` calculates organization-scoped operational aggregates
+directly from persisted reconciliation, case, investigation, evaluation, and
+provider-event records. The language model is not involved.
+
+- Period KPIs compare 7, 30, or 90 days with the immediately preceding window.
+- Current queue health intentionally includes all active matching cases,
+  regardless of when they were created.
+- Match rate and financial values come from deterministic reconciliation rows.
+- Median resolution uses PostgreSQL percentile calculation.
+- Missing AI review denominators render as unavailable rather than zero.
+- Filters are URL-backed, and chart links open the existing operations queue
+  with validated provider, exception, payment-mode, priority, owner, age, SLA,
+  and case filters.
+- A tagged, idempotent synthetic-history seed makes the portfolio view useful
+  on a clean install without modifying user-created records.
+
+## 11. Frontend structure
 
 - `components/payops-workspace.tsx`: upload, demo data, reconciliation results.
   It also displays provider selection, mapped fields, row counts, and
@@ -303,6 +326,8 @@ payment-workflow updates. The administrator ledger is organization-scoped.
 - `components/run-history.tsx`: historical quality and value metrics.
 - `components/audit-log.tsx`: admin audit ledger.
 - `components/app-header.tsx`: role-aware product navigation.
+- `components/operations-insights.tsx`: manager KPIs, SVG trend plot,
+  drill-down distributions, provider comparison, and governance evidence.
 - `components/notification-center.tsx`: responsive provider-event and SLA
   evidence inbox with role-aware read controls.
 - `components/ui/`: shared search, evidence-ledger, and provider-event

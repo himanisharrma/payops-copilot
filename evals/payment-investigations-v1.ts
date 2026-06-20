@@ -72,6 +72,7 @@ export const paymentInvestigationDataset: EvaluationCase[] = seeds.map(
         id: `eval-case-${String(index + 1).padStart(3, "0")}`,
         runId: "eval-run-v1",
         runName: "Synthetic evaluation run",
+        providerId: "generic",
         orderId: `EVAL-${String(index + 1).padStart(3, "0")}`,
         gatewayReference: `GATE-EVAL-${String(index + 1).padStart(3, "0")}`,
         paymentMode: index % 2 === 0 ? "UPI" : "Card",

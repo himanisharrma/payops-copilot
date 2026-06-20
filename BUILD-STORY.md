@@ -10,7 +10,7 @@ team. I knew the operational pain: merchant order reports, gateway exports,
 and bank settlements rarely line up cleanly, and finding a mismatch is only the
 start of the work.
 
-Codex helped convert that knowledge into a working system in fourteen milestones.
+Codex helped convert that knowledge into a working system in sixteen milestones.
 The productive pattern was not "ask AI to build an app." It was a repeated
 loop of narrowing the problem, inspecting the current repository, building one
 coherent vertical slice, verifying it in the database and browser, and pushing
@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The fourteen milestones
+## The sixteen milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -298,6 +298,19 @@ enter the last 25% of their SLA or become overdue. Read state is
 organization-scoped, viewer-safe, and audited for administrators and analysts.
 Nothing in the release contacts a provider, sends an external notification, or
 moves money.
+
+### Milestone 16: Turn operational records into management decisions
+
+The next slice adds a deterministic Operations Intelligence workspace rather
+than a disconnected analytics mockup. PostgreSQL calculates period comparisons,
+queue health, exception mix, workload aging, provider performance, SLA outcome,
+AI review evidence, and signed inbound-event counts from organization-scoped
+records.
+
+Every distribution remains actionable: chart bars and provider rows open the
+existing operations queue with shareable URL filters, and direct case links
+select the underlying record. An idempotent fictional-history seed creates a
+meaningful clean-install demo while preserving all user-created runs.
 
 ## The working workflow
 
