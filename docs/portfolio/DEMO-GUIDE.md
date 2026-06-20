@@ -72,6 +72,10 @@ Show:
 - the deadline and target in the SLA control.
 - the controlled resolution flow, which requires a reason and evidence-review
   confirmation before recording the resolver and audit event.
+- selection checkboxes and the dispatch rail for assigning multiple cases
+  without opening each record.
+- the attributed internal handoff log; add a concise comment, reload, and show
+  that viewers can read it without receiving write controls.
 
 Use one case to explain the transition from a report finding to an owned piece
 of work.

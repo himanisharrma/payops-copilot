@@ -82,6 +82,10 @@ actual settlements differ.
   evidence.
 - Insights filters are shareable in the URL, and charts drill into the
   underlying filtered operations cases.
+- Admins and analysts can select up to 100 visible cases and assign or unassign
+  them atomically; partial cross-tenant batches are rejected.
+- Every authenticated role can read attributed internal case comments. Admins
+  and analysts can append comments; existing entries cannot be edited in place.
 - No real payment is initiated and no payment-provider credentials are
   collected.
 
@@ -109,8 +113,7 @@ actual settlements differ.
 
 1. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
 2. Turn approved analyst corrections into governed synthetic regression cases.
-3. Add bulk case assignment and internal operational comments.
-4. Add provider-specific signature policies, managed secret rotation,
+3. Add provider-specific signature policies, managed secret rotation,
    delivery observability, and settlement-cycle metadata.
-5. Add configurable business calendars and outbound escalation notifications.
-6. Add production identity, observability, and retention controls.
+4. Add configurable business calendars and outbound escalation notifications.
+5. Add production identity, observability, and retention controls.

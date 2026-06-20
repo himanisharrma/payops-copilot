@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-54%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-57%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -22,7 +22,7 @@
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
 | **Backend shape** | Modular monolith with thin routes, domain services, ten repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 16 product milestones, 18 API routes, 13 migrations, and 54 unit/integration tests at the operations-intelligence snapshot |
+| **Build evidence** | 17 product milestones, 20 API routes, 14 migrations, and 57 unit/integration tests at the case-collaboration snapshot |
 
 ## Why this exists
 
@@ -91,6 +91,8 @@ to production gateways or move money.
 22. Provides manager-focused Operations Intelligence with period comparisons,
     queue health, exception mix, aging, provider performance, governed AI
     evidence, and URL-backed drill-down into underlying cases.
+23. Supports atomic bulk case assignment and attributed, append-only internal
+    comments with organization scoping, role controls, and audit evidence.
 
 ## The product judgment
 
@@ -176,6 +178,8 @@ For the five-minute walkthrough, use the
 | `GET` | `/api/runs` | List organization run history |
 | `GET` | `/api/cases` | List organization operations cases |
 | `PATCH` | `/api/cases/:id` | Update case controls or save an evidence-backed resolution |
+| `PATCH` | `/api/cases/bulk` | Assign or unassign up to 100 organization-owned cases atomically |
+| `GET/POST` | `/api/cases/:id/comments` | Read or append attributed internal handoff comments |
 | `POST` | `/api/cases/:id/investigations` | Generate an investigation |
 | `PATCH` | `/api/investigations/:id` | Review or rate an investigation |
 | `GET` | `/api/audit` | List audit events for administrators |
@@ -197,7 +201,7 @@ The synthetic webhook route requires `x-payops-organization`,
 `SYNTHETIC_WEBHOOK_SECRET`.
 
 PostgreSQL stores organizations, users, reconciliation runs, row-level items,
-source-evidence snapshots and hashes, operations cases and resolution records,
+source-evidence snapshots and hashes, operations cases, append-only comments, and resolution records,
 AI investigations, evaluation runs, scenario-level results, case-level outputs
 and reviews, refund and chargeback workflows, decision timelines, audit events,
 and migration history.
@@ -208,7 +212,7 @@ and migration history.
 npm run verify
 ```
 
-The verification command runs lint, 47 unit/policy tests, seven PostgreSQL-backed
+The verification command runs lint, 48 unit/policy tests, nine PostgreSQL-backed
 integration tests, a production build, and `git diff --check`. GitHub
 Actions runs the same command against a clean PostgreSQL 17 service.
 
@@ -274,7 +278,6 @@ constraints, and completion conditions; encode durable repository guidance in
 - Configure an API key, run the guarded OpenAI evaluation, and complete a
   representative two-reviewer sample before making a model-quality claim.
 - Feed approved analyst corrections into new anonymized evaluation cases.
-- Add bulk case assignment and internal operational comments.
 - Add provider-specific signature policies, secret rotation, delivery
   observability, and settlement-cycle metadata before any real integration.
 - Add configurable business calendars and outbound escalation channels.

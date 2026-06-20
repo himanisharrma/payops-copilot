@@ -167,6 +167,7 @@ The migration chain is append-only:
 | `011_two_reviewer_evaluations.sql` | Reviewer slots, independent case reviews, disagreement, and adjudication |
 | `012_provider_event_ingestion_notifications.sql` | Idempotent signed deliveries, normalized events, and in-app operational notifications |
 | `013_operations_intelligence.sql` | Provider-aware runs and aggregate-query indexes |
+| `014_case_collaboration.sql` | Tenant-linked append-only comments and assignment indexes |
 
 ## 4. Identity, organization, and roles
 
@@ -206,6 +207,13 @@ AI execution; and write audit evidence. Their API routes handle authentication,
 JSON parsing, and HTTP responses. `lib/api-errors.ts` centralizes access,
 domain-error, and generic service-error translation so each route uses the same
 transport behavior.
+
+Case collaboration stays inside the cases module. Bulk assignment updates a
+bounded ID set in one transaction and verifies that every requested case
+belongs to the actor organization before commit. Internal comments use a
+separate append-only table with an organization/case composite foreign key;
+viewers may read the ledger, while admin/analyst routes create entries and audit
+events atomically.
 
 ## 6. SLA as policy
 
@@ -368,6 +376,7 @@ The integration suite creates isolated organizations and verifies:
 - rejected cross-organization updates;
 - composite foreign-key enforcement across runs, items, and cases;
 - rollback of a case mutation and its audit event in one transaction.
+- atomic bulk assignment, comment attribution, and cross-tenant isolation.
 
 Role tests independently verify administrator-only audit access,
 administrator/analyst mutation access, viewer read-only behavior, and

@@ -8,6 +8,7 @@ import {
   Clock3,
   Copy,
   LoaderCircle,
+  MessageSquareText,
   ShieldCheck,
   Sparkles,
   ThumbsDown,
@@ -30,6 +31,7 @@ import { formatSlaDistance, getSlaStatus, SLA_HOURS } from "@/lib/sla";
 import type {
   CaseStatus,
   OperationsCase,
+  OperationsCaseComment,
   OperationsFilters,
 } from "@/lib/types";
 
@@ -96,6 +98,13 @@ export function OperationsInbox({
   const [resolutionReason, setResolutionReason] = useState("");
   const [evidenceConfirmed, setEvidenceConfirmed] = useState(false);
   const [error, setError] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOwner, setBulkOwner] = useState("");
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [comments, setComments] = useState<OperationsCaseComment[]>([]);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
+  const selectedCaseId = selected?.id;
 
   useEffect(() => {
     let active = true;
@@ -131,6 +140,30 @@ export function OperationsInbox({
     };
   }, [initialFilters.caseId]);
 
+  useEffect(() => {
+    if (!selectedCaseId) return;
+    let active = true;
+    fetch(`/api/cases/${selectedCaseId}/comments`)
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error);
+        return payload.comments as OperationsCaseComment[];
+      })
+      .then((nextComments) => {
+        if (active) setComments(nextComments);
+      })
+      .catch((caught: unknown) => {
+        if (active) {
+          setError(
+            caught instanceof Error ? caught.message : "Comments unavailable.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedCaseId]);
+
   function replaceFilters(
     patch: Partial<OperationsFilters>,
   ) {
@@ -164,8 +197,77 @@ export function OperationsInbox({
 
   function selectCase(paymentCase: OperationsCase | null) {
     setSelected(paymentCase);
+    setComments([]);
+    setCommentBody("");
     replaceFilters({ caseId: paymentCase?.id ?? null });
     clearResolutionDraft();
+  }
+
+  function toggleSelection(caseId: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(caseId)) next.delete(caseId);
+      else next.add(caseId);
+      return next;
+    });
+  }
+
+  async function assignSelected() {
+    setBulkSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/cases/bulk", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          caseIds: [...selectedIds],
+          owner: bulkOwner || null,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setCases((current) =>
+        current.map((item) =>
+          selectedIds.has(item.id)
+            ? { ...item, owner: payload.owner, updatedAt: new Date().toISOString() }
+            : item,
+        ),
+      );
+      setSelected((current) =>
+        current && selectedIds.has(current.id)
+          ? { ...current, owner: payload.owner }
+          : current,
+      );
+      setSelectedIds(new Set());
+      setBulkOwner("");
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Assignment failed.",
+      );
+    } finally {
+      setBulkSaving(false);
+    }
+  }
+
+  async function submitComment() {
+    if (!selected || !commentBody.trim()) return;
+    setCommentSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/cases/${selected.id}/comments`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ body: commentBody }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setComments((current) => [...current, payload.comment]);
+      setCommentBody("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Comment failed.");
+    } finally {
+      setCommentSaving(false);
+    }
   }
 
   async function updateSelected(patch: Partial<OperationsCase>) {
@@ -462,6 +564,30 @@ export function OperationsInbox({
         </section>
       )}
 
+      {canEdit && selectedIds.size > 0 && (
+        <section className="case-dispatch-rail" aria-label="Bulk assignment">
+          <div>
+            <span>DISPATCH SELECTION</span>
+            <strong>{selectedIds.size} cases marked</strong>
+          </div>
+          <input
+            value={bulkOwner}
+            onChange={(event) => setBulkOwner(event.target.value)}
+            placeholder="Owner name, blank to unassign"
+            maxLength={120}
+          />
+          <button disabled={bulkSaving} onClick={assignSelected}>
+            {bulkSaving ? "Assigning…" : bulkOwner ? "Assign owner" : "Unassign"}
+          </button>
+          <button
+            className="dispatch-clear"
+            onClick={() => setSelectedIds(new Set())}
+          >
+            Clear
+          </button>
+        </section>
+      )}
+
       <section className="operations-layout">
         <CaseQueue
           filter={filter}
@@ -471,6 +597,8 @@ export function OperationsInbox({
           loading={loading}
           visible={visible}
           selectedId={selected?.id ?? null}
+          selectedIds={selectedIds}
+          canEdit={canEdit}
           onFilterChange={(value) => {
             setFilter(value);
             replaceFilters({ status: value });
@@ -484,6 +612,7 @@ export function OperationsInbox({
             replaceFilters({ query: value });
           }}
           onSelect={selectCase}
+          onToggleSelection={toggleSelection}
           getSlaStatus={currentSlaStatus}
           formatDateTime={formatDateTime}
           formatSlaDistance={formatSlaDistance}
@@ -648,6 +777,51 @@ export function OperationsInbox({
                 emptyMessage="No synthetic provider event matched this case."
                 formatDateTime={formatDateTime}
               />
+
+              <section className="case-comment-ledger">
+                <header>
+                  <div>
+                    <p className="eyebrow">INTERNAL HANDOFF LOG</p>
+                    <h3>Operational comments</h3>
+                  </div>
+                  <span>{comments.length} entries</span>
+                </header>
+                <div className="case-comment-list">
+                  {comments.length ? (
+                    comments.map((comment) => (
+                      <article key={comment.id}>
+                        <div>
+                          <strong>{comment.authorName}</strong>
+                          <time>{formatDateTime(comment.createdAt)}</time>
+                        </div>
+                        <p>{comment.body}</p>
+                      </article>
+                    ))
+                  ) : (
+                    <p className="case-comment-empty">
+                      No handoff notes yet. Comments are attributed and
+                      append-only.
+                    </p>
+                  )}
+                </div>
+                {canEdit && (
+                  <div className="case-comment-compose">
+                    <MessageSquareText size={17} />
+                    <textarea
+                      value={commentBody}
+                      onChange={(event) => setCommentBody(event.target.value)}
+                      placeholder="Add a concise operational handoff…"
+                      maxLength={2000}
+                    />
+                    <button
+                      disabled={commentSaving || !commentBody.trim()}
+                      onClick={submitComment}
+                    >
+                      {commentSaving ? "Adding…" : "Add comment"}
+                    </button>
+                  </div>
+                )}
+              </section>
 
               <section className="ai-investigation">
                 <div className="ai-investigation-head">

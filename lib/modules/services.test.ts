@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  validateBulkAssignment,
+  validateCaseComment,
   validateCasePatch,
   validateCaseResolution,
 } from "./cases/service";
@@ -41,6 +43,7 @@ const resolvableCase = {
   id: "case-1",
   runId: "run-1",
   runName: "Evidence run",
+  providerId: "generic",
   orderId: "ORD-1",
   gatewayReference: "PAY-1",
   paymentMode: "UPI",
@@ -74,6 +77,30 @@ const resolvableCase = {
 } satisfies OperationsCase;
 
 describe("modular backend services", () => {
+  it("validates bounded bulk assignment and append-only comments", () => {
+    expect(() =>
+      validateBulkAssignment({
+        caseIds: [
+          "11111111-1111-4111-8111-111111111111",
+          "22222222-2222-4222-8222-222222222222",
+        ],
+        owner: "Asha",
+      }),
+    ).not.toThrow();
+    expect(() =>
+      validateBulkAssignment({ caseIds: [], owner: "Asha" }),
+    ).toThrow("Select between 1 and 100 cases");
+    expect(() =>
+      validateBulkAssignment({ caseIds: ["not-a-uuid"], owner: "Asha" }),
+    ).toThrow("Select between 1 and 100 cases");
+    expect(validateCaseComment({ body: "  Provider trace requested.  " })).toBe(
+      "Provider trace requested.",
+    );
+    expect(() => validateCaseComment({ body: " " })).toThrow(
+      "Comment text is required",
+    );
+  });
+
   it("accepts valid case changes and rejects invalid values", () => {
     expect(() =>
       validateCasePatch({ status: "investigating", priority: "high" }),

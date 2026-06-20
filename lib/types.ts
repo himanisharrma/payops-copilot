@@ -190,6 +190,14 @@ export type OperationsCase = {
   providerEvents?: NormalizedProviderEvent[];
 };
 
+export type OperationsCaseComment = {
+  id: string;
+  caseId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+};
+
 export type InvestigationConfidence = "low" | "medium" | "high";
 export type InvestigationApproval = "pending" | "approved" | "rejected";
 

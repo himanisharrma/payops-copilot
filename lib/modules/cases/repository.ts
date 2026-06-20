@@ -10,6 +10,7 @@ import type {
   AIInvestigation,
   CaseStatus,
   OperationsCase,
+  OperationsCaseComment,
   SourceEvidence,
 } from "@/lib/types";
 
@@ -271,4 +272,94 @@ export async function updateCase(
     ],
   );
   return getCase(id, organizationId, client);
+}
+
+export async function bulkAssignCases(
+  client: PoolClient,
+  ids: string[],
+  organizationId: string,
+  owner: string | null,
+) {
+  const result = await client.query<{ id: string }>(
+    `UPDATE operations_cases
+     SET owner = $3, updated_at = NOW()
+     WHERE organization_id = $1
+       AND id = ANY($2::uuid[])
+     RETURNING id`,
+    [organizationId, ids, owner],
+  );
+  return result.rows.map((row) => row.id);
+}
+
+export async function listCaseComments(
+  caseId: string,
+  organizationId: string,
+  client?: PoolClient,
+): Promise<OperationsCaseComment[]> {
+  const execute = client ? client.query.bind(client) : query;
+  const result = await execute<{
+    id: string;
+    case_id: string;
+    author_name: string;
+    body: string;
+    created_at: Date;
+  }>(
+    `SELECT id, case_id, author_name, body, created_at
+     FROM operations_case_comments
+     WHERE organization_id = $1 AND case_id = $2
+     ORDER BY created_at ASC`,
+    [organizationId, caseId],
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    caseId: row.case_id,
+    authorName: row.author_name,
+    body: row.body,
+    createdAt: row.created_at.toISOString(),
+  }));
+}
+
+export async function createCaseComment(
+  client: PoolClient,
+  input: {
+    caseId: string;
+    organizationId: string;
+    authorUserId: string;
+    authorName: string;
+    body: string;
+  },
+) {
+  const result = await client.query<{
+    id: string;
+    case_id: string;
+    author_name: string;
+    body: string;
+    created_at: Date;
+  }>(
+    `INSERT INTO operations_case_comments (
+       organization_id, case_id, author_user_id, author_name, body
+     )
+     SELECT $1, payment_case.id, $3, $4, $5
+     FROM operations_cases payment_case
+     WHERE payment_case.id = $2
+       AND payment_case.organization_id = $1
+     RETURNING id, case_id, author_name, body, created_at`,
+    [
+      input.organizationId,
+      input.caseId,
+      input.authorUserId,
+      input.authorName,
+      input.body,
+    ],
+  );
+  const row = result.rows[0];
+  return row
+    ? {
+        id: row.id,
+        caseId: row.case_id,
+        authorName: row.author_name,
+        body: row.body,
+        createdAt: row.created_at.toISOString(),
+      }
+    : null;
 }

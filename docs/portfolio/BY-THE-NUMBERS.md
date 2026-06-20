@@ -1,7 +1,7 @@
 # By the Numbers
 
 > Every implemented-project figure below was measured from the Operations
-> Intelligence working snapshot prepared on June 20, 2026. It is repository
+> collaboration working snapshot prepared on June 20, 2026. It is repository
 > evidence, not a production-performance claim.
 
 ## Delivery
@@ -9,20 +9,20 @@
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
-| Product milestones | 16 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 17 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Refund and chargeback operations | commit `ae7cea0`, migration `009` |
-| Latest architecture milestone | Deterministic Operations Intelligence | migration `013`, `/insights` |
+| Latest product milestone | Bulk case dispatch and internal handoffs | migration `014` |
+| Latest architecture milestone | Case collaboration controls | migration `014`, Operations queue |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 144 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 12,653 | repository source file list piped to `wc -l` |
-| Next.js API route files | 18 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 13 | `db/migrations/` |
-| Automated test cases | 54 | 47 unit/policy plus 7 PostgreSQL integration tests |
+| Repository files | 148 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 13,278 | repository source file list piped to `wc -l` |
+| Next.js API route files | 20 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 14 | `db/migrations/` |
+| Automated test cases | 57 | 48 unit/policy plus 9 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 9 | Adds `/insights` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
@@ -64,6 +64,8 @@
 | Operational notification types | provider event, SLA at risk, SLA overdue |
 | Insights reporting windows | 7, 30, and 90 days |
 | Seeded fictional Insights history | 18 runs, 144 items, 72 cases, 8 signed evidence records |
+| Bulk assignment bound | 1-100 cases per atomic request |
+| Case comment policy | attributed, append-only, 2,000-character maximum |
 
 ## Quality evidence
 
@@ -71,8 +73,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 9 test files, 47 tests passing
-npm run test:integration -> 4 test files, 7 tests passing
+npm test       -> 9 test files, 48 tests passing
+npm run test:integration -> 5 test files, 9 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -108,6 +110,9 @@ Browser verification also exercised:
   direct case selection, and 390px layout without horizontal overflow;
 - fictional Insights seeding twice with stable seed-owned counts and preserved
   user-created run counts.
+- viewer read-only access to the handoff ledger, admin bulk assignment,
+  attributed comment persistence after reload, and the dispatch rail at 390px
+  without horizontal overflow.
 
 ## What is not measured
 

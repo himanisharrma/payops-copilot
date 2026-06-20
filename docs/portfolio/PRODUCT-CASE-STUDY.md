@@ -134,7 +134,7 @@ mutate operations data; viewers cannot. Audit access is admin-only.
 - PostgreSQL persistence for runs, items, cases, investigations, users, and
   audit events.
 - Operations queue with search, status filters, SLA filters, ownership, notes,
-  evidence, and AI review.
+  evidence, bulk assignment, attributed handoff comments, and AI review.
 - Role-aware login and organization-scoped APIs.
 - 4/24/72-hour SLA policy with at-risk, overdue, met, and breached states.
 - Historical run view and administrator audit ledger.

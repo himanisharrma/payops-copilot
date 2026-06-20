@@ -10,7 +10,7 @@ team. I knew the operational pain: merchant order reports, gateway exports,
 and bank settlements rarely line up cleanly, and finding a mismatch is only the
 start of the work.
 
-Codex helped convert that knowledge into a working system in sixteen milestones.
+Codex helped convert that knowledge into a working system in seventeen milestones.
 The productive pattern was not "ask AI to build an app." It was a repeated
 loop of narrowing the problem, inspecting the current repository, building one
 coherent vertical slice, verifying it in the database and browser, and pushing
@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The sixteen milestones
+## The seventeen milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -51,6 +51,8 @@ The dates and commits below come directly from the repository history.
 | June 19, 2026 | current release | Added PostgreSQL-backed CI, tenancy attacks, and role tests |
 | June 19, 2026 | current release | Extracted the operations-console design system and workflow components |
 | June 19, 2026 | current release | Added independent reviewers, disagreement, and adjudication |
+| June 20, 2026 | `4cd3cde` | Added deterministic Operations Intelligence and drill-through |
+| June 20, 2026 | current release | Added bulk case dispatch and append-only handoff comments |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -311,6 +313,18 @@ Every distribution remains actionable: chart bars and provider rows open the
 existing operations queue with shareable URL filters, and direct case links
 select the underlying record. An idempotent fictional-history seed creates a
 meaningful clean-install demo while preserving all user-created runs.
+
+### Milestone 17: Make queue collaboration operational
+
+The next operations slice reduces repetitive ownership updates without turning
+the queue into an opaque automation surface. Admins and analysts mark cases
+directly on the ledger, then assign or unassign the bounded selection in one
+organization-scoped transaction.
+
+Each case also gains an attributed handoff log. Comments are append-only,
+viewer-readable, and audited alongside the operational write, preserving the
+existing distinction between mutable working notes and durable collaboration
+history.
 
 ## The working workflow
 

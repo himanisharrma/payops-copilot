@@ -196,8 +196,8 @@ response.
 
 ### Completed foundation: automate release confidence
 
-- GitHub Actions now runs migration verification, lint, 47 unit/policy tests,
-  seven PostgreSQL-backed integration tests, production build, and diff checks.
+- GitHub Actions now runs migration verification, lint, 48 unit/policy tests,
+  nine PostgreSQL-backed integration tests, production build, and diff checks.
 - Organization isolation tests cover scoped reads, blocked cross-tenant writes,
   database tenant constraints, and mutation/audit rollback.
 - Authorization tests cover administrator, analyst, viewer, and unauthenticated
@@ -261,12 +261,22 @@ The evaluation design and initial release thresholds are documented in
 execution are implemented; actual model evidence and representative
 representative scoring remain the next evidence-collection slice.
 
+### Completed operations depth: case collaboration
+
+- Admins and analysts can mark up to 100 cases and assign or unassign the
+  selection in one transaction.
+- A missing or cross-organization case rejects the complete batch rather than
+  leaving a partial assignment.
+- Internal comments are attributed, append-only, organization-scoped, and
+  readable by viewers without exposing mutation controls.
+- Bulk assignment and comment creation write audit evidence in the same
+  transaction as the operational mutation.
+
 ### After that: deepen payment operations
 
 - Add provider-specific signature contracts, secret rotation, delivery
   observability, and settlement-cycle metadata.
 - Add provider settlement-cycle fixtures behind the typed adapters.
-- Add bulk case assignment and operational comments.
 - Add configurable business calendars and outbound escalation notifications.
 
 ### Then: production controls

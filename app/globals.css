@@ -2692,12 +2692,23 @@ button:disabled {
 }
 
 .case-card {
+  position: relative;
   min-height: 220px;
-  padding: 22px;
+  padding: 0;
   border: 0;
   border-right: 1px solid var(--ink);
   border-bottom: 1px solid var(--ink);
   background: rgba(255, 253, 247, 0.45);
+  color: inherit;
+  text-align: left;
+}
+
+.case-card-open {
+  width: 100%;
+  min-height: 220px;
+  padding: 22px;
+  border: 0;
+  background: transparent;
   color: inherit;
   text-align: left;
 }
@@ -2709,6 +2720,37 @@ button:disabled {
 
 .case-card.selected {
   box-shadow: inset 4px 0 var(--orange);
+}
+
+.case-card.batch-selected {
+  background: #fff0cf;
+  box-shadow: inset 4px 0 #d29a22;
+}
+
+.case-select-control {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  left: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.case-select-control input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--orange-dark);
+}
+
+.case-select-control + .case-card-open .case-card-top {
+  padding-left: 68px;
 }
 
 .case-card-top,
@@ -2968,6 +3010,174 @@ button:disabled {
 .notes-field textarea {
   min-height: 110px;
   resize: vertical;
+}
+
+.case-dispatch-rail {
+  position: sticky;
+  z-index: 8;
+  top: 0;
+  max-width: 1228px;
+  min-height: 70px;
+  margin: 18px auto;
+  padding: 12px 15px;
+  display: grid;
+  grid-template-columns: minmax(170px, 0.8fr) minmax(230px, 1.4fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--ink);
+  background: var(--yellow);
+  box-shadow: 7px 7px 0 rgba(21, 23, 19, 0.12);
+}
+
+.case-dispatch-rail > div {
+  display: grid;
+  gap: 4px;
+}
+
+.case-dispatch-rail span {
+  color: var(--orange-dark);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.case-dispatch-rail strong {
+  font-size: 14px;
+}
+
+.case-dispatch-rail input,
+.case-dispatch-rail button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.case-dispatch-rail button {
+  background: var(--ink);
+  color: var(--paper-strong);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.case-dispatch-rail .dispatch-clear {
+  background: transparent;
+  color: var(--ink);
+}
+
+.case-comment-ledger {
+  margin-top: 28px;
+  border: 1px solid var(--ink);
+  background: rgba(255, 253, 247, 0.58);
+}
+
+.case-comment-ledger > header {
+  min-height: 72px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.case-comment-ledger h3 {
+  margin: 5px 0 0;
+  font-size: 17px;
+}
+
+.case-comment-ledger > header > span {
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.case-comment-list article {
+  padding: 17px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.case-comment-list article > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.case-comment-list strong {
+  font-size: 10px;
+}
+
+.case-comment-list time {
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+}
+
+.case-comment-list article p,
+.case-comment-empty {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.case-comment-empty {
+  margin: 0;
+  padding: 22px 18px;
+}
+
+.case-comment-compose {
+  padding: 15px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  border-top: 1px solid var(--ink);
+}
+
+.case-comment-compose svg {
+  margin-top: 10px;
+  color: var(--orange-dark);
+}
+
+.case-comment-compose textarea {
+  min-height: 78px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: #f8f5ed;
+  color: var(--ink);
+  resize: vertical;
+}
+
+.case-comment-compose button {
+  grid-column: 2;
+  justify-self: start;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper-strong);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+@media (max-width: 760px) {
+  .case-dispatch-rail {
+    width: calc(100% - 28px);
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .case-dispatch-rail > div,
+  .case-dispatch-rail input {
+    grid-column: 1 / -1;
+  }
 }
 
 .case-evidence {

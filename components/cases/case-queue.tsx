@@ -33,10 +33,13 @@ export function CaseQueue({
   loading,
   visible,
   selectedId,
+  selectedIds,
+  canEdit,
   onFilterChange,
   onSlaFilterChange,
   onQueryChange,
   onSelect,
+  onToggleSelection,
   getSlaStatus,
   formatDateTime,
   formatSlaDistance,
@@ -49,10 +52,13 @@ export function CaseQueue({
   loading: boolean;
   visible: OperationsCase[];
   selectedId: string | null;
+  selectedIds: Set<string>;
+  canEdit: boolean;
   onFilterChange: (value: "all" | CaseStatus) => void;
   onSlaFilterChange: (value: "all" | "at_risk" | "overdue") => void;
   onQueryChange: (value: string) => void;
   onSelect: (paymentCase: OperationsCase) => void;
+  onToggleSelection: (caseId: string) => void;
   getSlaStatus: (paymentCase: OperationsCase) => SlaStatus;
   formatDateTime: (value: string) => string;
   formatSlaDistance: (value: string) => string;
@@ -110,13 +116,27 @@ export function CaseQueue({
           {visible.map((item) => {
             const slaStatus = getSlaStatus(item);
             return (
-              <button
+              <article
                 key={item.id}
                 className={`case-card ${
                   selectedId === item.id ? "selected" : ""
-                }`}
-                onClick={() => onSelect(item)}
+                } ${selectedIds.has(item.id) ? "batch-selected" : ""}`}
               >
+                {canEdit && (
+                  <label className="case-select-control">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(item.id)}
+                      onChange={() => onToggleSelection(item.id)}
+                    />
+                    <span>Select</span>
+                  </label>
+                )}
+                <button
+                  className="case-card-open"
+                  onClick={() => onSelect(item)}
+                  aria-label={`Open case ${item.orderId}`}
+                >
                 <div className="case-card-top">
                   <span className={`priority-chip ${item.priority}`}>
                     {item.priority} priority
@@ -149,7 +169,8 @@ export function CaseQueue({
                   <strong>{formatMoney(Math.abs(item.variance))}</strong>
                   <ArrowRight size={15} />
                 </div>
-              </button>
+                </button>
+              </article>
             );
           })}
         </div>
