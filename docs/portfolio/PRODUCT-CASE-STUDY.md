@@ -135,6 +135,8 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   audit events.
 - Operations queue with search, status filters, SLA filters, ownership, notes,
   evidence, bulk assignment, attributed handoff comments, and AI review.
+- Deterministic settlement clocks that prevent premature missing-settlement
+  cases and expose provider timing evidence separately from financial truth.
 - Role-aware login and organization-scoped APIs.
 - 4/24/72-hour SLA policy with at-risk, overdue, met, and breached states.
 - Historical run view and administrator audit ledger.
@@ -142,7 +144,7 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   six-score human review, latency, token metadata, and audit attribution.
 - Separate refund and chargeback queues with lifecycle transitions, ownership,
   deadlines, evidence gates, notes, and timelines.
-- A modular monolith backend with thin API routes, domain services, ten
+- A modular monolith backend with thin API routes, domain services, eleven
   repositories, and shared PostgreSQL infrastructure.
 
 ## Success metrics

@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-57%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-72%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -21,8 +21,8 @@
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Backend shape** | Modular monolith with thin routes, domain services, ten repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 17 product milestones, 20 API routes, 14 migrations, and 57 unit/integration tests at the case-collaboration snapshot |
+| **Backend shape** | Modular monolith with thin routes, domain services, eleven repositories, and shared PostgreSQL infrastructure |
+| **Build evidence** | 18 product milestones, 21 API routes, 15 migrations, and 72 unit/integration tests at the Settlement Control snapshot |
 
 ## Why this exists
 
@@ -93,6 +93,9 @@ to production gateways or move money.
     evidence, and URL-backed drill-down into underlying cases.
 23. Supports atomic bulk case assignment and attributed, append-only internal
     comments with organization scoping, role controls, and audit evidence.
+24. Calculates fictional provider/payment-mode settlement cycles in IST,
+    defers premature missing-settlement cases, and promotes overdue records
+    through an audited idempotent refresh.
 
 ## The product judgment
 
@@ -180,6 +183,7 @@ For the five-minute walkthrough, use the
 | `PATCH` | `/api/cases/:id` | Update case controls or save an evidence-backed resolution |
 | `PATCH` | `/api/cases/bulk` | Assign or unassign up to 100 organization-owned cases atomically |
 | `GET/POST` | `/api/cases/:id/comments` | Read or append attributed internal handoff comments |
+| `POST` | `/api/settlement-control/refresh` | Promote newly overdue organization settlements into cases |
 | `POST` | `/api/cases/:id/investigations` | Generate an investigation |
 | `PATCH` | `/api/investigations/:id` | Review or rate an investigation |
 | `GET` | `/api/audit` | List audit events for administrators |
@@ -212,7 +216,7 @@ and migration history.
 npm run verify
 ```
 
-The verification command runs lint, 48 unit/policy tests, nine PostgreSQL-backed
+The verification command runs lint, 61 unit/policy tests, eleven PostgreSQL-backed
 integration tests, a production build, and `git diff --check`. GitHub
 Actions runs the same command against a clean PostgreSQL 17 service.
 
@@ -225,6 +229,8 @@ quality baseline. Portfolio claims are intentionally bounded:
 - provider adapters are synthetic mapping policies, not live integrations;
 - inbound webhook support is a synthetic-only HMAC boundary, not a live
   provider connection or production compatibility claim;
+- settlement cycles and closure dates are fictional demonstration policies,
+  not provider contracts or an RBI holiday calendar;
 - raw webhook payloads and provider credentials are not stored;
 - no payment credentials are stored;
 - no money movement is implemented;

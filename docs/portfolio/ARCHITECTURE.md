@@ -168,6 +168,7 @@ The migration chain is append-only:
 | `012_provider_event_ingestion_notifications.sql` | Idempotent signed deliveries, normalized events, and in-app operational notifications |
 | `013_operations_intelligence.sql` | Provider-aware runs and aggregate-query indexes |
 | `014_case_collaboration.sql` | Tenant-linked append-only comments and assignment indexes |
+| `015_settlement_control.sql` | Persisted settlement clocks, policy evidence, and case origin |
 
 ## 4. Identity, organization, and roles
 
@@ -214,6 +215,19 @@ belongs to the actor organization before commit. Internal comments use a
 separate append-only table with an organization/case composite foreign key;
 viewers may read the ledger, while admin/analyst routes create entries and audit
 events atomically.
+
+Settlement Control is a deterministic domain downstream of provider
+normalization. `lib/settlement-policy.ts` selects a fictional provider/mode
+cycle, while `lib/settlement-calendar.ts` applies IST cutoffs, weekends, and
+versioned synthetic closures. Reconciliation persists the timestamp source,
+expected deadline, policy snapshot, and calculation evidence but derives the
+time-sensitive status at read time.
+
+Missing-settlement records create no case while not due, due today, or missing
+timing evidence. The settlement-control service acquires an
+organization-scoped advisory lock and promotes newly overdue records in one
+transaction. Provider events remain contextual evidence and never populate
+financial settlement timestamps.
 
 ## 6. SLA as policy
 
@@ -377,6 +391,8 @@ The integration suite creates isolated organizations and verifies:
 - composite foreign-key enforcement across runs, items, and cases;
 - rollback of a case mutation and its audit event in one transaction.
 - atomic bulk assignment, comment attribution, and cross-tenant isolation.
+- settlement case gating, idempotent overdue promotion, and timing-metric
+  denominators.
 
 Role tests independently verify administrator-only audit access,
 administrator/analyst mutation access, viewer read-only behavior, and

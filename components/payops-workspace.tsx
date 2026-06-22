@@ -8,6 +8,7 @@ import {
   Check,
   ChevronRight,
   CircleHelp,
+  Clock3,
   FileSpreadsheet,
   Filter,
   Landmark,
@@ -29,13 +30,18 @@ import type {
   ReconciliationItem,
   ReconciliationResult,
   ReconciliationStatus,
+  SettlementTimingStatus,
 } from "@/lib/types";
 import { providerAdapters } from "@/lib/provider-adapters";
 
 type SourceKey = "orders" | "gateway" | "settlements";
 type UploadState = Record<SourceKey, RawRecord[]>;
 type FileNames = Record<SourceKey, string>;
-type FilterKey = "all" | "exceptions" | ReconciliationStatus;
+type FilterKey =
+  | "all"
+  | "exceptions"
+  | "monitored"
+  | ReconciliationStatus;
 
 const emptyUploads: UploadState = {
   orders: [],
@@ -77,6 +83,42 @@ const statusLabels: Record<ReconciliationStatus, string> = {
   duplicate: "Duplicate capture",
   pending: "Pending",
 };
+
+const settlementLabels: Record<SettlementTimingStatus, string> = {
+  not_due: "Within cycle",
+  due_today: "Due today",
+  overdue: "Overdue",
+  settled: "Settled",
+  timing_unavailable: "Timing unavailable",
+};
+
+function isActionable(item: ReconciliationItem) {
+  return (
+    !["matched", "pending"].includes(item.status) &&
+    !(
+      item.status === "missing_settlement" &&
+      item.settlementStatus !== "overdue"
+    )
+  );
+}
+
+function isMonitoredSettlement(item: ReconciliationItem) {
+  return (
+    item.status === "missing_settlement" &&
+    ["not_due", "due_today", "timing_unavailable"].includes(
+      item.settlementStatus,
+    )
+  );
+}
+
+function reconciliationLabel(item: ReconciliationItem) {
+  if (item.status !== "missing_settlement") return statusLabels[item.status];
+  if (item.settlementStatus === "overdue") return "Settlement overdue";
+  if (item.settlementStatus === "timing_unavailable") {
+    return "Settlement timing unavailable";
+  }
+  return "Settlement monitored";
+}
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat("en-IN", {
@@ -221,8 +263,8 @@ export function PayOpsWorkspace({
     return result.items.filter((item) => {
       const matchesFilter =
         filter === "all" ||
-        (filter === "exceptions" &&
-          !["matched", "pending"].includes(item.status)) ||
+        (filter === "exceptions" && isActionable(item)) ||
+        (filter === "monitored" && isMonitoredSettlement(item)) ||
         item.status === filter;
       const matchesQuery =
         !normalizedQuery ||
@@ -232,6 +274,34 @@ export function PayOpsWorkspace({
       return matchesFilter && matchesQuery;
     });
   }, [filter, query, result]);
+
+  const settlementControl = useMemo(() => {
+    if (!result) {
+      return {
+        actionableValue: 0,
+        monitoredCount: 0,
+        monitoredValue: 0,
+      };
+    }
+
+    return result.items.reduce(
+      (totals, item) => {
+        if (isActionable(item)) {
+          totals.actionableValue += Math.abs(item.variance);
+        }
+        if (isMonitoredSettlement(item)) {
+          totals.monitoredCount += 1;
+          totals.monitoredValue += item.expectedNet ?? item.orderAmount;
+        }
+        return totals;
+      },
+      {
+        actionableValue: 0,
+        monitoredCount: 0,
+        monitoredValue: 0,
+      },
+    );
+  }, [result]);
 
   return (
     <main className="shell">
@@ -520,17 +590,29 @@ export function PayOpsWorkspace({
             </article>
             <article className="metric-card danger">
               <p>VALUE TO INVESTIGATE</p>
-              <strong>{formatMoney(result.summary.unmatchedValue)}</strong>
+              <strong>{formatMoney(settlementControl.actionableValue)}</strong>
               <span>{result.summary.exceptionCount} actionable exceptions</span>
             </article>
-            <article className="metric-card">
-              <p>CONTROL STATUS</p>
+            <article
+              className={`metric-card ${
+                settlementControl.monitoredCount ? "monitoring" : ""
+              }`}
+            >
+              <p>SETTLEMENT CONTROL</p>
               <strong className="status-copy">
-                {result.summary.exceptionCount ? "REVIEW" : "CLEAR"}
+                {settlementControl.monitoredCount
+                  ? `${settlementControl.monitoredCount} MONITORED`
+                  : result.summary.exceptionCount
+                    ? "REVIEW"
+                    : "CLEAR"}
               </strong>
               <span>
-                {result.summary.exceptionCount
-                  ? "Human action required"
+                {settlementControl.monitoredCount
+                  ? `${formatMoney(
+                      settlementControl.monitoredValue,
+                    )} is within cycle or lacks timing evidence`
+                  : result.summary.exceptionCount
+                    ? "Human action required"
                   : "No exceptions found"}
               </span>
             </article>
@@ -542,6 +624,7 @@ export function PayOpsWorkspace({
                 {[
                   ["all", "All"],
                   ["exceptions", "Exceptions"],
+                  ["monitored", "Monitored"],
                   ["matched", "Matched"],
                   ["pending", "Pending"],
                 ].map(([value, label]) => (
@@ -553,6 +636,9 @@ export function PayOpsWorkspace({
                     {label}
                     {value === "exceptions" && (
                       <span>{result.summary.exceptionCount}</span>
+                    )}
+                    {value === "monitored" && (
+                      <span>{settlementControl.monitoredCount}</span>
                     )}
                   </button>
                 ))}
@@ -587,13 +673,36 @@ export function PayOpsWorkspace({
                     <tr
                       key={item.orderId}
                       onClick={() => setSelected(item)}
-                      className={item.status !== "matched" ? "has-issue" : ""}
+                      className={
+                        isActionable(item)
+                          ? "has-issue"
+                          : isMonitoredSettlement(item)
+                            ? "is-monitored"
+                            : ""
+                      }
                     >
                       <td>
-                        <span className={`status-pill ${item.status}`}>
-                          <i />
-                          {statusLabels[item.status]}
-                        </span>
+                        <div className="reconciliation-status-stack">
+                          <span
+                            className={`status-pill ${item.status} ${
+                              isMonitoredSettlement(item) ? "monitored" : ""
+                            }`}
+                          >
+                            <i />
+                            {reconciliationLabel(item)}
+                          </span>
+                          {item.status === "missing_settlement" && (
+                            <span
+                              className={`settlement-timing-pill ${item.settlementStatus}`}
+                            >
+                              <Clock3 size={11} />
+                              {settlementLabels[item.settlementStatus]}
+                              {item.settlementCycle
+                                ? ` · ${item.settlementCycle}`
+                                : ""}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <strong className="mono">{item.orderId}</strong>

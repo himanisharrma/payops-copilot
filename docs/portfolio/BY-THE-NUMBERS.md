@@ -1,7 +1,7 @@
 # By the Numbers
 
 > Every implemented-project figure below was measured from the Operations
-> collaboration working snapshot prepared on June 20, 2026. It is repository
+> Settlement Control working snapshot prepared on June 22, 2026. It is repository
 > evidence, not a production-performance claim.
 
 ## Delivery
@@ -9,20 +9,20 @@
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
-| Product milestones | 17 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 18 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Bulk case dispatch and internal handoffs | migration `014` |
-| Latest architecture milestone | Case collaboration controls | migration `014`, Operations queue |
+| Latest product milestone | Deterministic Settlement Control | migration `015` |
+| Latest architecture milestone | Dual settlement and case clocks | Operations and Insights |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 148 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 13,278 | repository source file list piped to `wc -l` |
-| Next.js API route files | 20 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 14 | `db/migrations/` |
-| Automated test cases | 57 | 48 unit/policy plus 9 PostgreSQL integration tests |
+| Repository files | 158 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 15,435 | repository source file list piped to `wc -l` |
+| Next.js API route files | 21 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 15 | `db/migrations/` |
+| Automated test cases | 72 | 61 unit/policy plus 11 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 9 | Adds `/insights` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
@@ -47,8 +47,8 @@
 | Normalized provider event types | 6 typed event states in `lib/types.ts` |
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
-| Backend domain modules | 10 repositories under `lib/modules/` |
-| Domain service layers | 8: reconciliation, payment workflows, cases, evaluations, investigations, provider events, notifications, insights |
+| Backend domain modules | 11 repositories under `lib/modules/` |
+| Domain service layers | 9: reconciliation, payment workflows, cases, evaluations, investigations, provider events, notifications, insights, settlement control |
 | Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
@@ -66,6 +66,8 @@
 | Seeded fictional Insights history | 18 runs, 144 items, 72 cases, 8 signed evidence records |
 | Bulk assignment bound | 1-100 cases per atomic request |
 | Case comment policy | attributed, append-only, 2,000-character maximum |
+| Settlement cycles | T+0, T+1, and T+2 fictional policies |
+| Settlement policy versions | `settlement-policy-v1` and `india-demo-calendar-v1` |
 
 ## Quality evidence
 
@@ -73,8 +75,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 9 test files, 48 tests passing
-npm run test:integration -> 5 test files, 9 tests passing
+npm test       -> 11 test files, 61 tests passing
+npm run test:integration -> 6 test files, 11 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -113,6 +115,9 @@ Browser verification also exercised:
 - viewer read-only access to the handoff ledger, admin bulk assignment,
   attributed comment persistence after reload, and the dispatch rail at 390px
   without horizontal overflow.
+- shareable settlement filters, audited refresh, dual settlement/case clocks,
+  policy evidence, provider timing performance, and 390px layouts without
+  horizontal overflow.
 
 ## What is not measured
 

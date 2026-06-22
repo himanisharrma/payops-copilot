@@ -364,7 +364,7 @@ export function OperationsInsights({
               <header>
                 <div>
                   <span>WORKLOAD AGING</span>
-                  <h2>How long active work has waited</h2>
+                  <h2>Actionable workload age</h2>
                 </div>
               </header>
               <div className="aging-columns">
@@ -394,12 +394,17 @@ export function OperationsInsights({
               <header>
                 <div>
                   <span>PROVIDER COMPARISON</span>
-                  <h2>Volume, match rate, and exceptions</h2>
+                  <h2>Reconciliation and settlement timing</h2>
                 </div>
               </header>
               <div className="provider-table">
                 <div className="provider-table-head">
-                  <span>Provider</span><span>Value</span><span>Match</span><span>Exceptions</span>
+                  <span>Provider</span>
+                  <span>Match</span>
+                  <span>On time</span>
+                  <span>Late</span>
+                  <span>Overdue</span>
+                  <span>Median delay</span>
                 </div>
                 {dashboard.providerPerformance.map((provider) => (
                   <Link
@@ -408,12 +413,31 @@ export function OperationsInsights({
                       provider: provider.providerId,
                       paymentMode: dashboard.filters.paymentMode,
                       priority: dashboard.filters.priority,
+                      settlementStatus:
+                        provider.overdueUnsettled > 0 ? "overdue" : undefined,
                     })}
                   >
-                    <strong>{providerName(provider.providerId)}</strong>
-                    <span>{money(provider.processedValue)}</span>
+                    <strong>
+                      {providerName(provider.providerId)}
+                      <small>{money(provider.processedValue)} processed</small>
+                    </strong>
                     <span>{provider.matchRate ?? "—"}%</span>
-                    <span>{provider.exceptionCount}</span>
+                    <span>
+                      {provider.onTimeSettlementRate === null
+                        ? "Not enough data"
+                        : `${provider.onTimeSettlementRate}%`}
+                      <small>
+                        {provider.onTimeSettlements}/
+                        {provider.timingEligibleSettled} eligible
+                      </small>
+                    </span>
+                    <span>{provider.lateSettlements}</span>
+                    <span>{provider.overdueUnsettled}</span>
+                    <span>
+                      {provider.medianLateDelayHours === null
+                        ? "—"
+                        : `${provider.medianLateDelayHours.toFixed(1)}h`}
+                    </span>
                   </Link>
                 ))}
               </div>

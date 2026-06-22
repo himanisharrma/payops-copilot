@@ -10,7 +10,7 @@ team. I knew the operational pain: merchant order reports, gateway exports,
 and bank settlements rarely line up cleanly, and finding a mismatch is only the
 start of the work.
 
-Codex helped convert that knowledge into a working system in seventeen milestones.
+Codex helped convert that knowledge into a working system in eighteen milestones.
 The productive pattern was not "ask AI to build an app." It was a repeated
 loop of narrowing the problem, inspecting the current repository, building one
 coherent vertical slice, verifying it in the database and browser, and pushing
@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The seventeen milestones
+## The eighteen milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -53,6 +53,7 @@ The dates and commits below come directly from the repository history.
 | June 19, 2026 | current release | Added independent reviewers, disagreement, and adjudication |
 | June 20, 2026 | `4cd3cde` | Added deterministic Operations Intelligence and drill-through |
 | June 20, 2026 | current release | Added bulk case dispatch and append-only handoff comments |
+| June 22, 2026 | current release | Added deterministic settlement clocks and overdue promotion |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -325,6 +326,20 @@ Each case also gains an attributed handoff log. Comments are append-only,
 viewer-readable, and audited alongside the operational write, preserving the
 existing distinction between mutable working notes and durable collaboration
 history.
+
+### Milestone 18: Separate settlement lateness from case urgency
+
+The Settlement Control release adds a second deterministic clock. Fictional
+provider and payment-mode policies calculate when a successful transaction is
+expected to settle after IST cutoffs, weekends, and versioned synthetic
+closures. Those inputs and the full calculation snapshot persist beside the
+financial evidence.
+
+A missing settlement now remains monitored while it is not due or due today.
+Only an overdue record creates an operations case, either during reconciliation
+or through an audited idempotent refresh. The UI keeps that settlement clock
+visually separate from the case SLA, and Insights excludes incomplete timing
+evidence from provider on-time denominators.
 
 ## The working workflow
 

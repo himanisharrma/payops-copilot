@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  CalendarClock,
   CheckCircle2,
   CircleDot,
   Clock3,
@@ -10,6 +11,14 @@ import {
 } from "lucide-react";
 import { OpsSearchField } from "@/components/ui/ops-search-field";
 import type { CaseStatus, OperationsCase, SlaStatus } from "@/lib/types";
+
+const settlementLabels: Record<OperationsCase["settlementStatus"], string> = {
+  not_due: "Not due",
+  due_today: "Due today",
+  overdue: "Settlement overdue",
+  settled: "Settled",
+  timing_unavailable: "Timing unavailable",
+};
 
 export const caseStatusLabels: Record<CaseStatus, string> = {
   open: "Open",
@@ -152,6 +161,20 @@ export function CaseQueue({
                 </div>
                 <h2>{item.orderId}</h2>
                 <p>{item.summary}</p>
+                {(item.caseOrigin === "settlement_overdue" ||
+                  item.reconciliationStatus === "missing_settlement") && (
+                  <div
+                    className={`settlement-card-status ${item.settlementStatus}`}
+                  >
+                    <CalendarClock size={13} />
+                    <strong>{settlementLabels[item.settlementStatus]}</strong>
+                    <span>
+                      {item.settlementCycle
+                        ? `${item.settlementCycle} cycle`
+                        : "No timing basis"}
+                    </span>
+                  </div>
+                )}
                 <div className={`sla-card-status ${slaStatus}`}>
                   <Clock3 size={13} />
                   <strong>{caseSlaLabels[slaStatus]}</strong>

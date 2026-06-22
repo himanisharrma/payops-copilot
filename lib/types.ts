@@ -321,6 +321,20 @@ export type OperationsFilters = {
   priority: "all" | OperationsCase["priority"];
   owner: "all" | "assigned" | "unassigned";
   age: "all" | "under_4h" | "4h_24h" | "1d_3d" | "over_3d";
+  settlementStatus: "all" | SettlementTimingStatus;
+  settlementCycle: "all" | SettlementCycle;
+  expectedDate:
+    | "all"
+    | "today"
+    | "next_business_day"
+    | "next_3_business_days"
+    | "past_due";
+  daysOverdue:
+    | "all"
+    | "under_1d"
+    | "1d_2d"
+    | "3d_7d"
+    | "over_7d";
   query: string;
   caseId: string | null;
 };

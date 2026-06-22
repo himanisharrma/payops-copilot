@@ -20,6 +20,7 @@ API route (transport and request validation)
 | `provider-events` | Yes | Yes | Signed synthetic ingestion, idempotency, normalization persistence, and matching |
 | `notifications` | Yes | Yes | SLA/provider signals, organization inbox, read policy, and audit |
 | `insights` | Yes | Yes | Deterministic period metrics, current queue health, provider comparison, and drill-down contracts |
+| `settlement-control` | Yes | Yes | Idempotent overdue promotion, organization locking, and audit |
 | `audit` | Yes | No | Organization-scoped writes and administrator reads |
 | `system` | Yes | No | Database health checks |
 

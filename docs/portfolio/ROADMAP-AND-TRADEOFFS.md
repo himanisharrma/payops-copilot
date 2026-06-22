@@ -196,8 +196,8 @@ response.
 
 ### Completed foundation: automate release confidence
 
-- GitHub Actions now runs migration verification, lint, 48 unit/policy tests,
-  nine PostgreSQL-backed integration tests, production build, and diff checks.
+- GitHub Actions now runs migration verification, lint, 61 unit/policy tests,
+  eleven PostgreSQL-backed integration tests, production build, and diff checks.
 - Organization isolation tests cover scoped reads, blocked cross-tenant writes,
   database tenant constraints, and mutation/audit rollback.
 - Authorization tests cover administrator, analyst, viewer, and unauthenticated
@@ -272,11 +272,24 @@ representative scoring remain the next evidence-collection slice.
 - Bulk assignment and comment creation write audit evidence in the same
   transaction as the operational mutation.
 
+### Completed operations depth: settlement control
+
+- Provider and payment-mode cycle policies calculate expected settlement using
+  IST cutoffs, weekends, and versioned fictional closure dates.
+- Reconciliation keeps financial status separate from settlement timing, so a
+  missing settlement can remain monitored without becoming a premature case.
+- An organization-scoped refresh promotes newly overdue records exactly once
+  and writes an audit summary in the same transaction.
+- Provider performance separates on-time, late, overdue, and timing-ineligible
+  records without inventing dates for historical data.
+
+**Boundary:** the policies demonstrate product and engineering controls; they
+are not live provider contracts or an RBI settlement calendar.
+
 ### After that: deepen payment operations
 
 - Add provider-specific signature contracts, secret rotation, delivery
   observability, and settlement-cycle metadata.
-- Add provider settlement-cycle fixtures behind the typed adapters.
 - Add configurable business calendars and outbound escalation notifications.
 
 ### Then: production controls

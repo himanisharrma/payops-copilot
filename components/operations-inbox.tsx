@@ -3,12 +3,14 @@
 import {
   AlertTriangle,
   BellRing,
+  CalendarClock,
   CheckCircle2,
   CircleDot,
   Clock3,
   Copy,
   LoaderCircle,
   MessageSquareText,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   ThumbsDown,
@@ -28,6 +30,11 @@ import {
 import { ProviderEventTimeline } from "@/components/ui/provider-event-timeline";
 import { SourceEvidenceLedger } from "@/components/ui/source-evidence-ledger";
 import { formatSlaDistance, getSlaStatus, SLA_HOURS } from "@/lib/sla";
+import {
+  addBusinessDays,
+  indiaDateParts,
+  nextBusinessDay,
+} from "@/lib/settlement-calendar";
 import type {
   CaseStatus,
   OperationsCase,
@@ -57,6 +64,19 @@ const currentSlaStatus = (item: OperationsCase) =>
     status: item.status,
     priority: item.priority,
   });
+
+const settlementLabels: Record<OperationsCase["settlementStatus"], string> = {
+  not_due: "Not due",
+  due_today: "Due today",
+  overdue: "Overdue",
+  settled: "Settled",
+  timing_unavailable: "Timing unavailable",
+};
+
+const transactionSourceLabels = {
+  gateway_capture: "Gateway capture",
+  order_created: "Order creation",
+};
 
 export function OperationsInbox({
   canEdit,
@@ -89,6 +109,18 @@ export function OperationsInbox({
   );
   const [ownerFilter, setOwnerFilter] = useState(initialFilters.owner);
   const [ageFilter, setAgeFilter] = useState(initialFilters.age);
+  const [settlementStatusFilter, setSettlementStatusFilter] = useState(
+    initialFilters.settlementStatus,
+  );
+  const [settlementCycleFilter, setSettlementCycleFilter] = useState(
+    initialFilters.settlementCycle,
+  );
+  const [expectedDateFilter, setExpectedDateFilter] = useState(
+    initialFilters.expectedDate,
+  );
+  const [daysOverdueFilter, setDaysOverdueFilter] = useState(
+    initialFilters.daysOverdue,
+  );
   const [filterNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -104,6 +136,11 @@ export function OperationsInbox({
   const [comments, setComments] = useState<OperationsCaseComment[]>([]);
   const [commentBody, setCommentBody] = useState("");
   const [commentSaving, setCommentSaving] = useState(false);
+  const [refreshingClocks, setRefreshingClocks] = useState(false);
+  const [refreshResult, setRefreshResult] = useState<{
+    scannedCount: number;
+    createdCount: number;
+  } | null>(null);
   const selectedCaseId = selected?.id;
 
   useEffect(() => {
@@ -176,6 +213,10 @@ export function OperationsInbox({
       priority: priorityFilter,
       owner: ownerFilter,
       age: ageFilter,
+      settlementStatus: settlementStatusFilter,
+      settlementCycle: settlementCycleFilter,
+      expectedDate: expectedDateFilter,
+      daysOverdue: daysOverdueFilter,
       query,
       caseId: selected?.id ?? initialFilters.caseId,
       ...patch,
@@ -267,6 +308,42 @@ export function OperationsInbox({
       setError(caught instanceof Error ? caught.message : "Comment failed.");
     } finally {
       setCommentSaving(false);
+    }
+  }
+
+  async function refreshSettlementClocks() {
+    setRefreshingClocks(true);
+    setRefreshResult(null);
+    setError("");
+    try {
+      const response = await fetch("/api/settlement-control/refresh", {
+        method: "POST",
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setRefreshResult({
+        scannedCount: payload.scannedCount,
+        createdCount: payload.createdCount,
+      });
+      const casesResponse = await fetch("/api/cases");
+      const casesPayload = await casesResponse.json();
+      if (!casesResponse.ok) throw new Error(casesPayload.error);
+      setCases(casesPayload.cases);
+      if (selected) {
+        setSelected(
+          casesPayload.cases.find(
+            (item: OperationsCase) => item.id === selected.id,
+          ) ?? null,
+        );
+      }
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Settlement clocks could not be refreshed.",
+      );
+    } finally {
+      setRefreshingClocks(false);
     }
   }
 
@@ -378,6 +455,9 @@ export function OperationsInbox({
 
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
+    const today = indiaDateParts(new Date(filterNow)).date;
+    const nextBusiness = nextBusinessDay(today).date;
+    const thirdBusiness = addBusinessDays(nextBusiness, 2).date;
     return cases.filter(
       (item) => {
         const slaStatus = currentSlaStatus(item);
@@ -389,6 +469,33 @@ export function OperationsInbox({
           (ageFilter === "4h_24h" && ageHours >= 4 && ageHours < 24) ||
           (ageFilter === "1d_3d" && ageHours >= 24 && ageHours < 72) ||
           (ageFilter === "over_3d" && ageHours >= 72);
+        const expectedDate = item.expectedSettlementAt
+          ? indiaDateParts(item.expectedSettlementAt).date
+          : null;
+        const matchesExpectedDate =
+          expectedDateFilter === "all" ||
+          (expectedDateFilter === "today" && expectedDate === today) ||
+          (expectedDateFilter === "next_business_day" &&
+            expectedDate === nextBusiness) ||
+          (expectedDateFilter === "next_3_business_days" &&
+            expectedDate !== null &&
+            expectedDate > today &&
+            expectedDate <= thirdBusiness) ||
+          (expectedDateFilter === "past_due" &&
+            item.settlementStatus === "overdue");
+        const overdueDays = item.settlementDaysOverdue;
+        const matchesDaysOverdue =
+          daysOverdueFilter === "all" ||
+          (overdueDays !== null &&
+            item.settlementStatus === "overdue" &&
+            ((daysOverdueFilter === "under_1d" && overdueDays < 1) ||
+              (daysOverdueFilter === "1d_2d" &&
+                overdueDays >= 1 &&
+                overdueDays < 3) ||
+              (daysOverdueFilter === "3d_7d" &&
+                overdueDays >= 3 &&
+                overdueDays <= 7) ||
+              (daysOverdueFilter === "over_7d" && overdueDays > 7)));
         return (
           (filter === "all" || item.status === filter) &&
           (slaFilter === "all" || slaStatus === slaFilter) &&
@@ -402,6 +509,12 @@ export function OperationsInbox({
             (ownerFilter === "assigned" && Boolean(item.owner)) ||
             (ownerFilter === "unassigned" && !item.owner)) &&
           matchesAge &&
+          (settlementStatusFilter === "all" ||
+            item.settlementStatus === settlementStatusFilter) &&
+          (settlementCycleFilter === "all" ||
+            item.settlementCycle === settlementCycleFilter) &&
+          matchesExpectedDate &&
+          matchesDaysOverdue &&
         (!normalized ||
           item.orderId.toLowerCase().includes(normalized) ||
           item.owner?.toLowerCase().includes(normalized) ||
@@ -413,6 +526,7 @@ export function OperationsInbox({
     ageFilter,
     cases,
     exceptionFilter,
+    expectedDateFilter,
     filterNow,
     filter,
     ownerFilter,
@@ -420,6 +534,9 @@ export function OperationsInbox({
     priorityFilter,
     providerFilter,
     query,
+    daysOverdueFilter,
+    settlementCycleFilter,
+    settlementStatusFilter,
     slaFilter,
   ]);
 
@@ -458,6 +575,30 @@ export function OperationsInbox({
       ? ["age", ageFilter.replaceAll("_", " "), () => {
           setAgeFilter("all");
           replaceFilters({ age: "all" });
+        }]
+      : null,
+    settlementStatusFilter !== "all"
+      ? ["settlement", settlementLabels[settlementStatusFilter], () => {
+          setSettlementStatusFilter("all");
+          replaceFilters({ settlementStatus: "all" });
+        }]
+      : null,
+    settlementCycleFilter !== "all"
+      ? ["cycle", settlementCycleFilter, () => {
+          setSettlementCycleFilter("all");
+          replaceFilters({ settlementCycle: "all" });
+        }]
+      : null,
+    expectedDateFilter !== "all"
+      ? ["expected", expectedDateFilter.replaceAll("_", " "), () => {
+          setExpectedDateFilter("all");
+          replaceFilters({ expectedDate: "all" });
+        }]
+      : null,
+    daysOverdueFilter !== "all"
+      ? ["late age", daysOverdueFilter.replaceAll("_", " "), () => {
+          setDaysOverdueFilter("all");
+          replaceFilters({ daysOverdue: "all" });
         }]
       : null,
   ].filter(Boolean) as Array<[string, string, () => void]>;
@@ -537,6 +678,118 @@ export function OperationsInbox({
         </section>
       )}
 
+      <section className="settlement-control-rail">
+        <div>
+          <CalendarClock size={19} />
+          <span>
+            <strong>SETTLEMENT CONTROL</strong>
+            Recalculate overdue candidates from persisted policy evidence.
+          </span>
+        </div>
+        {refreshResult && (
+          <p role="status">
+            {refreshResult.createdCount
+              ? `${refreshResult.createdCount} case${
+                  refreshResult.createdCount === 1 ? "" : "s"
+                } promoted from ${refreshResult.scannedCount} overdue candidate${
+                  refreshResult.scannedCount === 1 ? "" : "s"
+                }.`
+              : `No new cases. ${refreshResult.scannedCount} overdue candidate${
+                  refreshResult.scannedCount === 1 ? "" : "s"
+                } already controlled.`}
+          </p>
+        )}
+        {canEdit ? (
+          <button disabled={refreshingClocks} onClick={refreshSettlementClocks}>
+            <RefreshCw
+              size={14}
+              className={refreshingClocks ? "spin" : undefined}
+            />
+            {refreshingClocks ? "Refreshing…" : "Refresh settlement clocks"}
+          </button>
+        ) : (
+          <span className="settlement-read-only">Viewer · read only</span>
+        )}
+      </section>
+
+      <section
+        className="settlement-filter-rail"
+        aria-label="Settlement filters"
+      >
+        <label>
+          SETTLEMENT STATUS
+          <select
+            value={settlementStatusFilter}
+            onChange={(event) => {
+              const value =
+                event.target.value as OperationsFilters["settlementStatus"];
+              setSettlementStatusFilter(value);
+              replaceFilters({ settlementStatus: value });
+            }}
+          >
+            <option value="all">Any status</option>
+            <option value="not_due">Not due</option>
+            <option value="due_today">Due today</option>
+            <option value="overdue">Overdue</option>
+            <option value="settled">Settled</option>
+            <option value="timing_unavailable">Timing unavailable</option>
+          </select>
+        </label>
+        <label>
+          CYCLE
+          <select
+            value={settlementCycleFilter}
+            onChange={(event) => {
+              const value =
+                event.target.value as OperationsFilters["settlementCycle"];
+              setSettlementCycleFilter(value);
+              replaceFilters({ settlementCycle: value });
+            }}
+          >
+            <option value="all">Any cycle</option>
+            <option value="T+0">T+0</option>
+            <option value="T+1">T+1</option>
+            <option value="T+2">T+2</option>
+          </select>
+        </label>
+        <label>
+          EXPECTED DATE
+          <select
+            value={expectedDateFilter}
+            onChange={(event) => {
+              const value =
+                event.target.value as OperationsFilters["expectedDate"];
+              setExpectedDateFilter(value);
+              replaceFilters({ expectedDate: value });
+            }}
+          >
+            <option value="all">Any expected date</option>
+            <option value="today">Today</option>
+            <option value="next_business_day">Next business day</option>
+            <option value="next_3_business_days">Next 3 business days</option>
+            <option value="past_due">Past due</option>
+          </select>
+        </label>
+        <label>
+          DAYS OVERDUE
+          <select
+            value={daysOverdueFilter}
+            onChange={(event) => {
+              const value =
+                event.target.value as OperationsFilters["daysOverdue"];
+              setDaysOverdueFilter(value);
+              replaceFilters({ daysOverdue: value });
+            }}
+          >
+            <option value="all">Any late age</option>
+            <option value="under_1d">Under 1 day</option>
+            <option value="1d_2d">1–2 days</option>
+            <option value="3d_7d">3–7 days</option>
+            <option value="over_7d">Over 7 days</option>
+          </select>
+        </label>
+      </section>
+
       {advancedFilters.length > 0 && (
         <section className="operations-filter-context">
           <span>INSIGHTS DRILL-DOWN</span>
@@ -555,6 +808,10 @@ export function OperationsInbox({
                 setPriorityFilter("all");
                 setOwnerFilter("all");
                 setAgeFilter("all");
+                setSettlementStatusFilter("all");
+                setSettlementCycleFilter("all");
+                setExpectedDateFilter("all");
+                setDaysOverdueFilter("all");
                 router.replace("/operations", { scroll: false });
               }}
             >
@@ -641,31 +898,161 @@ export function OperationsInbox({
               </div>
               <p className="case-summary">{selected.summary}</p>
 
-              <div
-                className={`sla-control ${currentSlaStatus(selected)}`}
-                aria-label="Case SLA status"
-              >
-                <div>
-                  <Clock3 size={18} />
-                  <span>SLA CONTROL</span>
+              <div className="case-clock-grid">
+                <div
+                  className={`settlement-clock ${selected.settlementStatus}`}
+                  aria-label="Settlement clock"
+                >
+                  <div>
+                    <CalendarClock size={18} />
+                    <span>SETTLEMENT CLOCK</span>
+                  </div>
+                  <strong>{settlementLabels[selected.settlementStatus]}</strong>
+                  <p>
+                    {selected.settlementStatus === "timing_unavailable"
+                      ? "No supported source timestamp was persisted. No deadline is invented."
+                      : selected.settlementStatus === "settled"
+                        ? selected.settlementRecordedAt
+                          ? `Recorded ${formatDateTime(
+                              selected.settlementRecordedAt,
+                            )}`
+                          : "Settlement record exists; timing performance is unavailable."
+                        : selected.expectedSettlementAt
+                          ? `Expected ${formatDateTime(
+                              selected.expectedSettlementAt,
+                            )}`
+                          : "Expected date unavailable"}
+                  </p>
+                  <dl>
+                    <div>
+                      <dt>Cycle</dt>
+                      <dd>{selected.settlementCycle ?? "Unavailable"}</dd>
+                    </div>
+                    <div>
+                      <dt>Settlement age</dt>
+                      <dd>
+                        {selected.settlementStatus === "overdue" &&
+                        selected.settlementDaysOverdue !== null
+                          ? `${selected.settlementDaysOverdue.toFixed(1)} days late`
+                          : "Not late"}
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
-                <strong>{slaLabels[currentSlaStatus(selected)]}</strong>
-                <p>
-                  {selected.status === "resolved"
-                    ? `Resolved ${formatDateTime(selected.resolvedAt!)}`
-                    : formatSlaDistance(selected.dueAt)}
-                </p>
-                <dl>
+                <div
+                  className={`sla-control ${currentSlaStatus(selected)}`}
+                  aria-label="Case SLA status"
+                >
                   <div>
-                    <dt>Target</dt>
-                    <dd>{SLA_HOURS[selected.priority]} hours</dd>
+                    <Clock3 size={18} />
+                    <span>CASE SLA</span>
                   </div>
-                  <div>
-                    <dt>Deadline</dt>
-                    <dd>{formatDateTime(selected.dueAt)}</dd>
-                  </div>
-                </dl>
+                  <strong>{slaLabels[currentSlaStatus(selected)]}</strong>
+                  <p>
+                    {selected.status === "resolved"
+                      ? `Resolved ${formatDateTime(selected.resolvedAt!)}`
+                      : formatSlaDistance(selected.dueAt)}
+                  </p>
+                  <dl>
+                    <div>
+                      <dt>Target</dt>
+                      <dd>{SLA_HOURS[selected.priority]} hours</dd>
+                    </div>
+                    <div>
+                      <dt>Deadline</dt>
+                      <dd>{formatDateTime(selected.dueAt)}</dd>
+                    </div>
+                  </dl>
+                </div>
               </div>
+
+              <section className="settlement-evidence-ledger">
+                <header>
+                  <div>
+                    <p className="eyebrow">POLICY EVIDENCE</p>
+                    <h3>How the settlement deadline was calculated</h3>
+                  </div>
+                  <span>{selected.caseOrigin.replaceAll("_", " ")}</span>
+                </header>
+                {selected.settlementTimingEvidence ? (
+                  <>
+                    <dl>
+                      <div>
+                        <dt>Transaction basis</dt>
+                        <dd>
+                          {selected.transactionTimestampSource
+                            ? transactionSourceLabels[
+                                selected.transactionTimestampSource
+                              ]
+                            : "Unavailable"}
+                          <small>
+                            {selected.transactionAt
+                              ? formatDateTime(selected.transactionAt)
+                              : "No source timestamp"}
+                          </small>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Applied policy</dt>
+                        <dd>
+                          {selected.settlementTimingEvidence.cycle} · capture by{" "}
+                          {selected.settlementTimingEvidence.captureCutoff} IST
+                          <small>
+                            {selected.settlementTimingEvidence
+                              .afterCaptureCutoff
+                              ? "Captured after cutoff; anchor advanced"
+                              : "Captured within cutoff"}
+                          </small>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Business-day anchor</dt>
+                        <dd>
+                          {selected.settlementTimingEvidence.cycleAnchorDate}
+                          <small>
+                            {selected.settlementTimingEvidence
+                              .usedFallbackPolicy
+                              ? "Fictional T+2 fallback policy"
+                              : "Fictional provider demo policy"}
+                          </small>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Expected settlement</dt>
+                        <dd>
+                          {formatDateTime(
+                            selected.settlementTimingEvidence
+                              .expectedSettlementAt,
+                          )}
+                          <small>
+                            {selected.settlementTimingEvidence.policyVersion} ·{" "}
+                            {selected.settlementTimingEvidence.calendarVersion}
+                          </small>
+                        </dd>
+                      </div>
+                    </dl>
+                    <div className="settlement-skipped-dates">
+                      <span>SKIPPED NON-BUSINESS DATES</span>
+                      <p>
+                        {selected.settlementTimingEvidence
+                          .skippedNonBusinessDates.length
+                          ? selected.settlementTimingEvidence.skippedNonBusinessDates.join(
+                              " · ",
+                            )
+                          : "None"}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="settlement-timing-empty">
+                    <CalendarClock size={20} />
+                    <p>
+                      Timing unavailable. Historical or incomplete source
+                      evidence is preserved without fabricating a deadline.
+                    </p>
+                  </div>
+                )}
+              </section>
 
               <div className="case-form">
                 <label>

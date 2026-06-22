@@ -86,6 +86,14 @@ actual settlements differ.
   them atomically; partial cross-tenant batches are rejected.
 - Every authenticated role can read attributed internal case comments. Admins
   and analysts can append comments; existing entries cannot be edited in place.
+- Successful payments use deterministic fictional provider and payment-mode
+  cycles to calculate expected settlement in `Asia/Kolkata`.
+- Missing settlements remain monitored while not due or due today; they become
+  actionable cases only after the persisted expected-settlement timestamp.
+- Analysts can run an audited idempotent settlement refresh to promote newly
+  overdue records without duplicating cases.
+- Settlement timing evidence records the timestamp source, cycle, cutoffs,
+  skipped synthetic closure dates, and policy/calendar versions.
 - No real payment is initiated and no payment-provider credentials are
   collected.
 
@@ -100,6 +108,7 @@ actual settlements differ.
 - AI-generated financial calculations.
 - Autonomous provider communication or case resolution.
 - Production identity, compliance certification, or operational telemetry.
+- Real provider settlement contracts or an RBI holiday calendar.
 
 ## Product principles
 

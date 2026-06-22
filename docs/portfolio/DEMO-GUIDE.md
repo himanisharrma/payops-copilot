@@ -80,6 +80,12 @@ Show:
 Use one case to explain the transition from a report finding to an owned piece
 of work.
 
+Show a missing settlement that is still inside its fictional T+1 or T+2 cycle.
+Point out that PayOps persists the expected date and policy evidence but does
+not create a case yet. Then use **Refresh settlement clocks** and open an
+overdue settlement-origin case. Compare the settlement clock with the separate
+4/24/72-hour case SLA.
+
 ### 2:40-3:40 - Explain the AI boundary
 
 Open a case with an investigation or choose **Investigate with AI**.
@@ -112,6 +118,9 @@ Open **Insights** first. Show the 30-day KPI ledger, current queue, daily
 activity signal, exception mix, aging, and provider comparison. Change the
 range to seven days, then open one exception bar to demonstrate that management
 metrics drill into the actual filtered case queue.
+In the provider comparison, explain that on-time settlement rates include only
+records with both expected and actual timestamps; incomplete evidence is not
+treated as zero performance.
 
 Open **Quality** and show the versioned 30-case baseline, persisted run history,
 case-level evidence, and six-score human rubric. Do not claim OpenAI model

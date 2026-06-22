@@ -91,6 +91,29 @@ export function parseOperationsFilters(
   const priorities = ["all", "low", "medium", "high"];
   const owners = ["all", "assigned", "unassigned"];
   const ages = ["all", "under_4h", "4h_24h", "1d_3d", "over_3d"];
+  const settlementStatuses = [
+    "all",
+    "not_due",
+    "due_today",
+    "overdue",
+    "settled",
+    "timing_unavailable",
+  ];
+  const settlementCycles = ["all", "T+0", "T+1", "T+2"];
+  const expectedDates = [
+    "all",
+    "today",
+    "next_business_day",
+    "next_3_business_days",
+    "past_due",
+  ];
+  const daysOverdue = [
+    "all",
+    "under_1d",
+    "1d_2d",
+    "3d_7d",
+    "over_7d",
+  ];
   const provider = searchParams.get("provider");
   return {
     status: statuses.includes(searchParams.get("status") ?? "")
@@ -115,6 +138,30 @@ export function parseOperationsFilters(
       : "all",
     age: ages.includes(searchParams.get("age") ?? "")
       ? (searchParams.get("age") as OperationsFilters["age"])
+      : "all",
+    settlementStatus: settlementStatuses.includes(
+      searchParams.get("settlementStatus") ?? "",
+    )
+      ? (searchParams.get(
+          "settlementStatus",
+        ) as OperationsFilters["settlementStatus"])
+      : "all",
+    settlementCycle: settlementCycles.includes(
+      searchParams.get("settlementCycle") ?? "",
+    )
+      ? (searchParams.get(
+          "settlementCycle",
+        ) as OperationsFilters["settlementCycle"])
+      : "all",
+    expectedDate: expectedDates.includes(
+      searchParams.get("expectedDate") ?? "",
+    )
+      ? (searchParams.get("expectedDate") as OperationsFilters["expectedDate"])
+      : "all",
+    daysOverdue: daysOverdue.includes(
+      searchParams.get("daysOverdue") ?? "",
+    )
+      ? (searchParams.get("daysOverdue") as OperationsFilters["daysOverdue"])
       : "all",
     query: searchParams.get("query")?.trim() || "",
     caseId: searchParams.get("caseId")?.trim() || null,

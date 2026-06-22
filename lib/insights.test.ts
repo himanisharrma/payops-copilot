@@ -54,7 +54,7 @@ describe("operations intelligence policy", () => {
     expect(
       parseOperationsFilters(
         new URLSearchParams(
-          "status=open&sla=overdue&exception=duplicate&owner=unassigned&age=over_3d&caseId=case-1",
+          "status=open&sla=overdue&exception=duplicate&owner=unassigned&age=over_3d&settlementStatus=overdue&settlementCycle=T%2B2&expectedDate=past_due&daysOverdue=3d_7d&caseId=case-1",
         ),
       ),
     ).toMatchObject({
@@ -63,6 +63,10 @@ describe("operations intelligence policy", () => {
       exception: "duplicate",
       owner: "unassigned",
       age: "over_3d",
+      settlementStatus: "overdue",
+      settlementCycle: "T+2",
+      expectedDate: "past_due",
+      daysOverdue: "3d_7d",
       caseId: "case-1",
     });
   });

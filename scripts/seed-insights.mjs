@@ -31,6 +31,26 @@ function ago(days, hours = 0) {
   return new Date(Date.now() - (days * 24 + hours) * 3_600_000);
 }
 
+function businessDateFromNow(dayOffset) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + dayOffset);
+  while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
+    date.setUTCDate(date.getUTCDate() + (dayOffset < 0 ? -1 : 1));
+  }
+  date.setUTCHours(12, 30, 0, 0);
+  return date;
+}
+
+function subtractBusinessDays(date, count) {
+  const result = new Date(date);
+  for (let remaining = count; remaining > 0; ) {
+    result.setUTCDate(result.getUTCDate() - 1);
+    if (result.getUTCDay() !== 0 && result.getUTCDay() !== 6) remaining -= 1;
+  }
+  result.setUTCHours(4, 30, 0, 0);
+  return result;
+}
+
 function hashEvidence(value) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
@@ -132,7 +152,7 @@ try {
       ).padStart(2, "0")}`;
       const paymentReference = `PAY-${orderId}`;
       const settlementCycle = cycles[(runIndex + itemIndex) % cycles.length];
-      const transactionAt = new Date(createdAt.getTime() - 3_600_000);
+      let transactionAt = new Date(createdAt.getTime() - 3_600_000);
       const cycleDays = Number(settlementCycle.slice(-1));
       let expectedSettlementAt = new Date(
         transactionAt.getTime() + cycleDays * 86_400_000,
@@ -141,10 +161,11 @@ try {
         const missingState = (runIndex + itemIndex) % 3;
         expectedSettlementAt =
           missingState === 0
-            ? new Date(Date.now() + 86_400_000)
+            ? businessDateFromNow(1)
             : missingState === 1
-              ? new Date(Date.now() + 2 * 3_600_000)
-              : new Date(Date.now() - 2 * 86_400_000);
+              ? businessDateFromNow(0)
+              : businessDateFromNow(-2);
+        transactionAt = subtractBusinessDays(expectedSettlementAt, cycleDays);
       }
       const settlementRecordedAt = ["matched", "amount_mismatch"].includes(
         item.status,
@@ -154,6 +175,9 @@ try {
               ((runIndex + itemIndex) % 4 === 0 ? 6 : -3) * 3_600_000,
           )
         : null;
+      const timingEligible = !["gateway_missing", "pending"].includes(
+        item.status,
+      );
       const timingEvidence = {
         providerId,
         paymentMode: item.paymentMode,
@@ -193,7 +217,7 @@ try {
            settlement_timing_evidence, created_at
          ) VALUES (
            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
-           $15,'gateway_capture',$16,$17,$18,$19,$20,$21,$22
+           $15,$16,$17,$18,$19,$20,$21,$22,$23
          ) RETURNING id`,
         [
           organizationId,
@@ -221,13 +245,14 @@ try {
             `Synthetic ${providerId} evidence`,
             `Payment mode: ${item.paymentMode}`,
           ]),
-          transactionAt,
+          timingEligible ? transactionAt : null,
+          timingEligible ? "gateway_capture" : null,
           settlementRecordedAt,
-          settlementCycle,
-          expectedSettlementAt,
-          policyVersion,
-          calendarVersion,
-          JSON.stringify(timingEvidence),
+          timingEligible ? settlementCycle : null,
+          timingEligible ? expectedSettlementAt : null,
+          timingEligible ? policyVersion : null,
+          timingEligible ? calendarVersion : null,
+          timingEligible ? JSON.stringify(timingEvidence) : null,
           createdAt,
         ],
       );
@@ -261,7 +286,7 @@ try {
         providerId,
         createdAt,
         summary,
-        expectedSettlementAt,
+        expectedSettlementAt: timingEligible ? expectedSettlementAt : null,
         settlementRecordedAt,
       });
     }

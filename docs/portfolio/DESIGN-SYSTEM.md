@@ -27,6 +27,19 @@ decorative.
 | `ProviderEventTimeline` | Consistent synthetic-event timeline with “proves / does not prove” boundaries |
 | `CaseResolutionControl` | Evidence-gated resolution form and attributed resolution record |
 
+## Dual-clock control
+
+Settlement-origin work presents two adjacent but visually distinct controls:
+
+- the settlement clock explains when money was expected under persisted
+  fictional policy evidence;
+- the case SLA explains how quickly the team should act after the record
+  becomes actionable.
+
+Never collapse these into one deadline badge. The settlement policy ledger
+shows cycle, timestamp source, cutoff handling, skipped synthetic closure
+dates, and version metadata. “Timing unavailable” remains a first-class state.
+
 Shared components live under `components/ui/`. Domain components retain
 workflow state and mutations; UI primitives own repeated presentation only.
 
