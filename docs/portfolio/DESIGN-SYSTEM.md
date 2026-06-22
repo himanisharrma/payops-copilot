@@ -43,6 +43,13 @@ dates, and version metadata. “Timing unavailable” remains a first-class stat
 Shared components live under `components/ui/`. Domain components retain
 workflow state and mutations; UI primitives own repeated presentation only.
 
+## Trust ledger
+
+Webhook Trust Operations uses a boundary card, compact KPI ledger, provider
+rotation spine, and newest-first attempt ledger. Outcome color supports the
+written decision rather than replacing it. Key IDs and failure codes may be
+shown; raw payloads, signatures, and signing secrets never appear.
+
 ## Interaction rules
 
 - Server authorization remains authoritative even when controls are disabled.

@@ -1,7 +1,7 @@
 # By the Numbers
 
 > Every implemented-project figure below was measured from the Operations
-> Settlement Control working snapshot prepared on June 22, 2026. It is repository
+> Webhook Trust Operations working snapshot prepared on June 22, 2026. It is repository
 > evidence, not a production-performance claim.
 
 ## Delivery
@@ -9,22 +9,22 @@
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
-| Product milestones | 18 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 19 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Deterministic Settlement Control | migration `015` |
-| Latest architecture milestone | Dual settlement and case clocks | Operations and Insights |
+| Latest product milestone | Webhook Trust Operations | migration `016` |
+| Latest architecture milestone | Versioned inbound trust boundary | Administrator trust ledger |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 158 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 15,435 | repository source file list piped to `wc -l` |
-| Next.js API route files | 21 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 15 | `db/migrations/` |
-| Automated test cases | 72 | 61 unit/policy plus 11 PostgreSQL integration tests |
+| Repository files | 164 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 16,364 | repository source file list piped to `wc -l` |
+| Next.js API route files | 22 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 16 | `db/migrations/` |
+| Automated test cases | 77 | 65 unit/policy plus 12 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
-| Product pages | 9 | Adds `/insights` |
+| Product pages | 10 | Adds administrator-only `/webhook-operations` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
 | Baseline automated checks | 180 | 30 cases x 6 evaluation dimensions |
 | Persisted scenario rows per run | 7 | one summary for each evaluation scenario |
@@ -36,6 +36,7 @@
 | Synthetic provider adapters | 4 | generic, Razorpay-style, Cashfree-style, PayU-style |
 | Synthetic provider webhook fixtures | 10 | payment, settlement, refund, and chargeback events |
 | Signed synthetic webhook providers | 3 | Razorpay-style, Cashfree-style, and PayU-style demo routes |
+| Seeded webhook attempts | 12 | accepted, previous-key, duplicate, rejected, conflict, and failed evidence |
 | Source snapshots in the standard 10-order demo | 27 | 10 order, 10 gateway, and 7 settlement rows |
 
 ## Product surface
@@ -63,7 +64,7 @@
 | Human review states | unreviewed, single, agreed, disputed, adjudicated |
 | Operational notification types | provider event, SLA at risk, SLA overdue |
 | Insights reporting windows | 7, 30, and 90 days |
-| Seeded fictional Insights history | 18 runs, 144 items, 72 cases, 8 signed evidence records |
+| Seeded fictional Insights history | 18 runs, 144 items, 59 cases, 8 signed evidence records |
 | Bulk assignment bound | 1-100 cases per atomic request |
 | Case comment policy | attributed, append-only, 2,000-character maximum |
 | Settlement cycles | T+0, T+1, and T+2 fictional policies |
@@ -75,8 +76,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 11 test files, 61 tests passing
-npm run test:integration -> 6 test files, 11 tests passing
+npm test       -> 12 test files, 65 tests passing
+npm run test:integration -> 6 test files, 12 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -118,6 +119,9 @@ Browser verification also exercised:
 - shareable settlement filters, audited refresh, dual settlement/case clocks,
   policy evidence, provider timing performance, and 390px layouts without
   horizontal overflow.
+- administrator webhook trust evidence, previous-key visibility, precise
+  rejected-attempt codes, viewer denial, and a 390px layout without horizontal
+  overflow.
 
 ## What is not measured
 

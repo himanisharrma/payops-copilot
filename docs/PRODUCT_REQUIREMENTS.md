@@ -73,6 +73,11 @@ actual settlements differ.
 - A synthetic-only inbound boundary verifies an HMAC signature over the
   organization, external event ID, and exact body; duplicate deliveries are
   idempotent and raw payloads are not stored.
+- Fictional provider-specific signature policies support active and previous
+  keys, explicit key IDs, a bounded timestamp window where required, and
+  precise rejection evidence without persisting request bodies or secrets.
+- Administrators can inspect organization-scoped accepted, duplicate, rejected,
+  conflict, failed, previous-key, and processing-time evidence by provider.
 - Matched provider events and deterministic SLA risk appear as
   organization-scoped in-app notifications. Viewers may read them; only admins
   and analysts may update read state.
@@ -103,6 +108,8 @@ actual settlements differ.
 - Connecting to production payment gateways.
 - Using real provider credentials or claiming live provider compatibility.
 - Claiming production webhook compatibility or accepting unsigned events.
+- Treating synthetic webhook attempt outcomes as provider uptime or production
+  delivery-success telemetry.
 - Persisting raw webhook payloads or provider credentials.
 - Storing original uploaded file contents permanently.
 - AI-generated financial calculations.
@@ -122,7 +129,6 @@ actual settlements differ.
 
 1. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
 2. Turn approved analyst corrections into governed synthetic regression cases.
-3. Add provider-specific signature policies, managed secret rotation,
-   delivery observability, and settlement-cycle metadata.
-4. Add configurable business calendars and outbound escalation notifications.
-5. Add production identity, observability, and retention controls.
+3. Add configurable business calendars and outbound escalation notifications.
+4. Add production identity, managed secrets, incident response, observability,
+   and retention controls.

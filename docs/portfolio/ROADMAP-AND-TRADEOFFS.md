@@ -188,16 +188,32 @@ with a production provider signature scheme.
 **Why:** the portfolio can now demonstrate the security and replay boundaries
 of inbound events without pretending to operate a live payment integration.
 
-**Cost accepted:** real deployment still needs provider-specific verification,
-secret rotation, delivery observability, retention policy, and incident
+**Cost accepted:** real deployment still needs provider-certified
+verification, managed secret rotation, production telemetry, retention policy,
+and incident response.
+
+### ADR-16: Synthetic key rotation evidence before managed secrets
+
+**Chose:** fictional provider-specific canonical strings, active and previous
+environment-managed keys, hash-only attempt records, and an administrator trust
+ledger.
+
+**Over:** copying production provider signature schemes or presenting local
+attempt outcomes as a reliability SLA.
+
+**Why:** rotation behavior, replay boundaries, and rejection evidence can be
+demonstrated safely without credentials or live connectivity.
+
+**Cost accepted:** production deployment still needs a managed secrets system,
+provider-certified contracts, retention policy, alerting, and incident
 response.
 
 ## Roadmap
 
 ### Completed foundation: automate release confidence
 
-- GitHub Actions now runs migration verification, lint, 61 unit/policy tests,
-  eleven PostgreSQL-backed integration tests, production build, and diff checks.
+- GitHub Actions now runs migration verification, lint, 65 unit/policy tests,
+  twelve PostgreSQL-backed integration tests, production build, and diff checks.
 - Organization isolation tests cover scoped reads, blocked cross-tenant writes,
   database tenant constraints, and mutation/audit rollback.
 - Authorization tests cover administrator, analyst, viewer, and unauthenticated
@@ -286,10 +302,22 @@ representative scoring remain the next evidence-collection slice.
 **Boundary:** the policies demonstrate product and engineering controls; they
 are not live provider contracts or an RBI settlement calendar.
 
+### Completed operations depth: webhook trust operations
+
+- Three fictional provider contracts use distinct canonical strings with
+  explicit version and key headers.
+- Active and previous keys support a bounded rotation window without storing
+  secrets or signatures.
+- Known-tenant attempts persist hash-only accepted, duplicate, rejected,
+  conflict, and failed evidence with precise failure codes.
+- The administrator trust ledger compares provider outcomes, previous-key
+  usage, and processing time while avoiding production reliability claims.
+
+**Boundary:** these contracts are synthetic and intentionally do not claim
+compatibility with Razorpay, Cashfree, or PayU production signatures.
+
 ### After that: deepen payment operations
 
-- Add provider-specific signature contracts, secret rotation, delivery
-  observability, and settlement-cycle metadata.
 - Add configurable business calendars and outbound escalation notifications.
 
 ### Then: production controls

@@ -17,7 +17,7 @@ API route (transport and request validation)
 | `investigations` | Yes | Yes | AI execution, persistence, review validation, and audit |
 | `evaluations` | Yes | Yes | Runs, case results, reviewer scoring, and audit |
 | `payment-workflows` | Yes | Yes | Refunds, chargebacks, evidence gates, timelines, and audit |
-| `provider-events` | Yes | Yes | Signed synthetic ingestion, idempotency, normalization persistence, and matching |
+| `provider-events` | Yes | Yes | Versioned synthetic signature verification, key rotation, idempotency, hash-only attempt evidence, normalization, matching, and trust observability |
 | `notifications` | Yes | Yes | SLA/provider signals, organization inbox, read policy, and audit |
 | `insights` | Yes | Yes | Deterministic period metrics, current queue health, provider comparison, and drill-down contracts |
 | `settlement-control` | Yes | Yes | Idempotent overdue promotion, organization locking, and audit |
@@ -34,7 +34,10 @@ central repository or move orchestration back into routes.
 Synthetic provider mapping lives in `lib/provider-adapters.ts`. Synthetic
 provider webhook normalization lives in `lib/provider-webhooks.ts`. The
 provider-events module exposes a signed synthetic ingestion boundary that
-stores normalized evidence and body hashes, not raw payloads or credentials.
+stores normalized evidence, body hashes, signature version, key ID, outcome,
+failure code, and processing time, not raw payloads or credentials. Its
+administrator read model is organization-scoped and reports synthetic attempt
+evidence rather than production delivery reliability.
 These remain deterministic demo policies, not live integrations.
 
 `DomainError` is the shared service-to-transport error contract. Services throw

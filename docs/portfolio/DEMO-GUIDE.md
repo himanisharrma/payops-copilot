@@ -26,7 +26,9 @@ The demo works without an OpenAI key. In that mode, investigations are clearly
 labeled `Evidence rules - demo mode`.
 
 Set `SYNTHETIC_WEBHOOK_SECRET` to a fictional local value if demonstrating the
-signed event endpoint. Never reuse a real provider secret.
+legacy signed event endpoint. To demonstrate rotation evidence, copy the safe
+fictional `SYNTHETIC_WEBHOOK_KEYRING` shape from `.env.example`. Never reuse a
+real provider secret.
 
 ## Five-minute script
 
@@ -137,6 +139,12 @@ signals are derived from the deterministic deadline policy and provider
 signals come only from signed synthetic deliveries. Marking a signal read is
 an audited admin/analyst action.
 
+Open **Webhook trust** as the administrator. Show the provider rotation spine,
+one accepted previous-key attempt, and rejected stale-signature evidence.
+Explain that only hashes, key identifiers, outcomes, and processing metadata
+are retained. The panel is evidence about local synthetic requests, not a
+provider uptime dashboard.
+
 ### 4:30-5:00 - Demonstrate role boundaries
 
 Sign out and use:
@@ -167,6 +175,7 @@ Close with:
 | Operations Intelligence | `http://127.0.0.1:4317/insights` |
 | Historical runs | `http://127.0.0.1:4317/runs` |
 | Administrator audit | `http://127.0.0.1:4317/audit` |
+| Webhook Trust Operations | `http://127.0.0.1:4317/webhook-operations` |
 | Product summary | `http://127.0.0.1:4317/product-brief` |
 | Database health | `http://127.0.0.1:4317/api/health` |
 
@@ -178,6 +187,8 @@ Close with:
 - Do not describe local credentials as production authentication.
 - Do not describe the signed synthetic endpoint as a live provider connection
   or production signature implementation.
+- Do not describe webhook attempt outcomes as provider uptime or a production
+  delivery-success rate.
 - Do not claim measured analyst savings or AI accuracy.
 - Do not upload private company reports to the public portfolio instance.
 

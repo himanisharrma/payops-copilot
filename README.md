@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-72%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-77%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -22,7 +22,7 @@
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
 | **Backend shape** | Modular monolith with thin routes, domain services, eleven repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 18 product milestones, 21 API routes, 15 migrations, and 72 unit/integration tests at the Settlement Control snapshot |
+| **Build evidence** | 19 product milestones, 22 API routes, 16 migrations, and 77 unit/integration tests at the Webhook Trust Operations snapshot |
 
 ## Why this exists
 
@@ -96,6 +96,9 @@ to production gateways or move money.
 24. Calculates fictional provider/payment-mode settlement cycles in IST,
     defers premature missing-settlement cases, and promotes overdue records
     through an audited idempotent refresh.
+25. Verifies fictional provider-specific signature contracts with active and
+    previous keys, records hash-only attempt outcomes, and gives administrators
+    a tenant-scoped webhook trust ledger.
 
 ## The product judgment
 
@@ -193,6 +196,7 @@ For the five-minute walkthrough, use the
 | `GET` | `/api/payment-workflows` | List organization refund and chargeback workflows |
 | `PATCH` | `/api/payment-workflows/:id` | Update stage, owner, evidence, priority, or notes |
 | `POST` | `/api/provider-webhooks/:providerId` | Receive a signed synthetic provider event |
+| `GET` | `/api/provider-webhooks/observability` | Inspect administrator-only webhook trust evidence |
 | `GET` | `/api/notifications` | List organization-scoped provider and SLA signals |
 | `PATCH` | `/api/notifications/:id` | Mark a notification read as admin or analyst |
 | `GET` | `/api/insights` | Return deterministic organization-scoped operations metrics |
@@ -200,15 +204,20 @@ For the five-minute walkthrough, use the
 
 The synthetic webhook route requires `x-payops-organization`,
 `x-payops-event-id`, and `x-payops-signature`. Its JSON body is
-`{ eventType, occurredAt, payload }`; the signature is HMAC-SHA256 over
-`organizationSlug.externalEventId.exactBody` using
-`SYNTHETIC_WEBHOOK_SECRET`.
+`{ eventType, occurredAt, payload }`. Legacy demo requests use HMAC-SHA256 over
+`organizationSlug.externalEventId.exactBody` with
+`SYNTHETIC_WEBHOOK_SECRET`. The fictional `provider-v2` contract adds
+`x-payops-signature-version`, `x-payops-key-id`, and, for the Cashfree-style
+demo, `x-payops-timestamp`; active and previous keys come from
+`SYNTHETIC_WEBHOOK_KEYRING`. These contracts intentionally do not reproduce
+production-provider schemes.
 
 PostgreSQL stores organizations, users, reconciliation runs, row-level items,
 source-evidence snapshots and hashes, operations cases, append-only comments, and resolution records,
 AI investigations, evaluation runs, scenario-level results, case-level outputs
 and reviews, refund and chargeback workflows, decision timelines, audit events,
-and migration history.
+normalized provider events, hash-only webhook attempt evidence, and migration
+history.
 
 ## Quality and safety
 
@@ -216,7 +225,7 @@ and migration history.
 npm run verify
 ```
 
-The verification command runs lint, 61 unit/policy tests, eleven PostgreSQL-backed
+The verification command runs lint, 65 unit/policy tests, twelve PostgreSQL-backed
 integration tests, a production build, and `git diff --check`. GitHub
 Actions runs the same command against a clean PostgreSQL 17 service.
 
@@ -232,6 +241,8 @@ quality baseline. Portfolio claims are intentionally bounded:
 - settlement cycles and closure dates are fictional demonstration policies,
   not provider contracts or an RBI holiday calendar;
 - raw webhook payloads and provider credentials are not stored;
+- webhook attempt metrics describe local synthetic evidence, not provider
+  uptime or production delivery reliability;
 - no payment credentials are stored;
 - no money movement is implemented;
 - AI output is assistance, not settlement truth;
@@ -284,11 +295,10 @@ constraints, and completion conditions; encode durable repository guidance in
 - Configure an API key, run the guarded OpenAI evaluation, and complete a
   representative two-reviewer sample before making a model-quality claim.
 - Feed approved analyst corrections into new anonymized evaluation cases.
-- Add provider-specific signature policies, secret rotation, delivery
-  observability, and settlement-cycle metadata before any real integration.
 - Add configurable business calendars and outbound escalation channels.
 - Add provider-specific investigation tools with scoped permissions.
-- Add tamper-evident audit retention and production observability.
+- Add managed secrets, provider-certified signatures, tamper-evident audit
+  retention, incident response, and production observability.
 
 ---
 

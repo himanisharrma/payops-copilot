@@ -73,6 +73,12 @@ try {
   if (!admin || !analyst) throw new Error("Seed demo users first.");
 
   await client.query(
+    `DELETE FROM provider_webhook_attempts
+     WHERE organization_id = $1
+       AND external_event_id LIKE 'insights-attempt-%'`,
+    [organizationId],
+  );
+  await client.query(
     `DELETE FROM provider_webhook_deliveries
      WHERE organization_id = $1
        AND external_event_id LIKE 'insights-seed-%'`,
@@ -413,7 +419,7 @@ try {
         ago(index + 1),
       ],
     );
-    await client.query(
+    const providerEvent = await client.query(
       `INSERT INTO provider_events (
          organization_id, delivery_id, provider_id, event_type, title,
          order_id, payment_reference, status, occurred_at, proves,
@@ -421,7 +427,7 @@ try {
        ) VALUES (
          $1,$2,$3,'payment_captured','Payment captured',$4,$5,'captured',
          $6,$7,$8
-       )`,
+       ) RETURNING id`,
       [
         organizationId,
         delivery.rows[0].id,
@@ -433,11 +439,71 @@ try {
         "It does not prove that bank settlement has arrived.",
       ],
     );
+    const outcome =
+      index === 5 ? "duplicate" : index === 6 ? "rejected" : "accepted";
+    const keyState = index === 2 || index === 5 ? "previous" : "active";
+    await client.query(
+      `INSERT INTO provider_webhook_attempts (
+         organization_id, provider_id, external_event_id, event_type,
+         payload_hash, signature_version, signature_key_id, key_state,
+         outcome, http_status, failure_code, matched_records,
+         provider_event_id, processing_ms, received_at
+       ) VALUES (
+         $1,$2,$3,'payment.captured',$4,'provider-v2',$5,$6,$7,$8,$9,$10,
+         $11,$12,$13
+       )`,
+      [
+        organizationId,
+        providerId,
+        `insights-attempt-${index + 1}`,
+        hashEvidence({ providerId, attempt: index + 1 }),
+        `${providerId}-key-${keyState}`,
+        keyState,
+        outcome,
+        outcome === "accepted" ? 202 : outcome === "duplicate" ? 200 : 401,
+        outcome === "rejected" ? "signature_rejected" : null,
+        outcome === "accepted" ? 1 : 0,
+        outcome === "rejected" ? null : providerEvent.rows[0].id,
+        18 + index * 7,
+        ago(index + 1),
+      ],
+    );
   }
+
+  await client.query(
+    `INSERT INTO provider_webhook_attempts (
+       organization_id, provider_id, external_event_id, event_type,
+       payload_hash, signature_version, signature_key_id, key_state,
+       outcome, http_status, failure_code, processing_ms, received_at
+     ) VALUES
+       ($1,'cashfree_demo','insights-attempt-9','payment.captured',$2,
+        'provider-v2','cf-key-active','active','rejected',401,
+        'stale_timestamp',12,$3),
+       ($1,'payu_demo','insights-attempt-10','settlement.processed',$4,
+        'provider-v2','payu-key-active','active','conflict',409,
+        'event_id_conflict',21,$5),
+       ($1,'razorpay_demo','insights-attempt-11',NULL,$6,
+        'provider-v2','rzp-key-active','active','rejected',400,
+        'invalid_json',9,$7),
+       ($1,'payu_demo','insights-attempt-12','refund.created',$8,
+        'provider-v2','payu-key-active','active','failed',503,
+        'processing_failure',85,$9)`,
+    [
+      organizationId,
+      hashEvidence({ attempt: 9 }),
+      ago(2),
+      hashEvidence({ attempt: 10 }),
+      ago(3),
+      hashEvidence({ attempt: 11 }),
+      ago(4),
+      hashEvidence({ attempt: 12 }),
+      ago(5),
+    ],
+  );
 
   await client.query("COMMIT");
   console.log(
-    `Seeded ${18} runs, ${seededItems.length} items, ${actionable.length} cases, and 8 signed evidence records.`,
+    `Seeded ${18} runs, ${seededItems.length} items, ${actionable.length} cases, 8 signed evidence records, and 12 webhook attempts.`,
   );
 } catch (error) {
   await client.query("ROLLBACK");

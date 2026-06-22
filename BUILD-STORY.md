@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The eighteen milestones
+## The nineteen milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -53,7 +53,8 @@ The dates and commits below come directly from the repository history.
 | June 19, 2026 | current release | Added independent reviewers, disagreement, and adjudication |
 | June 20, 2026 | `4cd3cde` | Added deterministic Operations Intelligence and drill-through |
 | June 20, 2026 | current release | Added bulk case dispatch and append-only handoff comments |
-| June 22, 2026 | current release | Added deterministic settlement clocks and overdue promotion |
+| June 22, 2026 | `4e30df9`, `47ba6f4` | Added deterministic settlement clocks and overdue promotion |
+| June 22, 2026 | `4bdb6eb` + current release | Added provider-specific key rotation and webhook trust evidence |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -340,6 +341,19 @@ Only an overdue record creates an operations case, either during reconciliation
 or through an audited idempotent refresh. The UI keeps that settlement clock
 visually separate from the case SLA, and Insights excludes incomplete timing
 evidence from provider on-time denominators.
+
+### Milestone 19: Make synthetic inbound trust operable
+
+The next boundary release replaces one generic demo signature with versioned,
+fictional provider contracts. Each provider has an explicit canonical string;
+the Cashfree-style demo also rejects stale timestamps. Active and previous key
+IDs model a safe rotation window without persisting signatures or secrets.
+
+Every known-organization request leaves hash-only decision evidence: accepted,
+duplicate, rejected, conflict, or failed, with a precise failure code and
+processing time. Administrators inspect that evidence in a provider rotation
+spine and attempt ledger. The UI deliberately avoids calling these local
+attempt outcomes provider uptime or delivery reliability.
 
 ## The working workflow
 

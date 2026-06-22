@@ -14,6 +14,7 @@ flowchart TB
       Ops[Operations inbox]
       Lifecycles[Refund and chargeback queues]
       ProviderEvents[Provider event timelines]
+      WebhookTrust[Webhook trust ledger]
       Quality[Quality Lab]
       Insights[Operations Intelligence]
       History[Run history]
@@ -41,6 +42,7 @@ flowchart TB
       Identity[Organizations and users]
       Events[Audit events]
       ProviderStore[Webhook hashes and normalized events]
+      AttemptStore[Hash-only webhook attempt evidence]
       SignalStore[Operational notifications]
       Metrics[Deterministic aggregate queries]
     end
@@ -56,6 +58,7 @@ flowchart TB
     Routes --> Notifications
     Routes --> Metrics
     WebhookPolicy --> ProviderStore
+    WebhookPolicy --> AttemptStore
     Notifications --> SignalStore
     Engine --> Modules
     Ops --> Routes
@@ -72,6 +75,7 @@ flowchart TB
     Data --> Insights
     Data --> History
     Data --> AuditUI
+    Data --> WebhookTrust
 ```
 
 ## 1. Deterministic reconciliation
@@ -124,14 +128,24 @@ The normalizer converts provider-specific shapes into one internal event model:
 - chargeback evidence due.
 
 The route `/api/provider-webhooks/:providerId` accepts only the three demo
-providers. It verifies HMAC-SHA256 over the organization slug, external event
-ID, and exact request body using an environment-managed demo secret. The
-database enforces idempotency per organization, provider, and event ID.
+providers. The legacy contract verifies HMAC-SHA256 over the organization
+slug, external event ID, and exact request body. The fictional `provider-v2`
+contract uses provider-specific canonical strings, explicit key IDs, active
+and previous environment-managed keys, and a five-minute timestamp window for
+the Cashfree-style demo. The database enforces idempotency per organization,
+provider, and event ID.
 
 Only a SHA-256 body hash and the normalized event are persisted. Raw payloads
 are discarded. Deterministic identifier matching attaches persisted events to
 tenant-owned cases and payment workflows, where the UI states both what an
 event proves and what it does not prove.
+
+Known-organization attempts also persist signature version, non-secret key ID,
+key state, outcome, HTTP status, failure code, match count, and processing
+time. The administrator-only `/webhook-operations` read model is scoped by
+organization. It is an evidence ledger for this synthetic boundary, not a
+provider uptime or delivery-success claim. Unknown organizations receive a
+generic signature rejection and are not persisted.
 
 This is an executable integration boundary, not a production-provider claim.
 It has no provider credentials, outbound provider call, money-moving action,
@@ -169,6 +183,7 @@ The migration chain is append-only:
 | `013_operations_intelligence.sql` | Provider-aware runs and aggregate-query indexes |
 | `014_case_collaboration.sql` | Tenant-linked append-only comments and assignment indexes |
 | `015_settlement_control.sql` | Persisted settlement clocks, policy evidence, and case origin |
+| `016_webhook_trust_operations.sql` | Signature metadata, key-rotation evidence, and hash-only inbound attempt observability |
 
 ## 4. Identity, organization, and roles
 
@@ -352,6 +367,8 @@ provider-event records. The language model is not involved.
   drill-down distributions, provider comparison, and governance evidence.
 - `components/notification-center.tsx`: responsive provider-event and SLA
   evidence inbox with role-aware read controls.
+- `components/webhook-trust-dashboard.tsx`: administrator-only boundary,
+  key-rotation, provider, rejection, and attempt evidence.
 - `components/ui/`: shared search, evidence-ledger, and provider-event
   presentation primitives.
 - `components/cases/`: case queue and controlled-resolution components.
@@ -393,6 +410,8 @@ The integration suite creates isolated organizations and verifies:
 - atomic bulk assignment, comment attribution, and cross-tenant isolation.
 - settlement case gating, idempotent overdue promotion, and timing-metric
   denominators.
+- active/previous webhook keys, precise signature rejection outcomes, and
+  organization-scoped attempt observability.
 
 Role tests independently verify administrator-only audit access,
 administrator/analyst mutation access, viewer read-only behavior, and

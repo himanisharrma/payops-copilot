@@ -124,6 +124,9 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   chargeback events.
 - HMAC-signed, idempotent synthetic event ingestion with hash-only delivery
   evidence and organization-scoped matching.
+- Fictional provider-specific signature contracts with active/previous key
+  rotation, timestamp freshness where required, precise rejection evidence,
+  and an administrator-only trust ledger.
 - In-app provider and SLA notification controls with role-aware read state.
 - Manager Operations Intelligence for period trends, queue pressure, SLA
   outcome, provider comparison, AI governance, and evidence-linked drill-down.
@@ -179,8 +182,8 @@ For an AI Product Manager role, the artifact demonstrates:
 
 - No production payment-provider connection.
 - No live provider credentials or production export compatibility claim.
-- No production provider webhook compatibility, credential storage, or
-  provider-specific signature policy.
+- No production provider webhook compatibility, certified signature contract,
+  managed secrets system, or provider reliability telemetry.
 - No provider-side refund, payout, or money-movement action.
 - No business-day or holiday calendar in SLA calculations.
 - No outbound email, Slack, or incident notification; alerts are in-app only.

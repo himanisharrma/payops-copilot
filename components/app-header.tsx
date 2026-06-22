@@ -8,6 +8,7 @@ import {
   LogOut,
   RotateCcw,
   Scale,
+  ShieldCheck,
 } from "lucide-react";
 import { auth, signOut } from "@/auth";
 import { NotificationCenter } from "@/components/notification-center";
@@ -22,6 +23,7 @@ export async function AppHeader({
     | "runs"
     | "insights"
     | "quality"
+    | "webhooks"
     | "audit";
 }) {
   const session = await auth();
@@ -86,6 +88,15 @@ export async function AppHeader({
           <FlaskConical size={15} />
           AI quality
         </Link>
+        {session?.user.role === "admin" && (
+          <Link
+            href="/webhook-operations"
+            className={`product-nav-link ${active === "webhooks" ? "active" : ""}`}
+          >
+            <ShieldCheck size={15} />
+            Webhook trust
+          </Link>
+        )}
         {session?.user.role === "admin" && (
           <Link
             href="/audit"
