@@ -5,6 +5,7 @@ import type {
   ReconciliationResult,
   RunSummary,
 } from "@/lib/types";
+import { isCaseActionable } from "@/lib/settlement-policy";
 
 export async function saveReconciliationRun(
   client: PoolClient,
@@ -65,10 +66,15 @@ export async function saveReconciliationRun(
         ],
       );
     }
-    if (!["matched", "pending"].includes(item.status)) {
+    if (
+      isCaseActionable({
+        reconciliationStatus: item.status,
+        settlementStatus: item.settlementStatus,
+      })
+    ) {
       await client.query(
           `INSERT INTO operations_cases (
-             organization_id, item_id, run_id, priority, due_at
+             organization_id, item_id, run_id, priority, due_at, case_origin
            )
            VALUES (
              $1, $2, $3, $4,
@@ -76,9 +82,18 @@ export async function saveReconciliationRun(
                WHEN 'high' THEN INTERVAL '4 hours'
                WHEN 'medium' THEN INTERVAL '24 hours'
                ELSE INTERVAL '72 hours'
-             END
-          )`,
-          [metadata.organizationId, storedItem.id, runId, item.severity],
+             END,
+             $5
+           )`,
+          [
+            metadata.organizationId,
+            storedItem.id,
+            runId,
+            item.severity,
+            item.status === "missing_settlement"
+              ? "settlement_overdue"
+              : "reconciliation_exception",
+          ],
         );
     }
   }
@@ -100,8 +115,13 @@ async function insertItem(
     `INSERT INTO reconciliation_items (
       organization_id, run_id, order_id, gateway_reference, payment_mode, order_amount,
       gateway_amount, settled_amount, expected_net, variance,
-      reconciliation_status, severity, summary, evidence
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      reconciliation_status, severity, summary, evidence, transaction_at,
+      transaction_timestamp_source, settlement_recorded_at, settlement_cycle,
+      expected_settlement_at, settlement_policy_version,
+      settlement_calendar_version, settlement_timing_evidence
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+    )
     RETURNING id`,
     [
       organizationId,
@@ -118,6 +138,16 @@ async function insertItem(
       item.severity,
       item.summary,
       JSON.stringify(item.evidence),
+      item.transactionAt,
+      item.transactionTimestampSource,
+      item.settlementRecordedAt,
+      item.settlementCycle,
+      item.expectedSettlementAt,
+      item.settlementPolicyVersion,
+      item.settlementCalendarVersion,
+      item.settlementTimingEvidence
+        ? JSON.stringify(item.settlementTimingEvidence)
+        : null,
     ],
   );
   return inserted.rows[0];

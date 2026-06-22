@@ -73,6 +73,20 @@ export const paymentInvestigationDataset: EvaluationCase[] = seeds.map(
         runId: "eval-run-v1",
         runName: "Synthetic evaluation run",
         providerId: "generic",
+        caseOrigin: "reconciliation_exception",
+        settlementStatus:
+          seed.scenario === "missing_settlement"
+            ? "timing_unavailable"
+            : seed.scenario === "pending" || seed.scenario === "gateway_missing"
+              ? "timing_unavailable"
+              : "settled",
+        transactionAt: null,
+        transactionTimestampSource: null,
+        settlementRecordedAt: null,
+        settlementCycle: null,
+        expectedSettlementAt: null,
+        settlementDaysOverdue: null,
+        settlementTimingEvidence: null,
         orderId: `EVAL-${String(index + 1).padStart(3, "0")}`,
         gatewayReference: `GATE-EVAL-${String(index + 1).padStart(3, "0")}`,
         paymentMode: index % 2 === 0 ? "UPI" : "Card",

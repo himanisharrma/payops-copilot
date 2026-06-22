@@ -6,6 +6,7 @@ import type {
   ReconciliationItem,
   ReconciliationRequest,
   ReconciliationResult,
+  SettlementTimestampSource,
   SourceEvidence,
 } from "./types";
 import {
@@ -14,6 +15,12 @@ import {
   profileProviderData,
   readProviderField,
 } from "./provider-adapters";
+import {
+  calculateExpectedSettlement,
+  classifySettlement,
+  isCaseActionable,
+  parseExplicitOffsetTimestamp,
+} from "./settlement-policy";
 
 function text(value: unknown) {
   return String(value ?? "").trim();
@@ -90,6 +97,7 @@ function isSuccessful(status: string, successStatuses: string[]) {
 
 export function reconcilePayments(
   request: ReconciliationRequest,
+  now: string | Date = new Date(),
 ): ReconciliationResult {
   const { orders, gateway, settlements } = request;
   const provider = getProviderAdapter(request.providerId);
@@ -108,6 +116,7 @@ export function reconcilePayments(
     mode: text(readProviderField(row, provider, "paymentMode")) || "Unknown",
     fee: money(readProviderField(row, provider, "fee")),
     tax: money(readProviderField(row, provider, "tax")),
+    transactionAt: text(readProviderField(row, provider, "transactionAt")),
   }));
 
   const settlementRows = settlements.map((row, index) => ({
@@ -118,6 +127,7 @@ export function reconcilePayments(
     settledAmount: money(readProviderField(row, provider, "settledAmount")),
     utr: text(readProviderField(row, provider, "utr")),
     status: text(readProviderField(row, provider, "status")),
+    settlementAt: text(readProviderField(row, provider, "settlementAt")),
   }));
 
   const orderCounts = new Map<string, number>();
@@ -130,6 +140,9 @@ export function reconcilePayments(
     const orderAmount = money(readProviderField(row, provider, "amount"));
     const paymentMode =
       text(readProviderField(row, provider, "paymentMode")) || "Unknown";
+    const orderTransactionAt = text(
+      readProviderField(row, provider, "transactionAt"),
+    );
     const matchingGatewayRows = gatewayRows.filter(
       (candidate) => candidate.orderId === orderId,
     );
@@ -170,6 +183,7 @@ export function reconcilePayments(
             "paymentMode",
             "fee",
             "tax",
+            "transactionAt",
           ],
         ),
         normalizedValues: {
@@ -180,6 +194,7 @@ export function reconcilePayments(
           paymentMode: candidate.mode,
           fee: candidate.fee,
           tax: candidate.tax,
+          transactionAt: candidate.transactionAt,
         },
       }),
     );
@@ -197,6 +212,7 @@ export function reconcilePayments(
                 "settledAmount",
                 "utr",
                 "status",
+                "settlementAt",
               ],
             ),
             normalizedValues: {
@@ -205,6 +221,7 @@ export function reconcilePayments(
               settledAmount: settlementRow.settledAmount,
               utr: settlementRow.utr,
               status: settlementRow.status,
+              settlementAt: settlementRow.settlementAt,
             },
           }),
         ]
@@ -214,6 +231,55 @@ export function reconcilePayments(
       ...gatewayEvidence,
       ...settlementEvidence,
     ];
+    const successfulGateway = Boolean(
+      gatewayRow &&
+        isSuccessful(gatewayRow.status, provider.successStatuses),
+    );
+    const gatewayTimestamp = gatewayRow?.transactionAt
+      ? parseExplicitOffsetTimestamp(gatewayRow.transactionAt)
+      : null;
+    const orderTimestamp = orderTransactionAt
+      ? parseExplicitOffsetTimestamp(orderTransactionAt)
+      : null;
+    const transactionTimestampSource: SettlementTimestampSource | null =
+      gatewayTimestamp
+      ? "gateway_capture"
+      : orderTimestamp
+        ? "order_created"
+        : null;
+    const transactionAt = gatewayTimestamp ?? orderTimestamp;
+    const timing = successfulGateway && transactionTimestampSource
+      ? calculateExpectedSettlement({
+          providerId: provider.id,
+          paymentMode: gatewayRow?.mode ?? paymentMode,
+          transactionAt: transactionAt!.toISOString(),
+          transactionTimestampSource,
+        })
+      : {
+          expectedSettlementAt: null,
+          policy: null,
+          evidence: null,
+        };
+    const settlementRecordedAt = settlementRow?.settlementAt
+      ? parseExplicitOffsetTimestamp(settlementRow.settlementAt)
+      : null;
+    const settlementStatus = classifySettlement({
+      hasSettlementRecord: Boolean(settlementRow),
+      expectedSettlementAt: timing.expectedSettlementAt,
+      now,
+    });
+    const timingFields = {
+      settlementStatus,
+      transactionAt: transactionAt?.toISOString() ?? null,
+      transactionTimestampSource,
+      settlementRecordedAt: settlementRecordedAt?.toISOString() ?? null,
+      settlementCycle: timing.policy?.cycle ?? null,
+      expectedSettlementAt:
+        timing.expectedSettlementAt?.toISOString() ?? null,
+      settlementPolicyVersion: timing.policy?.policyVersion ?? null,
+      settlementCalendarVersion: timing.policy?.calendarVersion ?? null,
+      settlementTimingEvidence: timing.evidence,
+    };
 
     if (!gatewayRow) {
       return {
@@ -226,6 +292,7 @@ export function reconcilePayments(
         expectedNet: null,
         variance: orderAmount,
         status: "gateway_missing",
+        ...timingFields,
         severity: "high",
         summary: "Order exists internally but is missing from the gateway report.",
         evidence: [`Order file: ₹${orderAmount.toFixed(2)}`, "Gateway file: no matching row"],
@@ -244,6 +311,7 @@ export function reconcilePayments(
         expectedNet: cents(gatewayRow.amount - gatewayRow.fee - gatewayRow.tax),
         variance: gatewayRow.amount,
         status: "duplicate",
+        ...timingFields,
         severity: "high",
         summary: "Multiple gateway rows use the same merchant order ID.",
         evidence: [
@@ -265,6 +333,7 @@ export function reconcilePayments(
         expectedNet: null,
         variance: 0,
         status: "pending",
+        ...timingFields,
         severity: "low",
         summary: `Gateway status is ${gatewayRow.status || "not final"}.`,
         evidence: [`Gateway status: ${gatewayRow.status || "blank"}`],
@@ -285,8 +354,16 @@ export function reconcilePayments(
         expectedNet,
         variance: expectedNet,
         status: "missing_settlement",
-        severity: "high",
-        summary: "Successful gateway payment has no bank settlement record.",
+        ...timingFields,
+        severity: settlementStatus === "overdue" ? "high" : "low",
+        summary:
+          settlementStatus === "overdue"
+            ? "Expected settlement is overdue and no bank settlement record was supplied."
+            : settlementStatus === "due_today"
+              ? "Settlement is due today and remains within the fictional provider cycle."
+              : settlementStatus === "not_due"
+                ? "Settlement is still within the fictional provider cycle."
+                : "Successful gateway payment has no settlement timing evidence.",
         evidence: [
           `Gateway captured: ₹${gatewayRow.amount.toFixed(2)}`,
           `Expected net: ₹${expectedNet.toFixed(2)}`,
@@ -307,6 +384,7 @@ export function reconcilePayments(
         expectedNet,
         variance,
         status: "amount_mismatch",
+        ...timingFields,
         severity: Math.abs(variance) > 100 ? "high" : "medium",
         summary: "Bank settlement does not match gateway amount less fees and tax.",
         evidence: [
@@ -328,6 +406,7 @@ export function reconcilePayments(
       expectedNet,
       variance: 0,
       status: "matched",
+      ...timingFields,
       severity: "low",
       summary: "Order, gateway capture, fees, and bank settlement agree.",
       evidence: [
@@ -346,7 +425,11 @@ export function reconcilePayments(
     matched.reduce((sum, item) => sum + item.orderAmount, 0),
   );
   const exceptionCount = items.filter(
-    (item) => !["matched", "pending"].includes(item.status),
+    (item) =>
+      isCaseActionable({
+        reconciliationStatus: item.status,
+        settlementStatus: item.settlementStatus,
+      }),
   ).length;
 
   return {

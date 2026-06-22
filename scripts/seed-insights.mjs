@@ -23,6 +23,9 @@ const statuses = [
   "duplicate",
   "pending",
 ];
+const policyVersion = "settlement-policy-v1";
+const calendarVersion = "india-demo-calendar-v1";
+const cycles = ["T+0", "T+1", "T+2"];
 
 function ago(days, hours = 0) {
   return new Date(Date.now() - (days * 24 + hours) * 3_600_000);
@@ -128,6 +131,46 @@ try {
         itemIndex + 1,
       ).padStart(2, "0")}`;
       const paymentReference = `PAY-${orderId}`;
+      const settlementCycle = cycles[(runIndex + itemIndex) % cycles.length];
+      const transactionAt = new Date(createdAt.getTime() - 3_600_000);
+      const cycleDays = Number(settlementCycle.slice(-1));
+      let expectedSettlementAt = new Date(
+        transactionAt.getTime() + cycleDays * 86_400_000,
+      );
+      if (item.status === "missing_settlement") {
+        const missingState = (runIndex + itemIndex) % 3;
+        expectedSettlementAt =
+          missingState === 0
+            ? new Date(Date.now() + 86_400_000)
+            : missingState === 1
+              ? new Date(Date.now() + 2 * 3_600_000)
+              : new Date(Date.now() - 2 * 86_400_000);
+      }
+      const settlementRecordedAt = ["matched", "amount_mismatch"].includes(
+        item.status,
+      )
+        ? new Date(
+            expectedSettlementAt.getTime() +
+              ((runIndex + itemIndex) % 4 === 0 ? 6 : -3) * 3_600_000,
+          )
+        : null;
+      const timingEvidence = {
+        providerId,
+        paymentMode: item.paymentMode,
+        cycle: settlementCycle,
+        transactionAt: transactionAt.toISOString(),
+        transactionTimestampSource: "gateway_capture",
+        captureCutoff: "15:00",
+        afterCaptureCutoff: false,
+        cycleAnchorDate: transactionAt.toISOString().slice(0, 10),
+        skippedNonBusinessDates: [],
+        expectedSettlementAt: expectedSettlementAt.toISOString(),
+        settlementCutoff: "18:00",
+        timezone: "Asia/Kolkata",
+        policyVersion,
+        calendarVersion,
+        usedFallbackPolicy: false,
+      };
       const summary = {
         matched: "Order, gateway, and settlement evidence agree.",
         amount_mismatch:
@@ -144,9 +187,13 @@ try {
            organization_id, run_id, order_id, gateway_reference, payment_mode,
            order_amount, gateway_amount, settled_amount, expected_net,
            variance, reconciliation_status, severity, summary, evidence,
-           created_at
+           transaction_at, transaction_timestamp_source,
+           settlement_recorded_at, settlement_cycle, expected_settlement_at,
+           settlement_policy_version, settlement_calendar_version,
+           settlement_timing_evidence, created_at
          ) VALUES (
-           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+           $15,'gateway_capture',$16,$17,$18,$19,$20,$21,$22
          ) RETURNING id`,
         [
           organizationId,
@@ -174,6 +221,13 @@ try {
             `Synthetic ${providerId} evidence`,
             `Payment mode: ${item.paymentMode}`,
           ]),
+          transactionAt,
+          settlementRecordedAt,
+          settlementCycle,
+          expectedSettlementAt,
+          policyVersion,
+          calendarVersion,
+          JSON.stringify(timingEvidence),
           createdAt,
         ],
       );
@@ -207,12 +261,17 @@ try {
         providerId,
         createdAt,
         summary,
+        expectedSettlementAt,
+        settlementRecordedAt,
       });
     }
   }
 
   const actionable = seededItems.filter(
-    (item) => !["matched", "pending"].includes(item.status),
+    (item) =>
+      !["matched", "pending"].includes(item.status) &&
+      (item.status !== "missing_settlement" ||
+        item.expectedSettlementAt.getTime() < Date.now()),
   );
   for (let index = 0; index < actionable.length; index += 1) {
     const item = actionable[index];
@@ -239,9 +298,9 @@ try {
          organization_id, item_id, run_id, case_status, priority, owner,
          notes, due_at, resolved_at, resolution_reason,
          resolution_evidence_confirmed, resolved_by_user_id, resolved_by_name,
-         created_at, updated_at
+         case_origin, created_at, updated_at
        ) VALUES (
-         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
        ) RETURNING id`,
       [
         organizationId,
@@ -261,6 +320,9 @@ try {
         resolved,
         resolved ? admin.id : null,
         resolved ? admin.name : null,
+        item.status === "missing_settlement"
+          ? "settlement_overdue"
+          : "reconciliation_exception",
         item.createdAt,
         resolvedAt ?? item.createdAt,
       ],

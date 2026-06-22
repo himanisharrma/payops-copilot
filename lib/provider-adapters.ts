@@ -5,6 +5,7 @@ import type {
   ProviderId,
   RawRecord,
 } from "@/lib/types";
+import { parseExplicitOffsetTimestamp } from "@/lib/settlement-policy";
 
 export type ProviderAdapter = {
   id: ProviderId;
@@ -46,6 +47,18 @@ export const providerAdapters = [
         "txn_id",
         "transaction_id",
       ],
+      transactionAt: [
+        "captured_at",
+        "transaction_at",
+        "payment_at",
+        "created_at",
+      ],
+      settlementAt: [
+        "settled_at",
+        "settlement_at",
+        "settlement_date",
+        "processed_at",
+      ],
       settledAmount: [
         "settled_amount",
         "net_amount",
@@ -74,6 +87,8 @@ export const providerAdapters = [
       status: ["status", "payment_status"],
       paymentMode: ["method", "payment_method", "payment_mode"],
       gatewayReference: ["id", "payment_id", "razorpay_payment_id"],
+      transactionAt: ["captured_at", "created_at", "payment_at"],
+      settlementAt: ["settled_at", "settlement_date", "processed_at"],
       settledAmount: ["settled_amount", "settlement_amount", "credit"],
       fee: ["fee", "razorpay_fee"],
       tax: ["tax", "gst"],
@@ -97,6 +112,8 @@ export const providerAdapters = [
       status: ["order_status", "payment_status", "status"],
       paymentMode: ["payment_group", "payment_method", "mode"],
       gatewayReference: ["cf_payment_id", "payment_id", "reference_id"],
+      transactionAt: ["payment_time", "payment_at", "created_at"],
+      settlementAt: ["settlement_time", "settled_at", "processed_at"],
       settledAmount: ["settlement_amount", "net_settlement", "amount_settled"],
       fee: ["service_charge", "fee", "processing_fee"],
       tax: ["service_tax", "gst", "tax"],
@@ -120,6 +137,8 @@ export const providerAdapters = [
       status: ["status", "unmappedstatus", "transaction_status"],
       paymentMode: ["mode", "payment_mode", "payment_source"],
       gatewayReference: ["mihpayid", "payu_id", "gateway_reference"],
+      transactionAt: ["addedon", "transaction_at", "created_at"],
+      settlementAt: ["settled_at", "settlement_date", "processed_at"],
       settledAmount: ["net_settlement", "settlement_amount", "net_amount"],
       fee: ["mdr", "fee", "gateway_fee"],
       tax: ["gst", "tax", "fee_tax"],
@@ -155,12 +174,14 @@ export function profileProviderData(
       "gatewayReference",
       "fee",
       "tax",
+      "transactionAt",
     ]),
     settlements: mapFields(provider, sources.settlements, [
       "orderId",
       "gatewayReference",
       "settledAmount",
       "utr",
+      "settlementAt",
     ]),
   };
 
@@ -168,6 +189,7 @@ export function profileProviderData(
   collectInvalidAmountIssues(issues, provider, sources);
   collectDuplicateReferenceIssues(issues, provider, sources.gateway);
   collectUnknownStatusIssues(issues, provider, sources.gateway);
+  collectTimestampIssues(issues, provider, sources);
 
   return {
     providerId: provider.id,
@@ -182,6 +204,90 @@ export function profileProviderData(
     fieldCoverage,
     issues,
   };
+}
+
+function collectTimestampIssues(
+  issues: DataQualityIssue[],
+  provider: ProviderAdapter,
+  sources: {
+    orders: RawRecord[];
+    gateway: RawRecord[];
+    settlements: RawRecord[];
+  },
+) {
+  const successfulGateway = sources.gateway.filter((row) =>
+    provider.successStatuses.includes(
+      text(readProviderField(row, provider, "status")).toLowerCase(),
+    ),
+  );
+  const transactionValues = successfulGateway.map((row) =>
+    readProviderField(row, provider, "transactionAt"),
+  );
+  if (
+    successfulGateway.length > 0 &&
+    transactionValues.every((value) => !text(value))
+  ) {
+    const orderHasTimestamp = sources.orders.some((row) =>
+      text(readProviderField(row, provider, "transactionAt")),
+    );
+    if (!orderHasTimestamp) {
+      issues.push({
+        severity: "warning",
+        source: "gateway",
+        code: "missing_transaction_timestamp",
+        message:
+          "No explicit-offset gateway or order timestamp is available for settlement timing.",
+      });
+    }
+  }
+  const invalidTransactions = [
+    ...successfulGateway.map((row) =>
+      readProviderField(row, provider, "transactionAt"),
+    ),
+    ...sources.orders.map((row) =>
+      readProviderField(row, provider, "transactionAt"),
+    ),
+  ].filter(
+    (value) =>
+      text(value) &&
+      !parseExplicitOffsetTimestamp(text(value)),
+  ).length;
+  if (invalidTransactions) {
+    issues.push({
+      severity: "warning",
+      source: "gateway",
+      code: "invalid_transaction_timestamp",
+      message: `${invalidTransactions} transaction timestamp(s) are not explicit-offset ISO values.`,
+    });
+  }
+  const settlementValues = sources.settlements.map((row) =>
+    readProviderField(row, provider, "settlementAt"),
+  );
+  if (
+    sources.settlements.length > 0 &&
+    settlementValues.every((value) => !text(value))
+  ) {
+    issues.push({
+      severity: "info",
+      source: "settlements",
+      code: "missing_settlement_timestamp",
+      message:
+        "Settlement rows have no timestamp, so they are excluded from on-time metrics.",
+    });
+  }
+  const invalidSettlements = settlementValues.filter(
+    (value) =>
+      text(value) &&
+      !parseExplicitOffsetTimestamp(text(value)),
+  ).length;
+  if (invalidSettlements) {
+    issues.push({
+      severity: "warning",
+      source: "settlements",
+      code: "invalid_settlement_timestamp",
+      message: `${invalidSettlements} settlement timestamp(s) are not explicit-offset ISO values.`,
+    });
+  }
 }
 
 export function normalizedKey(key: string) {

@@ -6,6 +6,10 @@ import {
 } from "@/lib/provider-webhooks";
 import { listPersistedProviderEvents } from "@/lib/modules/provider-events/repository";
 import { getSlaStatus } from "@/lib/sla";
+import {
+  classifySettlement,
+  settlementDaysOverdue,
+} from "@/lib/settlement-policy";
 import type {
   AIInvestigation,
   CaseStatus,
@@ -29,7 +33,15 @@ export async function listCases(
     payment_mode: string;
     order_amount: string;
     variance: string;
+    settled_amount: string | null;
     reconciliation_status: OperationsCase["reconciliationStatus"];
+    case_origin: OperationsCase["caseOrigin"];
+    transaction_at: Date | null;
+    transaction_timestamp_source: OperationsCase["transactionTimestampSource"];
+    settlement_recorded_at: Date | null;
+    settlement_cycle: OperationsCase["settlementCycle"];
+    expected_settlement_at: Date | null;
+    settlement_timing_evidence: OperationsCase["settlementTimingEvidence"];
     summary: string;
     evidence: string[];
     source_evidence: SourceEvidence[] | null;
@@ -61,7 +73,11 @@ export async function listCases(
     investigation_updated_at: Date | null;
   }>(
     `SELECT c.*, r.name AS run_name, r.provider_id, i.order_id, i.gateway_reference,
-       i.payment_mode, i.order_amount, i.variance, i.reconciliation_status,
+       i.payment_mode, i.order_amount, i.variance, i.settled_amount,
+       i.reconciliation_status,
+       i.transaction_at, i.transaction_timestamp_source,
+       i.settlement_recorded_at, i.settlement_cycle,
+       i.expected_settlement_at, i.settlement_timing_evidence,
        i.summary, i.evidence, evidence.source_evidence,
        ai.id AS investigation_id, ai.provider AS investigation_provider,
        ai.model AS investigation_model,
@@ -115,8 +131,14 @@ export async function listCases(
     organizationId,
     client,
   );
+  const requestNow = new Date();
 
   return result.rows.map((row) => {
+    const settlementStatus = classifySettlement({
+      hasSettlementRecord: row.settled_amount !== null,
+      expectedSettlementAt: row.expected_settlement_at,
+      now: requestNow,
+    });
     const createdAt = row.created_at.toISOString();
     const dueAt = row.due_at.toISOString();
     const resolvedAt = row.resolved_at?.toISOString() ?? null;
@@ -131,6 +153,20 @@ export async function listCases(
       orderAmount: Number(row.order_amount),
       variance: Number(row.variance),
       reconciliationStatus: row.reconciliation_status,
+      caseOrigin: row.case_origin,
+      settlementStatus,
+      transactionAt: row.transaction_at?.toISOString() ?? null,
+      transactionTimestampSource: row.transaction_timestamp_source,
+      settlementRecordedAt:
+        row.settlement_recorded_at?.toISOString() ?? null,
+      settlementCycle: row.settlement_cycle,
+      expectedSettlementAt:
+        row.expected_settlement_at?.toISOString() ?? null,
+      settlementDaysOverdue: settlementDaysOverdue({
+        expectedSettlementAt: row.expected_settlement_at,
+        now: requestNow,
+      }),
+      settlementTimingEvidence: row.settlement_timing_evidence,
       summary: row.summary,
       evidence: row.evidence,
       sourceEvidence: row.source_evidence ?? [],

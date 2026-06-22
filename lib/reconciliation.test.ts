@@ -68,6 +68,50 @@ describe("reconcilePayments", () => {
     expect(result.items[0].sourceEvidence.map((item) => item.sourceType)).toEqual(
       ["orders", "gateway"],
     );
+    expect(result.items[0].settlementStatus).toBe("timing_unavailable");
+    expect(result.summary.exceptionCount).toBe(0);
+  });
+
+  it("defers missing settlements until the calculated deadline passes", () => {
+    const request = {
+      providerId: "generic" as const,
+      orders: [
+        {
+          order_id: "ORD-CLOCK",
+          amount: 500,
+          payment_mode: "UPI",
+          created_at: "2026-06-22T10:00:00+05:30",
+        },
+      ],
+      gateway: [
+        {
+          merchant_order_id: "ORD-CLOCK",
+          payment_id: "PAY-CLOCK",
+          transaction_amount: 500,
+          payment_method: "UPI",
+          txn_status: "captured",
+          captured_at: "2026-06-22T10:05:00+05:30",
+        },
+      ],
+      settlements: [],
+    };
+    const notDue = reconcilePayments(
+      request,
+      "2026-06-22T11:00:00+05:30",
+    );
+    expect(notDue.items[0]).toMatchObject({
+      status: "missing_settlement",
+      settlementStatus: "due_today",
+      settlementCycle: "T+0",
+    });
+    expect(notDue.summary.exceptionCount).toBe(0);
+
+    const overdue = reconcilePayments(
+      request,
+      "2026-06-22T18:00:00.001+05:30",
+    );
+    expect(overdue.items[0].settlementStatus).toBe("overdue");
+    expect(overdue.summary.exceptionCount).toBe(1);
   });
 
   it("normalizes common column aliases and detects amount variance", () => {

@@ -109,6 +109,11 @@ export async function getInsightsDashboard(
          )::int AS matched_items,
          COUNT(*) FILTER (
            WHERE item.reconciliation_status NOT IN ('matched', 'pending')
+             AND (
+               item.reconciliation_status <> 'missing_settlement'
+               OR item.expected_settlement_at < NOW()
+               OR payment_case.id IS NOT NULL
+             )
          )::int AS actionable_exceptions,
          COUNT(*) FILTER (
            WHERE payment_case.resolved_at IS NOT NULL
@@ -144,6 +149,11 @@ export async function getInsightsDashboard(
          )::int AS matched_items,
          COUNT(*) FILTER (
            WHERE item.reconciliation_status NOT IN ('matched', 'pending')
+             AND (
+               item.reconciliation_status <> 'missing_settlement'
+               OR item.expected_settlement_at < NOW()
+               OR payment_case.id IS NOT NULL
+             )
          )::int AS actionable_exceptions,
          COUNT(*) FILTER (
            WHERE payment_case.resolved_at IS NOT NULL
@@ -222,6 +232,11 @@ export async function getInsightsDashboard(
            COUNT(*)::int AS orders,
            COUNT(*) FILTER (
              WHERE item.reconciliation_status NOT IN ('matched', 'pending')
+               AND (
+                 item.reconciliation_status <> 'missing_settlement'
+                 OR item.expected_settlement_at < NOW()
+                 OR payment_case.id IS NOT NULL
+               )
            )::int AS exceptions
          FROM reconciliation_items item
          JOIN reconciliation_runs run
@@ -279,6 +294,11 @@ export async function getInsightsDashboard(
        WHERE item.organization_id = $1
          AND item.created_at >= $2 AND item.created_at < $3
          AND item.reconciliation_status NOT IN ('matched', 'pending')
+         AND (
+           item.reconciliation_status <> 'missing_settlement'
+           OR item.expected_settlement_at < NOW()
+           OR payment_case.id IS NOT NULL
+         )
          AND ${filterSql}
        GROUP BY item.reconciliation_status
        ORDER BY count DESC, status`,
@@ -286,11 +306,23 @@ export async function getInsightsDashboard(
     ),
     query<{ bucket: InsightsDashboard["aging"][number]["bucket"]; count: number }>(
       `SELECT CASE
-           WHEN NOW() - payment_case.created_at < INTERVAL '4 hours'
+           WHEN NOW() - CASE
+             WHEN payment_case.case_origin = 'settlement_overdue'
+               THEN item.expected_settlement_at
+             ELSE payment_case.created_at
+           END < INTERVAL '4 hours'
              THEN 'under_4h'
-           WHEN NOW() - payment_case.created_at < INTERVAL '24 hours'
+           WHEN NOW() - CASE
+             WHEN payment_case.case_origin = 'settlement_overdue'
+               THEN item.expected_settlement_at
+             ELSE payment_case.created_at
+           END < INTERVAL '24 hours'
              THEN '4h_24h'
-           WHEN NOW() - payment_case.created_at < INTERVAL '3 days'
+           WHEN NOW() - CASE
+             WHEN payment_case.case_origin = 'settlement_overdue'
+               THEN item.expected_settlement_at
+             ELSE payment_case.created_at
+           END < INTERVAL '3 days'
              THEN '1d_3d'
            ELSE 'over_3d'
          END AS bucket,
@@ -314,6 +346,11 @@ export async function getInsightsDashboard(
       matched_orders: number;
       exception_count: number;
       processed_value: string;
+      timing_eligible_settled: number;
+      on_time_settlements: number;
+      late_settlements: number;
+      overdue_unsettled: number;
+      median_late_delay_hours: string | null;
     }>(
       `SELECT run.provider_id,
          COUNT(*)::int AS total_orders,
@@ -322,8 +359,38 @@ export async function getInsightsDashboard(
          )::int AS matched_orders,
          COUNT(*) FILTER (
            WHERE item.reconciliation_status NOT IN ('matched', 'pending')
+             AND (
+               item.reconciliation_status <> 'missing_settlement'
+               OR item.expected_settlement_at < NOW()
+               OR payment_case.id IS NOT NULL
+             )
          )::int AS exception_count,
-         COALESCE(SUM(item.order_amount), 0) AS processed_value
+         COALESCE(SUM(item.order_amount), 0) AS processed_value,
+         COUNT(*) FILTER (
+           WHERE item.expected_settlement_at IS NOT NULL
+             AND item.settlement_recorded_at IS NOT NULL
+         )::int AS timing_eligible_settled,
+         COUNT(*) FILTER (
+           WHERE item.expected_settlement_at IS NOT NULL
+             AND item.settlement_recorded_at IS NOT NULL
+             AND item.settlement_recorded_at <= item.expected_settlement_at
+         )::int AS on_time_settlements,
+         COUNT(*) FILTER (
+           WHERE item.expected_settlement_at IS NOT NULL
+             AND item.settlement_recorded_at > item.expected_settlement_at
+         )::int AS late_settlements,
+         COUNT(*) FILTER (
+           WHERE item.reconciliation_status = 'missing_settlement'
+             AND item.settlement_recorded_at IS NULL
+             AND item.expected_settlement_at < NOW()
+         )::int AS overdue_unsettled,
+         PERCENTILE_CONT(0.5) WITHIN GROUP (
+           ORDER BY EXTRACT(EPOCH FROM (
+             item.settlement_recorded_at - item.expected_settlement_at
+           )) / 3600
+         ) FILTER (
+           WHERE item.settlement_recorded_at > item.expected_settlement_at
+         ) AS median_late_delay_hours
        FROM reconciliation_items item
        JOIN reconciliation_runs run
          ON run.id = item.run_id
@@ -527,6 +594,22 @@ export async function getInsightsDashboard(
         : null,
       exceptionCount: row.exception_count,
       processedValue: Number(row.processed_value),
+      timingEligibleSettled: row.timing_eligible_settled,
+      onTimeSettlements: row.on_time_settlements,
+      lateSettlements: row.late_settlements,
+      onTimeSettlementRate: row.timing_eligible_settled
+        ? Number(
+            (
+              (row.on_time_settlements / row.timing_eligible_settled) *
+              100
+            ).toFixed(1),
+          )
+        : null,
+      overdueUnsettled: row.overdue_unsettled,
+      medianLateDelayHours:
+        row.median_late_delay_hours === null
+          ? null
+          : Number(row.median_late_delay_hours),
     })),
     aiGovernance: {
       investigations: ai.investigations,

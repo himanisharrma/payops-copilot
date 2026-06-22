@@ -20,12 +20,60 @@ export type ProviderId =
   | "cashfree_demo"
   | "payu_demo";
 
+export type SettlementCycle = "T+0" | "T+1" | "T+2";
+export type SettlementStatus =
+  | "not_due"
+  | "due_today"
+  | "overdue"
+  | "settled";
+export type SettlementTimingStatus =
+  | SettlementStatus
+  | "timing_unavailable";
+export type SettlementTimestampSource =
+  | "gateway_capture"
+  | "order_created";
+export type OperationsCaseOrigin =
+  | "reconciliation_exception"
+  | "settlement_overdue";
+
+export type SettlementPolicy = {
+  providerId: ProviderId;
+  paymentMode: string;
+  cycle: SettlementCycle;
+  captureCutoff: "15:00";
+  settlementCutoff: "18:00";
+  timezone: "Asia/Kolkata";
+  policyVersion: "settlement-policy-v1";
+  calendarVersion: "india-demo-calendar-v1";
+  usedFallback: boolean;
+};
+
+export type SettlementTimingEvidence = {
+  providerId: ProviderId;
+  paymentMode: string;
+  cycle: SettlementCycle;
+  transactionAt: string;
+  transactionTimestampSource: SettlementTimestampSource;
+  captureCutoff: "15:00";
+  afterCaptureCutoff: boolean;
+  cycleAnchorDate: string;
+  skippedNonBusinessDates: string[];
+  expectedSettlementAt: string;
+  settlementCutoff: "18:00";
+  timezone: "Asia/Kolkata";
+  policyVersion: "settlement-policy-v1";
+  calendarVersion: "india-demo-calendar-v1";
+  usedFallbackPolicy: boolean;
+};
+
 export type ProviderFieldMapping =
   | "orderId"
   | "amount"
   | "status"
   | "paymentMode"
   | "gatewayReference"
+  | "transactionAt"
+  | "settlementAt"
   | "settledAmount"
   | "fee"
   | "tax"
@@ -37,6 +85,11 @@ export type DataQualityIssue = {
   code:
     | "missing_field_mapping"
     | "invalid_amount"
+    | "missing_transaction_timestamp"
+    | "invalid_transaction_timestamp"
+    | "missing_settlement_timestamp"
+    | "invalid_settlement_timestamp"
+    | "fallback_settlement_cycle"
     | "duplicate_order_reference"
     | "unknown_status";
   message: string;
@@ -130,6 +183,15 @@ export type ReconciliationItem = {
   expectedNet: number | null;
   variance: number;
   status: ReconciliationStatus;
+  settlementStatus: SettlementTimingStatus;
+  transactionAt: string | null;
+  transactionTimestampSource: SettlementTimestampSource | null;
+  settlementRecordedAt: string | null;
+  settlementCycle: SettlementCycle | null;
+  expectedSettlementAt: string | null;
+  settlementPolicyVersion: string | null;
+  settlementCalendarVersion: string | null;
+  settlementTimingEvidence: SettlementTimingEvidence | null;
   severity: "low" | "medium" | "high";
   summary: string;
   evidence: string[];
@@ -171,6 +233,15 @@ export type OperationsCase = {
   orderAmount: number;
   variance: number;
   reconciliationStatus: ReconciliationStatus;
+  caseOrigin: OperationsCaseOrigin;
+  settlementStatus: SettlementTimingStatus;
+  transactionAt: string | null;
+  transactionTimestampSource: SettlementTimestampSource | null;
+  settlementRecordedAt: string | null;
+  settlementCycle: SettlementCycle | null;
+  expectedSettlementAt: string | null;
+  settlementDaysOverdue: number | null;
+  settlementTimingEvidence: SettlementTimingEvidence | null;
   summary: string;
   evidence: string[];
   sourceEvidence: SourceEvidence[];
@@ -310,6 +381,12 @@ export type InsightsDashboard = {
     matchRate: number | null;
     exceptionCount: number;
     processedValue: number;
+    timingEligibleSettled: number;
+    onTimeSettlements: number;
+    lateSettlements: number;
+    onTimeSettlementRate: number | null;
+    overdueUnsettled: number;
+    medianLateDelayHours: number | null;
   }>;
   aiGovernance: {
     investigations: number;
