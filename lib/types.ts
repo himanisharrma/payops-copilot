@@ -340,6 +340,79 @@ export type RunSummary = ReconciliationResult["summary"] & {
   createdAt: string;
 };
 
+export type ReconciliationCloseStatus =
+  | "open"
+  | "submitted"
+  | "approved"
+  | "reopened";
+
+export type ReconciliationCloseReadiness = {
+  businessDate: string;
+  providerId: ProviderId;
+  paymentMode: string;
+  runCount: number;
+  itemCount: number;
+  processedValue: number;
+  matchedValue: number;
+  actionableExceptionCount: number;
+  unresolvedCaseCount: number;
+  unresolvedExposure: number;
+  blockingCaseCount: number;
+  unresolvedCountThreshold: number;
+  unresolvedAmountThreshold: number;
+  ready: boolean;
+  blockers: string[];
+  unresolvedCases: Array<{
+    id: string;
+    orderId: string;
+    reconciliationStatus: ReconciliationStatus;
+    priority: "low" | "medium" | "high";
+    exposure: number;
+    owner: string | null;
+  }>;
+};
+
+export type ReconciliationCloseVersion = {
+  id: string;
+  versionNumber: number;
+  snapshotHash: string;
+  snapshot: ReconciliationCloseReadiness;
+  preparedByName: string;
+  preparedAt: string;
+  approvedByName: string | null;
+  approvedAt: string | null;
+  dispositions: Array<{
+    caseId: string;
+    reason: string;
+    evidenceConfirmed: boolean;
+  }>;
+};
+
+export type ReconciliationClosePeriod = {
+  id: string | null;
+  businessDate: string;
+  providerId: ProviderId;
+  paymentMode: string;
+  status: ReconciliationCloseStatus;
+  unresolvedCountThreshold: number;
+  unresolvedAmountThreshold: number;
+  reopenedByName: string | null;
+  reopenedReason: string | null;
+  reopenedAt: string | null;
+  activeVersion: ReconciliationCloseVersion | null;
+  readiness: ReconciliationCloseReadiness;
+};
+
+export type ReconciliationCloseWorkspace = {
+  selected: ReconciliationClosePeriod;
+  options: {
+    providers: ProviderId[];
+    paymentModes: string[];
+    businessDates: string[];
+  };
+  history: ReconciliationClosePeriod[];
+};
+
 export type InsightsRange = "7d" | "30d" | "90d";
 
 export type InsightsFilters = {
