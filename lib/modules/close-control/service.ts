@@ -36,7 +36,12 @@ export async function loadCloseWorkspace(
   organizationId: string,
   params: URLSearchParams,
 ): Promise<ReconciliationCloseWorkspace> {
-  const scope = parseCloseFilters(params);
+  const options = await getCloseOptions(organizationId);
+  const defaultScope = options.scopes[0];
+  const scope =
+    !params.has("date") && defaultScope
+      ? defaultScope
+      : parseCloseFilters(params);
   const existing = await getClosePeriodByScope(organizationId, scope);
   const thresholds = existing
     ? {
@@ -52,13 +57,18 @@ export async function loadCloseWorkspace(
     scope,
     thresholds,
   );
+  const displayedReadiness =
+    existing?.activeVersion &&
+    (existing.status === "submitted" || existing.status === "approved")
+      ? existing.activeVersion.snapshot
+      : readiness;
   const historyRows = await listClosePeriods(organizationId);
   return {
     selected: {
       ...(existing ?? emptyPeriod(scope)),
-      readiness,
+      readiness: displayedReadiness,
     },
-    options: await getCloseOptions(organizationId),
+    options,
     history: historyRows.map((period) => ({
       ...period,
       readiness:
@@ -275,7 +285,7 @@ export async function changeCloseControl(
 export async function getCloseCertificate(id: string, actor: Actor) {
   const period = await getClosePeriodById(id, actor.organizationId);
   if (!period) throw new DomainError("Close period not found.", 404);
-  if (period.status !== "approved" || !period.activeVersion?.approvedAt) {
+  if (!period.activeVersion?.approvedAt) {
     throw new DomainError(
       "A certificate is available only after approval.",
       409,

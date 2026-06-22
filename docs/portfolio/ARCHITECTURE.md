@@ -15,6 +15,7 @@ flowchart TB
       Lifecycles[Refund and chargeback queues]
       ProviderEvents[Provider event timelines]
       WebhookTrust[Webhook trust ledger]
+      DailyClose[Daily close control book]
       Quality[Quality Lab]
       Insights[Operations Intelligence]
       History[Run history]
@@ -43,6 +44,7 @@ flowchart TB
       Events[Audit events]
       ProviderStore[Webhook hashes and normalized events]
       AttemptStore[Hash-only webhook attempt evidence]
+      CloseStore[Immutable close versions and dispositions]
       SignalStore[Operational notifications]
       Metrics[Deterministic aggregate queries]
     end
@@ -59,6 +61,7 @@ flowchart TB
     Routes --> Metrics
     WebhookPolicy --> ProviderStore
     WebhookPolicy --> AttemptStore
+    Routes --> CloseStore
     Notifications --> SignalStore
     Engine --> Modules
     Ops --> Routes
@@ -76,6 +79,7 @@ flowchart TB
     Data --> History
     Data --> AuditUI
     Data --> WebhookTrust
+    Data --> DailyClose
 ```
 
 ## 1. Deterministic reconciliation
@@ -184,6 +188,7 @@ The migration chain is append-only:
 | `014_case_collaboration.sql` | Tenant-linked append-only comments and assignment indexes |
 | `015_settlement_control.sql` | Persisted settlement clocks, policy evidence, and case origin |
 | `016_webhook_trust_operations.sql` | Signature metadata, key-rotation evidence, and hash-only inbound attempt observability |
+| `017_reconciliation_close_control.sql` | Daily close periods, immutable versions, residual dispositions, maker-checker approval, and reopen evidence |
 
 ## 4. Identity, organization, and roles
 
@@ -211,7 +216,8 @@ route handler -> domain policy/service -> domain repository -> lib/db.ts
 ```
 
 Current modules are reconciliation, cases, investigations, evaluations,
-payment workflows, provider events, notifications, insights, audit, and system health.
+payment workflows, provider events, notifications, insights, settlement
+control, close control, audit, and system health.
 This preserves one deployment
 while removing the central repository as a coupling point.
 
@@ -243,6 +249,17 @@ timing evidence. The settlement-control service acquires an
 organization-scoped advisory lock and promotes newly overdue records in one
 transaction. Provider events remain contextual evidence and never populate
 financial settlement timestamps.
+
+Reconciliation Close Control is a deterministic control layer over persisted
+runs, items, cases, and evidence. A period is scoped by organization, IST
+business date, provider, and payment mode. Readiness blocks high-priority open
+cases and enforces both case-count and monetary materiality. Every permitted
+residual case requires an evidence-confirmed disposition.
+
+Submission creates a new immutable JSON snapshot and SHA-256 hash. The
+preparer may be an analyst or administrator; approval requires a different
+administrator. Reopening records an attributed reason on the period but does
+not edit the approved version. A later submission creates the next version.
 
 ## 6. SLA as policy
 
@@ -369,6 +386,8 @@ provider-event records. The language model is not involved.
   evidence inbox with role-aware read controls.
 - `components/webhook-trust-dashboard.tsx`: administrator-only boundary,
   key-rotation, provider, rejection, and attempt evidence.
+- `components/reconciliation-close-control.tsx`: daily readiness, materiality,
+  residual-risk register, maker-checker chain, certificate, reopen, and history.
 - `components/ui/`: shared search, evidence-ledger, and provider-event
   presentation primitives.
 - `components/cases/`: case queue and controlled-resolution components.
@@ -412,6 +431,8 @@ The integration suite creates isolated organizations and verifies:
   denominators.
 - active/previous webhook keys, precise signature rejection outcomes, and
   organization-scoped attempt observability.
+- close readiness, materiality, disposition completeness, maker-checker
+  separation, immutable hashes, controlled reopen, and cross-tenant denial.
 
 Role tests independently verify administrator-only audit access,
 administrator/analyst mutation access, viewer read-only behavior, and

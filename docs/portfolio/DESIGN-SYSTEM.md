@@ -50,6 +50,14 @@ rotation spine, and newest-first attempt ledger. Outcome color supports the
 written decision rather than replacing it. Key IDs and failure codes may be
 shown; raw payloads, signatures, and signing secrets never appear.
 
+## Daily control book
+
+Reconciliation Close Control uses a formal ruled ledger, a status seal, and a
+visible maker-to-checker chain. A close page must distinguish the current
+readiness calculation from an immutable submitted snapshot. Approved states use
+green; unresolved judgment uses orange; red is reserved for genuine blockers
+and controlled reopening.
+
 ## Interaction rules
 
 - Server authorization remains authoritative even when controls are disabled.

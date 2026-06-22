@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-77%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-82%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -21,8 +21,8 @@
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Backend shape** | Modular monolith with thin routes, domain services, eleven repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 19 product milestones, 22 API routes, 16 migrations, and 77 unit/integration tests at the Webhook Trust Operations snapshot |
+| **Backend shape** | Modular monolith with thin routes, domain services, twelve repositories, and shared PostgreSQL infrastructure |
+| **Build evidence** | 20 product milestones, 25 API routes, 17 migrations, and 82 unit/integration tests at the Reconciliation Close Control snapshot |
 
 ## Why this exists
 
@@ -99,6 +99,10 @@ to production gateways or move money.
 25. Verifies fictional provider-specific signature contracts with active and
     previous keys, records hash-only attempt outcomes, and gives administrators
     a tenant-scoped webhook trust ledger.
+26. Converts a provider/payment-mode business day into an immutable close
+    snapshot with materiality controls, residual-risk dispositions,
+    analyst/administrator maker-checker approval, controlled reopening, and a
+    downloadable synthetic certificate.
 
 ## The product judgment
 
@@ -187,6 +191,9 @@ For the five-minute walkthrough, use the
 | `PATCH` | `/api/cases/bulk` | Assign or unassign up to 100 organization-owned cases atomically |
 | `GET/POST` | `/api/cases/:id/comments` | Read or append attributed internal handoff comments |
 | `POST` | `/api/settlement-control/refresh` | Promote newly overdue organization settlements into cases |
+| `GET/POST` | `/api/close-controls` | Inspect readiness or submit an immutable daily close version |
+| `PATCH` | `/api/close-controls/:id` | Approve or administratively reopen a close period |
+| `GET` | `/api/close-controls/:id/certificate` | Download an approved synthetic close certificate |
 | `POST` | `/api/cases/:id/investigations` | Generate an investigation |
 | `PATCH` | `/api/investigations/:id` | Review or rate an investigation |
 | `GET` | `/api/audit` | List audit events for administrators |
@@ -217,7 +224,8 @@ source-evidence snapshots and hashes, operations cases, append-only comments, an
 AI investigations, evaluation runs, scenario-level results, case-level outputs
 and reviews, refund and chargeback workflows, decision timelines, audit events,
 normalized provider events, hash-only webhook attempt evidence, and migration
-history.
+history. Daily close periods retain immutable snapshot versions, maker/checker
+attribution, residual-risk dispositions, reopen reasons, and hashes.
 
 ## Quality and safety
 
@@ -225,7 +233,7 @@ history.
 npm run verify
 ```
 
-The verification command runs lint, 65 unit/policy tests, twelve PostgreSQL-backed
+The verification command runs lint, 68 unit/policy tests, fourteen PostgreSQL-backed
 integration tests, a production build, and `git diff --check`. GitHub
 Actions runs the same command against a clean PostgreSQL 17 service.
 
@@ -245,6 +253,8 @@ quality baseline. Portfolio claims are intentionally bounded:
   uptime or production delivery reliability;
 - no payment credentials are stored;
 - no money movement is implemented;
+- close certificates are internal synthetic evidence snapshots, not bank or
+  provider attestations;
 - AI output is assistance, not settlement truth;
 - real deployment would require enterprise identity, secrets management,
   observability, retention controls, and production-derived evaluation data.

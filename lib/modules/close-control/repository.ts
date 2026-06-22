@@ -198,6 +198,10 @@ export async function createCloseVersion(
     }>;
   },
 ) {
+  await client.query(
+    "SELECT pg_advisory_xact_lock(hashtext($1))",
+    [input.periodId],
+  );
   const version = await client.query<{
     id: string;
     version_number: number;
@@ -328,8 +332,10 @@ export async function getClosePeriodById(
 ) {
   const execute = client ? client.query.bind(client) : query;
   const result = await execute<PeriodRow>(
-    `SELECT * FROM reconciliation_close_periods
-     WHERE id = $1 AND organization_id = $2`,
+    `SELECT period.*,
+       TO_CHAR(period.business_date, 'YYYY-MM-DD') AS business_date_text
+     FROM reconciliation_close_periods period
+     WHERE period.id = $1 AND period.organization_id = $2`,
     [id, organizationId],
   );
   return result.rowCount
@@ -344,9 +350,12 @@ export async function getClosePeriodByScope(
 ) {
   const execute = client ? client.query.bind(client) : query;
   const result = await execute<PeriodRow>(
-    `SELECT * FROM reconciliation_close_periods
-     WHERE organization_id = $1 AND business_date = $2
-       AND provider_id = $3 AND LOWER(payment_mode) = LOWER($4)`,
+    `SELECT period.*,
+       TO_CHAR(period.business_date, 'YYYY-MM-DD') AS business_date_text
+     FROM reconciliation_close_periods period
+     WHERE period.organization_id = $1 AND period.business_date = $2
+       AND period.provider_id = $3
+       AND LOWER(period.payment_mode) = LOWER($4)`,
     [
       organizationId,
       scope.businessDate,
@@ -361,9 +370,11 @@ export async function getClosePeriodByScope(
 
 export async function listClosePeriods(organizationId: string) {
   const result = await query<PeriodRow>(
-    `SELECT * FROM reconciliation_close_periods
-     WHERE organization_id = $1
-     ORDER BY business_date DESC, updated_at DESC
+    `SELECT period.*,
+       TO_CHAR(period.business_date, 'YYYY-MM-DD') AS business_date_text
+     FROM reconciliation_close_periods period
+     WHERE period.organization_id = $1
+     ORDER BY period.business_date DESC, period.updated_at DESC
      LIMIT 50`,
     [organizationId],
   );
@@ -396,12 +407,18 @@ export async function getCloseOptions(organizationId: string) {
     businessDates: [
       ...new Set(result.rows.map((row) => row.business_date)),
     ],
+    scopes: result.rows.map((row) => ({
+      businessDate: row.business_date,
+      providerId: row.provider_id,
+      paymentMode: row.payment_mode,
+    })),
   };
 }
 
 type PeriodRow = {
   id: string;
-  business_date: string;
+  business_date: string | Date;
+  business_date_text: string;
   provider_id: ProviderId;
   payment_mode: string;
   status: ReconciliationClosePeriod["status"];
@@ -420,7 +437,7 @@ async function mapPeriod(
 ): Promise<Omit<ReconciliationClosePeriod, "readiness">> {
   return {
     id: row.id,
-    businessDate: String(row.business_date).slice(0, 10),
+    businessDate: row.business_date_text,
     providerId: row.provider_id,
     paymentMode: row.payment_mode,
     status: row.status,

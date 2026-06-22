@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The nineteen milestones
+## The twenty milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -55,6 +55,7 @@ The dates and commits below come directly from the repository history.
 | June 20, 2026 | current release | Added bulk case dispatch and append-only handoff comments |
 | June 22, 2026 | `4e30df9`, `47ba6f4` | Added deterministic settlement clocks and overdue promotion |
 | June 22, 2026 | `4bdb6eb` + current release | Added provider-specific key rotation and webhook trust evidence |
+| June 22, 2026 | `e1302a1` + current release | Added deterministic daily reconciliation close and maker-checker control |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -354,6 +355,19 @@ duplicate, rejected, conflict, or failed, with a precise failure code and
 processing time. Administrators inspect that evidence in a provider rotation
 spine and attempt ledger. The UI deliberately avoids calling these local
 attempt outcomes provider uptime or delivery reliability.
+
+### Milestone 20: Give reconciliation a controlled finish line
+
+The next release turns “the queue looks manageable” into a durable daily
+decision. A close is scoped by IST business date, provider, and payment mode.
+Deterministic policy blocks every high-priority exception and compares remaining
+case count and monetary exposure with explicit materiality thresholds.
+
+Every permitted residual receives a written, evidence-confirmed disposition.
+Submission freezes a hashed snapshot; a different administrator approves the
+analyst-prepared version. Reopening records a reason without mutating the old
+certificate, so a corrected close becomes a new version rather than rewritten
+history.
 
 ## The working workflow
 

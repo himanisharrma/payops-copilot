@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BookCheck,
   FileClock,
   FlaskConical,
   ChartNoAxesCombined,
@@ -23,6 +24,7 @@ export async function AppHeader({
     | "runs"
     | "insights"
     | "quality"
+    | "close"
     | "webhooks"
     | "audit";
 }) {
@@ -80,6 +82,13 @@ export async function AppHeader({
         >
           <ChartNoAxesCombined size={15} />
           Insights
+        </Link>
+        <Link
+          href="/close-control"
+          className={`product-nav-link ${active === "close" ? "active" : ""}`}
+        >
+          <BookCheck size={15} />
+          Daily close
         </Link>
         <Link
           href="/quality"

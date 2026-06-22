@@ -208,12 +208,27 @@ demonstrated safely without credentials or live connectivity.
 provider-certified contracts, retention policy, alerting, and incident
 response.
 
+### ADR-17: A signed operational close over another analytics dashboard
+
+**Chose:** deterministic daily readiness, explicit materiality, residual-risk
+dispositions, immutable versions, and analyst/administrator maker-checker.
+
+**Over:** a mutable “closed” flag or a report that merely summarizes match
+rate.
+
+**Why:** payment operations need a defensible finish line: what was reviewed,
+which risks remained, who prepared it, and who independently approved it.
+
+**Cost accepted:** this portfolio policy is intentionally simple and still
+needs configurable legal entities, accounting periods, and production control
+ownership before real deployment.
+
 ## Roadmap
 
 ### Completed foundation: automate release confidence
 
-- GitHub Actions now runs migration verification, lint, 65 unit/policy tests,
-  twelve PostgreSQL-backed integration tests, production build, and diff checks.
+- GitHub Actions now runs migration verification, lint, 68 unit/policy tests,
+  fourteen PostgreSQL-backed integration tests, production build, and diff checks.
 - Organization isolation tests cover scoped reads, blocked cross-tenant writes,
   database tenant constraints, and mutation/audit rollback.
 - Authorization tests cover administrator, analyst, viewer, and unauthenticated
@@ -316,8 +331,26 @@ are not live provider contracts or an RBI settlement calendar.
 **Boundary:** these contracts are synthetic and intentionally do not claim
 compatibility with Razorpay, Cashfree, or PayU production signatures.
 
+### Completed financial control: reconciliation close
+
+- A daily control book scopes readiness by organization, IST business date,
+  provider, and payment mode.
+- High-priority exceptions block close; lower-priority residuals require
+  materiality headroom and an evidence-confirmed disposition.
+- Submission freezes an immutable, hashed version instead of mutating the live
+  queue underneath an approval.
+- A different administrator approves the analyst-prepared version.
+- Controlled reopening preserves the approved certificate and creates room for
+  a later version.
+
+**Boundary:** the downloadable certificate is internal synthetic evidence, not
+a bank statement, provider attestation, accounting opinion, or regulatory
+sign-off.
+
 ### After that: deepen payment operations
 
+- Add recurring-exception root-cause programs and remediation ownership.
+- Add a controlled escalation outbox for approved evidence packs.
 - Add configurable business calendars and outbound escalation notifications.
 
 ### Then: production controls

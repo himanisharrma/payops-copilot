@@ -21,6 +21,7 @@ API route (transport and request validation)
 | `notifications` | Yes | Yes | SLA/provider signals, organization inbox, read policy, and audit |
 | `insights` | Yes | Yes | Deterministic period metrics, current queue health, provider comparison, and drill-down contracts |
 | `settlement-control` | Yes | Yes | Idempotent overdue promotion, organization locking, and audit |
+| `close-control` | Yes | Yes | Daily scope readiness, materiality, immutable versions, residual dispositions, maker-checker approval, reopen policy, certificates, and audit |
 | `audit` | Yes | No | Organization-scoped writes and administrator reads |
 | `system` | Yes | No | Database health checks |
 
@@ -30,6 +31,11 @@ Services validate business input, coordinate repositories, and write audit
 evidence. Routes only handle authentication, JSON, and HTTP responses.
 Financial and lifecycle rules stay in domain policy files. Do not recreate a
 central repository or move orchestration back into routes.
+
+Close Control reads persisted reconciliation and case evidence. Its service
+validates materiality and every residual disposition, while PostgreSQL stores
+immutable version snapshots and prevents the preparer from becoming the
+approver. Reopening changes period state but never edits an approved version.
 
 Synthetic provider mapping lives in `lib/provider-adapters.ts`. Synthetic
 provider webhook normalization lives in `lib/provider-webhooks.ts`. The

@@ -124,6 +124,12 @@ In the provider comparison, explain that on-time settlement rates include only
 records with both expected and actual timestamps; incomplete evidence is not
 treated as zero performance.
 
+Open **Daily close**. Start with an open scope and show how count and amount
+materiality interact with the residual-risk register. Then open the seeded
+submitted period: the analyst is the maker and a different administrator is
+the checker. Approve it, download the JSON certificate, and explain that its
+snapshot hash remains unchanged even if the period is later reopened.
+
 Open **Quality** and show the versioned 30-case baseline, persisted run history,
 case-level evidence, and six-score human rubric. Do not claim OpenAI model
 quality: no paid model run completed in this repository snapshot.
@@ -176,6 +182,7 @@ Close with:
 | Historical runs | `http://127.0.0.1:4317/runs` |
 | Administrator audit | `http://127.0.0.1:4317/audit` |
 | Webhook Trust Operations | `http://127.0.0.1:4317/webhook-operations` |
+| Daily Reconciliation Close | `http://127.0.0.1:4317/close-control` |
 | Product summary | `http://127.0.0.1:4317/product-brief` |
 | Database health | `http://127.0.0.1:4317/api/health` |
 
@@ -189,6 +196,8 @@ Close with:
   or production signature implementation.
 - Do not describe webhook attempt outcomes as provider uptime or a production
   delivery-success rate.
+- Do not describe the close certificate as a bank statement, provider
+  attestation, accounting sign-off, or regulatory evidence.
 - Do not claim measured analyst savings or AI accuracy.
 - Do not upload private company reports to the public portfolio instance.
 

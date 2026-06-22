@@ -140,6 +140,9 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   evidence, bulk assignment, attributed handoff comments, and AI review.
 - Deterministic settlement clocks that prevent premature missing-settlement
   cases and expose provider timing evidence separately from financial truth.
+- Daily reconciliation close controls with materiality, residual-risk
+  dispositions, immutable snapshot hashes, independent administrator approval,
+  controlled reopening, and synthetic certificates.
 - Role-aware login and organization-scoped APIs.
 - 4/24/72-hour SLA policy with at-risk, overdue, met, and breached states.
 - Historical run view and administrator audit ledger.
@@ -147,7 +150,7 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   six-score human review, latency, token metadata, and audit attribution.
 - Separate refund and chargeback queues with lifecycle transitions, ownership,
   deadlines, evidence gates, notes, and timelines.
-- A modular monolith backend with thin API routes, domain services, eleven
+- A modular monolith backend with thin API routes, domain services, twelve
   repositories, and shared PostgreSQL infrastructure.
 
 ## Success metrics
@@ -190,6 +193,8 @@ For an AI Product Manager role, the artifact demonstrates:
 - No enterprise SSO or production secrets system.
 - No production-derived or representative two-reviewer evaluation dataset yet.
 - No production telemetry or load testing.
+- No legal-entity accounting close, bank attestation, or production control
+  certification; the close certificate is an internal synthetic snapshot.
 
 ---
 

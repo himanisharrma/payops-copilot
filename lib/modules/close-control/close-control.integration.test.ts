@@ -191,6 +191,11 @@ describe("reconciliation close control", () => {
       },
       tenant.admin,
     );
+    await expect(
+      getCloseCertificate(submitted!.id!, tenant.viewer),
+    ).resolves.toMatchObject({
+      period: { status: "reopened" },
+    });
     const resubmitted = await submitCloseControl(input, tenant.analyst);
     expect(resubmitted?.activeVersion).toMatchObject({
       versionNumber: 2,

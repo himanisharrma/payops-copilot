@@ -409,6 +409,11 @@ export type ReconciliationCloseWorkspace = {
     providers: ProviderId[];
     paymentModes: string[];
     businessDates: string[];
+    scopes: Array<{
+      businessDate: string;
+      providerId: ProviderId;
+      paymentMode: string;
+    }>;
   };
   history: ReconciliationClosePeriod[];
 };

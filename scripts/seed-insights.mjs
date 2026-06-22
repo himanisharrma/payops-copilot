@@ -73,6 +73,27 @@ try {
   if (!admin || !analyst) throw new Error("Seed demo users first.");
 
   await client.query(
+    `UPDATE reconciliation_close_periods period
+     SET active_version_id = NULL
+     WHERE organization_id = $1
+       AND EXISTS (
+         SELECT 1 FROM reconciliation_close_versions version
+         WHERE version.id = period.active_version_id
+           AND version.snapshot->>'seedMarker' = $2
+       )`,
+    [organizationId, marker],
+  );
+  await client.query(
+    `DELETE FROM reconciliation_close_periods period
+     WHERE organization_id = $1
+       AND EXISTS (
+         SELECT 1 FROM reconciliation_close_versions version
+         WHERE version.period_id = period.id
+           AND version.snapshot->>'seedMarker' = $2
+       )`,
+    [organizationId, marker],
+  );
+  await client.query(
     `DELETE FROM provider_webhook_attempts
      WHERE organization_id = $1
        AND external_event_id LIKE 'insights-attempt-%'`,
@@ -501,9 +522,113 @@ try {
     ],
   );
 
+  const closeScopes = await client.query(
+    `SELECT run.provider_id, item.payment_mode,
+       TO_CHAR(
+         (run.created_at AT TIME ZONE 'Asia/Kolkata')::date,
+         'YYYY-MM-DD'
+       ) AS business_date,
+       COUNT(item.id)::int AS item_count,
+       COALESCE(SUM(item.order_amount), 0)::float8 AS processed_value,
+       COALESCE(SUM(
+         CASE WHEN item.reconciliation_status = 'matched'
+           THEN item.order_amount ELSE 0 END
+       ), 0)::float8 AS matched_value,
+       COUNT(*) FILTER (
+         WHERE item.reconciliation_status NOT IN ('matched', 'pending')
+       )::int AS exception_count
+     FROM reconciliation_runs run
+     JOIN reconciliation_items item
+       ON item.run_id = run.id AND item.organization_id = run.organization_id
+     WHERE run.organization_id = $1
+       AND run.source_files->>'seed' = $2
+     GROUP BY run.provider_id, item.payment_mode, business_date
+     ORDER BY business_date DESC, run.provider_id, item.payment_mode
+     LIMIT 3`,
+    [organizationId, marker],
+  );
+  const closeStates = ["approved", "submitted", "reopened"];
+  for (let index = 0; index < closeScopes.rows.length; index += 1) {
+    const scope = closeScopes.rows[index];
+    const state = closeStates[index];
+    const period = await client.query(
+      `INSERT INTO reconciliation_close_periods (
+         organization_id, business_date, provider_id, payment_mode,
+         unresolved_count_threshold, unresolved_amount_threshold, status,
+         reopened_by_user_id, reopened_by_name, reopened_reason, reopened_at
+       ) VALUES (
+         $1,$2,$3,$4,2,5000,$5,
+         CASE WHEN $5 = 'reopened' THEN $6::uuid ELSE NULL END,
+         CASE WHEN $5 = 'reopened' THEN $7 ELSE NULL END,
+         CASE WHEN $5 = 'reopened'
+           THEN 'Synthetic late evidence required a corrected close version.'
+           ELSE NULL END,
+         CASE WHEN $5 = 'reopened' THEN NOW() - INTERVAL '2 hours' ELSE NULL END
+       ) RETURNING id`,
+      [
+        organizationId,
+        scope.business_date,
+        scope.provider_id,
+        scope.payment_mode,
+        state,
+        admin.id,
+        admin.name,
+      ],
+    );
+    const snapshot = {
+      seedMarker: marker,
+      businessDate: scope.business_date,
+      providerId: scope.provider_id,
+      paymentMode: scope.payment_mode,
+      runCount: 1,
+      itemCount: scope.item_count,
+      processedValue: scope.processed_value,
+      matchedValue: scope.matched_value,
+      actionableExceptionCount: scope.exception_count,
+      unresolvedCaseCount: 0,
+      unresolvedExposure: 0,
+      blockingCaseCount: 0,
+      unresolvedCountThreshold: 2,
+      unresolvedAmountThreshold: 5000,
+      ready: true,
+      blockers: [],
+      unresolvedCases: [],
+    };
+    const approved = state === "approved" || state === "reopened";
+    const version = await client.query(
+      `INSERT INTO reconciliation_close_versions (
+         organization_id, period_id, version_number, snapshot, snapshot_hash,
+         prepared_by_user_id, prepared_by_name, prepared_at,
+         approved_by_user_id, approved_by_name, approved_at
+       ) VALUES (
+         $1,$2,1,$3,$4,$5,$6,NOW() - INTERVAL '4 hours',
+         CASE WHEN $7 THEN $8::uuid ELSE NULL END,
+         CASE WHEN $7 THEN $9 ELSE NULL END,
+         CASE WHEN $7 THEN NOW() - INTERVAL '3 hours' ELSE NULL END
+       ) RETURNING id`,
+      [
+        organizationId,
+        period.rows[0].id,
+        JSON.stringify(snapshot),
+        hashEvidence(snapshot),
+        analyst.id,
+        analyst.name,
+        approved,
+        admin.id,
+        admin.name,
+      ],
+    );
+    await client.query(
+      `UPDATE reconciliation_close_periods
+       SET active_version_id = $2
+       WHERE id = $1`,
+      [period.rows[0].id, version.rows[0].id],
+    );
+  }
+
   await client.query("COMMIT");
   console.log(
-    `Seeded ${18} runs, ${seededItems.length} items, ${actionable.length} cases, 8 signed evidence records, and 12 webhook attempts.`,
+    `Seeded ${18} runs, ${seededItems.length} items, ${actionable.length} cases, 8 signed evidence records, 12 webhook attempts, and ${closeScopes.rows.length} close controls.`,
   );
 } catch (error) {
   await client.query("ROLLBACK");

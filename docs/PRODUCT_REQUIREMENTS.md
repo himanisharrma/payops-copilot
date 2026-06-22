@@ -99,6 +99,18 @@ actual settlements differ.
   overdue records without duplicating cases.
 - Settlement timing evidence records the timestamp source, cycle, cutoffs,
   skipped synthetic closure dates, and policy/calendar versions.
+- Every authenticated role can inspect daily reconciliation close readiness by
+  IST business date, provider, and payment mode.
+- High-priority unresolved cases always block close. Lower-priority residuals
+  must stay within count and amount thresholds and receive an evidence-confirmed
+  disposition before submission.
+- Analysts and administrators may prepare a close; only a different
+  administrator may approve it.
+- Approved close versions retain an immutable deterministic snapshot and hash.
+  Administrator reopening requires a reason and permits a new version without
+  altering the prior certificate.
+- Approved synthetic close certificates are downloadable by every
+  organization-scoped role.
 - No real payment is initiated and no payment-provider credentials are
   collected.
 
@@ -116,6 +128,8 @@ actual settlements differ.
 - Autonomous provider communication or case resolution.
 - Production identity, compliance certification, or operational telemetry.
 - Real provider settlement contracts or an RBI holiday calendar.
+- Treating a PayOps close certificate as a bank statement, provider
+  attestation, or regulatory sign-off.
 
 ## Product principles
 
@@ -129,6 +143,7 @@ actual settlements differ.
 
 1. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
 2. Turn approved analyst corrections into governed synthetic regression cases.
-3. Add configurable business calendars and outbound escalation notifications.
-4. Add production identity, managed secrets, incident response, observability,
+3. Add recurring-exception root-cause programs and controlled escalation.
+4. Add configurable business calendars and outbound escalation notifications.
+5. Add production identity, managed secrets, incident response, observability,
    and retention controls.
