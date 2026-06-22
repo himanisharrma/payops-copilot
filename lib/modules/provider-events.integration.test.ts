@@ -11,6 +11,7 @@ import {
   receiveSyntheticProviderWebhook,
   syntheticWebhookSignature,
 } from "@/lib/modules/provider-events/service";
+import { providerWebhookSignature } from "@/lib/provider-signatures";
 import type { Actor } from "@/lib/access";
 
 type Fixture = {
@@ -24,6 +25,7 @@ type Fixture = {
 
 const organizationsToDelete: string[] = [];
 const previousSecret = process.env.SYNTHETIC_WEBHOOK_SECRET;
+const previousKeyring = process.env.SYNTHETIC_WEBHOOK_KEYRING;
 
 async function createFixture(label: string): Promise<Fixture> {
   const organizationSlug = `webhook-${label}-${randomUUID()}`;
@@ -119,6 +121,7 @@ async function createFixture(label: string): Promise<Fixture> {
 
 afterEach(async () => {
   process.env.SYNTHETIC_WEBHOOK_SECRET = previousSecret;
+  process.env.SYNTHETIC_WEBHOOK_KEYRING = previousKeyring;
   while (organizationsToDelete.length) {
     await db.query("DELETE FROM organizations WHERE id = $1", [
       organizationsToDelete.pop(),
@@ -127,6 +130,87 @@ afterEach(async () => {
 });
 
 describe("synthetic provider event ingestion", () => {
+  it("accepts active and previous provider keys and records rejected attempts", async () => {
+    const tenant = await createFixture("rotation");
+    const active = { id: "rzp-active", secret: "a".repeat(32) };
+    const previous = { id: "rzp-previous", secret: "p".repeat(32) };
+    process.env.SYNTHETIC_WEBHOOK_KEYRING = JSON.stringify({
+      razorpay_demo: { active, previous },
+      cashfree_demo: {
+        active: { id: "cf-active", secret: "c".repeat(32) },
+      },
+      payu_demo: {
+        active: { id: "payu-active", secret: "u".repeat(32) },
+      },
+    });
+    const rawBody = JSON.stringify({
+      eventType: "refund.created",
+      occurredAt: "2026-06-22T10:30:00.000Z",
+      payload: {
+        refund: {
+          id: "RF-WEBHOOK",
+          payment_id: "PAY-WEBHOOK",
+          order_id: "ORD-WEBHOOK",
+          amount: 249900,
+          status: "processed",
+        },
+      },
+    });
+    const base = {
+      providerId: "razorpay_demo" as const,
+      organizationSlug: tenant.organizationSlug,
+      externalEventId: "evt-rotation-1",
+      rawBody,
+      signatureVersion: "provider-v2",
+    };
+    const signature = providerWebhookSignature({
+      ...base,
+      secret: previous.secret,
+    })!;
+    await expect(
+      receiveSyntheticProviderWebhook({
+        ...base,
+        keyId: previous.id,
+        signature,
+      }),
+    ).resolves.toMatchObject({ accepted: true });
+
+    await expect(
+      receiveSyntheticProviderWebhook({
+        ...base,
+        externalEventId: "evt-rotation-rejected",
+        keyId: active.id,
+        signature: "0".repeat(64),
+      }),
+    ).rejects.toMatchObject({ status: 401 });
+
+    const attempts = await db.query<{
+      outcome: string;
+      key_state: string | null;
+      signature_key_id: string | null;
+      payload_hash: string;
+    }>(
+      `SELECT outcome, key_state, signature_key_id, payload_hash
+       FROM provider_webhook_attempts
+       WHERE organization_id = $1
+       ORDER BY received_at`,
+      [tenant.organizationId],
+    );
+    expect(attempts.rows).toEqual([
+      expect.objectContaining({
+        outcome: "accepted",
+        key_state: "previous",
+        signature_key_id: previous.id,
+      }),
+      expect.objectContaining({
+        outcome: "rejected",
+        signature_key_id: active.id,
+      }),
+    ]);
+    expect(attempts.rows.every((row) => /^[a-f0-9]{64}$/.test(row.payload_hash)))
+      .toBe(true);
+  });
+
   it("verifies signatures, prevents replays, scopes evidence, and controls reads", async () => {
     process.env.SYNTHETIC_WEBHOOK_SECRET = "integration-webhook-secret";
     const tenant = await createFixture("primary");

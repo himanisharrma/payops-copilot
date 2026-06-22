@@ -1,7 +1,11 @@
 import type { PoolClient } from "pg";
 import { query, transaction } from "@/lib/db";
 import { recordAuditEvent } from "@/lib/modules/audit/repository";
-import type { NormalizedProviderEvent } from "@/lib/types";
+import type {
+  NormalizedProviderEvent,
+  ProviderWebhookAttempt,
+  ProviderWebhookObservability,
+} from "@/lib/types";
 
 type IngestionMatch = {
   entityType: "operations_case" | "payment_workflow";
@@ -120,14 +124,17 @@ export async function ingestProviderEvent(input: {
   externalEventId: string;
   externalEventType: string;
   payloadHash: string;
+  signatureVersion: string;
+  signatureKeyId: string;
   providerEvent: NormalizedProviderEvent;
 }) {
   return transaction(async (client) => {
     const delivery = await client.query<{ id: string }>(
       `INSERT INTO provider_webhook_deliveries (
          organization_id, provider_id, external_event_id, event_type,
-         payload_hash, occurred_at
-       ) VALUES ($1,$2,$3,$4,$5,$6)
+       payload_hash, occurred_at
+       , signature_version, signature_key_id, verified_at
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
        ON CONFLICT (organization_id, provider_id, external_event_id)
        DO NOTHING
        RETURNING id`,
@@ -138,6 +145,8 @@ export async function ingestProviderEvent(input: {
         input.externalEventType,
         input.payloadHash,
         input.providerEvent.occurredAt,
+        input.signatureVersion,
+        input.signatureKeyId,
       ],
     );
 
@@ -240,4 +249,162 @@ export async function ingestProviderEvent(input: {
       matches,
     };
   });
+}
+
+export async function recordProviderWebhookAttempt(input: {
+  organizationId: string;
+  providerId: NormalizedProviderEvent["providerId"];
+  externalEventId: string;
+  eventType?: string | null;
+  payloadHash: string;
+  signatureVersion: string;
+  signatureKeyId?: string | null;
+  keyState?: "active" | "previous" | null;
+  outcome: ProviderWebhookAttempt["outcome"];
+  httpStatus: number;
+  failureCode?: string | null;
+  matchedRecords?: number;
+  providerEventId?: string | null;
+  processingMs: number;
+}) {
+  await query(
+    `INSERT INTO provider_webhook_attempts (
+       organization_id, provider_id, external_event_id, event_type,
+       payload_hash, signature_version, signature_key_id, key_state,
+       outcome, http_status, failure_code, matched_records,
+       provider_event_id, processing_ms
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+    [
+      input.organizationId,
+      input.providerId,
+      input.externalEventId,
+      input.eventType ?? null,
+      input.payloadHash,
+      input.signatureVersion,
+      input.signatureKeyId ?? null,
+      input.keyState ?? null,
+      input.outcome,
+      input.httpStatus,
+      input.failureCode ?? null,
+      input.matchedRecords ?? 0,
+      input.providerEventId ?? null,
+      input.processingMs,
+    ],
+  );
+}
+
+export async function getProviderWebhookObservability(
+  organizationId: string,
+): Promise<ProviderWebhookObservability> {
+  const [summary, providers, recent] = await Promise.all([
+    query<{
+      total: number;
+      accepted: number;
+      duplicate: number;
+      rejected: number;
+      conflict: number;
+      failed: number;
+      previous_key_accepted: number;
+      average_processing_ms: string | null;
+    }>(
+      `SELECT COUNT(*)::int AS total,
+         COUNT(*) FILTER (WHERE outcome = 'accepted')::int AS accepted,
+         COUNT(*) FILTER (WHERE outcome = 'duplicate')::int AS duplicate,
+         COUNT(*) FILTER (WHERE outcome = 'rejected')::int AS rejected,
+         COUNT(*) FILTER (WHERE outcome = 'conflict')::int AS conflict,
+         COUNT(*) FILTER (WHERE outcome = 'failed')::int AS failed,
+         COUNT(*) FILTER (
+           WHERE outcome IN ('accepted','duplicate')
+             AND key_state = 'previous'
+         )::int AS previous_key_accepted,
+         AVG(processing_ms) AS average_processing_ms
+       FROM provider_webhook_attempts
+       WHERE organization_id = $1`,
+      [organizationId],
+    ),
+    query<{
+      provider_id: NormalizedProviderEvent["providerId"];
+      total: number;
+      accepted: number;
+      rejected: number;
+      previous_key_accepted: number;
+    }>(
+      `SELECT provider_id, COUNT(*)::int AS total,
+         COUNT(*) FILTER (
+           WHERE outcome IN ('accepted','duplicate')
+         )::int AS accepted,
+         COUNT(*) FILTER (WHERE outcome = 'rejected')::int AS rejected,
+         COUNT(*) FILTER (
+           WHERE outcome IN ('accepted','duplicate')
+             AND key_state = 'previous'
+         )::int AS previous_key_accepted
+       FROM provider_webhook_attempts
+       WHERE organization_id = $1
+       GROUP BY provider_id
+       ORDER BY provider_id`,
+      [organizationId],
+    ),
+    query<{
+      id: string;
+      provider_id: NormalizedProviderEvent["providerId"];
+      external_event_id: string;
+      event_type: string | null;
+      signature_version: string;
+      signature_key_id: string | null;
+      key_state: "active" | "previous" | null;
+      outcome: ProviderWebhookAttempt["outcome"];
+      http_status: number;
+      failure_code: string | null;
+      matched_records: number;
+      processing_ms: number;
+      received_at: Date;
+    }>(
+      `SELECT id, provider_id, external_event_id, event_type,
+         signature_version, signature_key_id, key_state, outcome,
+         http_status, failure_code, matched_records, processing_ms,
+         received_at
+       FROM provider_webhook_attempts
+       WHERE organization_id = $1
+       ORDER BY received_at DESC LIMIT 100`,
+      [organizationId],
+    ),
+  ]);
+  const total = summary.rows[0];
+  return {
+    summary: {
+      total: total.total,
+      accepted: total.accepted,
+      duplicate: total.duplicate,
+      rejected: total.rejected,
+      conflict: total.conflict,
+      failed: total.failed,
+      previousKeyAccepted: total.previous_key_accepted,
+      averageProcessingMs:
+        total.average_processing_ms === null
+          ? null
+          : Number(total.average_processing_ms),
+    },
+    byProvider: providers.rows.map((row) => ({
+      providerId: row.provider_id,
+      total: row.total,
+      accepted: row.accepted,
+      rejected: row.rejected,
+      previousKeyAccepted: row.previous_key_accepted,
+    })),
+    recent: recent.rows.map((row) => ({
+      id: row.id,
+      providerId: row.provider_id,
+      externalEventId: row.external_event_id,
+      eventType: row.event_type,
+      signatureVersion: row.signature_version,
+      signatureKeyId: row.signature_key_id,
+      keyState: row.key_state,
+      outcome: row.outcome,
+      httpStatus: row.http_status,
+      failureCode: row.failure_code,
+      matchedRecords: row.matched_records,
+      processingMs: row.processing_ms,
+      receivedAt: row.received_at.toISOString(),
+    })),
+  };
 }

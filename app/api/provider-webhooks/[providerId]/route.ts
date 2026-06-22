@@ -13,6 +13,10 @@ export async function POST(
       organizationSlug: request.headers.get("x-payops-organization") ?? "",
       externalEventId: request.headers.get("x-payops-event-id") ?? "",
       signature: request.headers.get("x-payops-signature") ?? "",
+      signatureVersion:
+        request.headers.get("x-payops-signature-version") ?? undefined,
+      keyId: request.headers.get("x-payops-key-id") ?? undefined,
+      timestamp: request.headers.get("x-payops-timestamp") ?? undefined,
       rawBody: await request.text(),
     });
     return NextResponse.json(

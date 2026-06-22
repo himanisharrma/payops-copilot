@@ -7,9 +7,14 @@ import { z } from "zod";
 import { DomainError } from "@/lib/modules/errors";
 import {
   ingestProviderEvent,
+  recordProviderWebhookAttempt,
   resolveOrganizationBySlug,
 } from "@/lib/modules/provider-events/repository";
 import { normalizeProviderWebhook } from "@/lib/provider-webhooks";
+import {
+  parseWebhookKeyring,
+  verifyProviderWebhookSignature,
+} from "@/lib/provider-signatures";
 import type { ProviderId } from "@/lib/types";
 
 const providerIds = [
@@ -61,25 +66,81 @@ export async function receiveSyntheticProviderWebhook(input: {
   organizationSlug: string;
   externalEventId: string;
   signature: string;
+  signatureVersion?: string;
+  keyId?: string;
+  timestamp?: string;
   rawBody: string;
 }) {
+  const startedAt = Date.now();
+  const payloadHash = createHash("sha256")
+    .update(input.rawBody)
+    .digest("hex");
+  let organization: { id: string; name: string } | null = null;
+  let eventType: string | null = null;
+  let keyState: "active" | "previous" | null = null;
+  const signatureVersion = input.signatureVersion || "legacy-v1";
+  const signatureKeyId =
+    signatureVersion === "provider-v2" ? input.keyId ?? null : "legacy";
+
+  try {
   if (!providerIds.includes(input.providerId as (typeof providerIds)[number])) {
     throw new DomainError("Unsupported synthetic provider.", 404);
   }
   if (!input.organizationSlug || !input.externalEventId || !input.signature) {
     throw new DomainError("Required webhook headers are missing.", 400);
   }
-  const secret = process.env.SYNTHETIC_WEBHOOK_SECRET;
-  if (!secret) {
-    throw new DomainError("Synthetic webhook ingestion is not configured.", 503);
+  organization = await resolveOrganizationBySlug(input.organizationSlug);
+  if (!organization) {
+    throw new DomainError("Organization not found.", 404);
   }
-  if (
-    !verifySyntheticWebhookSignature({
-      ...input,
-      secret,
-    })
-  ) {
-    throw new DomainError("Invalid webhook signature.", 401);
+  if (signatureVersion === "provider-v2") {
+    const keyring = parseWebhookKeyring(
+      process.env.SYNTHETIC_WEBHOOK_KEYRING,
+    );
+    if (!keyring) {
+      throw new DomainError(
+        "Provider webhook keyring is not configured.",
+        503,
+      );
+    }
+    if (!input.keyId) {
+      throw new DomainError("Webhook key ID is required.", 400);
+    }
+    const verification = verifyProviderWebhookSignature({
+      providerId: input.providerId as Exclude<ProviderId, "generic">,
+      keyId: input.keyId,
+      signature: input.signature,
+      organizationSlug: input.organizationSlug,
+      externalEventId: input.externalEventId,
+      rawBody: input.rawBody,
+      timestamp: input.timestamp,
+      keyring,
+    });
+    if (!verification.valid) {
+      throw new DomainError(
+        `Webhook signature rejected: ${verification.reason}.`,
+        401,
+      );
+    }
+    keyState = verification.keyState ?? null;
+  } else if (signatureVersion === "legacy-v1") {
+    const secret = process.env.SYNTHETIC_WEBHOOK_SECRET;
+    if (!secret) {
+      throw new DomainError(
+        "Synthetic webhook ingestion is not configured.",
+        503,
+      );
+    }
+    if (
+      !verifySyntheticWebhookSignature({
+        ...input,
+        secret,
+      })
+    ) {
+      throw new DomainError("Invalid webhook signature.", 401);
+    }
+  } else {
+    throw new DomainError("Unsupported signature version.", 400);
   }
 
   let body: unknown;
@@ -92,10 +153,7 @@ export async function receiveSyntheticProviderWebhook(input: {
   if (!parsed.success) {
     throw new DomainError("Webhook body is invalid.", 400);
   }
-  const organization = await resolveOrganizationBySlug(input.organizationSlug);
-  if (!organization) {
-    throw new DomainError("Organization not found.", 404);
-  }
+  eventType = parsed.data.eventType;
   const providerEvent = normalizeProviderWebhook({
     providerId: input.providerId as Exclude<ProviderId, "generic">,
     ...parsed.data,
@@ -104,7 +162,9 @@ export async function receiveSyntheticProviderWebhook(input: {
     organizationId: organization.id,
     externalEventId: input.externalEventId,
     externalEventType: parsed.data.eventType,
-    payloadHash: createHash("sha256").update(input.rawBody).digest("hex"),
+    payloadHash,
+    signatureVersion,
+    signatureKeyId: signatureKeyId ?? "unknown",
     providerEvent,
   });
   if (!result.samePayload) {
@@ -113,9 +173,73 @@ export async function receiveSyntheticProviderWebhook(input: {
       409,
     );
   }
+  await recordProviderWebhookAttempt({
+    organizationId: organization.id,
+    providerId: providerEvent.providerId,
+    externalEventId: input.externalEventId,
+    eventType,
+    payloadHash,
+    signatureVersion,
+    signatureKeyId,
+    keyState,
+    outcome: result.accepted ? "accepted" : "duplicate",
+    httpStatus: result.accepted ? 202 : 200,
+    matchedRecords: result.matches.length,
+    providerEventId: result.providerEventId,
+    processingMs: Date.now() - startedAt,
+  });
   return {
     ...result,
     providerEvent,
     organizationName: organization.name,
   };
+  } catch (error) {
+    if (
+      organization &&
+      providerIds.includes(
+        input.providerId as (typeof providerIds)[number],
+      )
+    ) {
+      const status =
+        error instanceof DomainError ? error.status : 503;
+      const outcome =
+        status === 409
+          ? "conflict"
+          : status >= 500
+            ? "failed"
+            : "rejected";
+      try {
+        await recordProviderWebhookAttempt({
+          organizationId: organization.id,
+          providerId: input.providerId as Exclude<ProviderId, "generic">,
+          externalEventId: input.externalEventId || "missing",
+          eventType,
+          payloadHash,
+          signatureVersion,
+          signatureKeyId,
+          keyState,
+          outcome,
+          httpStatus: status,
+          failureCode: webhookFailureCode(error),
+          processingMs: Date.now() - startedAt,
+        });
+      } catch (attemptError) {
+        console.error("Webhook attempt evidence could not be stored.", attemptError);
+      }
+    }
+    throw error;
+  }
+}
+
+function webhookFailureCode(error: unknown) {
+  if (!(error instanceof Error)) return "unknown_failure";
+  const message = error.message.toLowerCase();
+  if (message.includes("signature")) return "signature_rejected";
+  if (message.includes("key id")) return "key_id_missing";
+  if (message.includes("keyring")) return "keyring_unavailable";
+  if (message.includes("json")) return "invalid_json";
+  if (message.includes("body")) return "invalid_body";
+  if (message.includes("different payload")) return "event_id_conflict";
+  if (message.includes("version")) return "unsupported_signature_version";
+  return "processing_failure";
 }

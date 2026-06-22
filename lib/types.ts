@@ -122,6 +122,43 @@ export type ProviderWebhookPayload = {
   payload: Record<string, unknown>;
 };
 
+export type ProviderWebhookAttempt = {
+  id: string;
+  providerId: Exclude<ProviderId, "generic">;
+  externalEventId: string;
+  eventType: string | null;
+  signatureVersion: string;
+  signatureKeyId: string | null;
+  keyState: "active" | "previous" | null;
+  outcome: "accepted" | "duplicate" | "rejected" | "conflict" | "failed";
+  httpStatus: number;
+  failureCode: string | null;
+  matchedRecords: number;
+  processingMs: number;
+  receivedAt: string;
+};
+
+export type ProviderWebhookObservability = {
+  summary: {
+    total: number;
+    accepted: number;
+    duplicate: number;
+    rejected: number;
+    conflict: number;
+    failed: number;
+    previousKeyAccepted: number;
+    averageProcessingMs: number | null;
+  };
+  byProvider: Array<{
+    providerId: Exclude<ProviderId, "generic">;
+    total: number;
+    accepted: number;
+    rejected: number;
+    previousKeyAccepted: number;
+  }>;
+  recent: ProviderWebhookAttempt[];
+};
+
 export type NormalizedProviderEvent = {
   id: string;
   providerId: Exclude<ProviderId, "generic">;
