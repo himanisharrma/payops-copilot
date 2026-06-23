@@ -98,6 +98,8 @@ export async function getInsightsDashboard(
     providerPerformance,
     aiGovernance,
     inboundEvidence,
+    rootCauseSummary,
+    recurrenceTrend,
     paymentModes,
   ] = await Promise.all([
     query<MetricRow>(
@@ -501,6 +503,68 @@ export async function getInsightsDashboard(
        ORDER BY deliveries DESC`,
       [organizationId, startAt, endAt, filters.provider],
     ),
+    query<{
+      open_programs: number;
+      recurring_exposure: string;
+      verified_fixes: number;
+    }>(
+      `SELECT
+         COUNT(*) FILTER (
+           WHERE status IN ('active', 'monitoring')
+         )::int AS open_programs,
+         COALESCE(SUM(baseline_exposure) FILTER (
+           WHERE status IN ('active', 'monitoring')
+         ), 0)::text AS recurring_exposure,
+         COUNT(*) FILTER (
+           WHERE status = 'verified'
+             AND verified_at >= $2 AND verified_at < $3
+         )::int AS verified_fixes
+       FROM remediation_programs
+       WHERE organization_id = $1
+         AND ($4::text = 'all' OR provider_id = $4)
+         AND ($5::text = 'all' OR payment_mode = $5)`,
+      [
+        organizationId,
+        startAt,
+        endAt,
+        filters.provider,
+        filters.paymentMode,
+      ],
+    ),
+    query<{ date: Date; linked_cases: number }>(
+      `WITH days AS (
+         SELECT GENERATE_SERIES(
+           DATE_TRUNC('day', $2::timestamptz),
+           DATE_TRUNC('day', $3::timestamptz - INTERVAL '1 second'),
+           INTERVAL '1 day'
+         ) AS date
+       ),
+       recurrence AS (
+         SELECT DATE_TRUNC('day', link.linked_at) AS date,
+           COUNT(*)::int AS linked_cases
+         FROM remediation_program_cases link
+         JOIN remediation_programs program
+           ON program.id = link.program_id
+          AND program.organization_id = link.organization_id
+         WHERE link.organization_id = $1
+           AND link.linked_at >= $2 AND link.linked_at < $3
+           AND ($4::text = 'all' OR program.provider_id = $4)
+           AND ($5::text = 'all' OR program.payment_mode = $5)
+         GROUP BY 1
+       )
+       SELECT days.date,
+         COALESCE(recurrence.linked_cases, 0)::int AS linked_cases
+       FROM days
+       LEFT JOIN recurrence USING (date)
+       ORDER BY days.date`,
+      [
+        organizationId,
+        startAt,
+        endAt,
+        filters.provider,
+        filters.paymentMode,
+      ],
+    ),
     query<{ payment_mode: string }>(
       `SELECT DISTINCT item.payment_mode
        FROM reconciliation_items item
@@ -629,5 +693,16 @@ export async function getInsightsDashboard(
       deliveries: row.deliveries,
       matchedEvents: row.matched_events,
     })),
+    rootCausePrograms: {
+      openPrograms: rootCauseSummary.rows[0].open_programs,
+      recurringExposure: Number(
+        rootCauseSummary.rows[0].recurring_exposure,
+      ),
+      verifiedFixes: rootCauseSummary.rows[0].verified_fixes,
+      recurrenceTrend: recurrenceTrend.rows.map((row) => ({
+        date: row.date.toISOString(),
+        linkedCases: row.linked_cases,
+      })),
+    },
   };
 }
