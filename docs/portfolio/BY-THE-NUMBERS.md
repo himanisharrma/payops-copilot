@@ -1,7 +1,7 @@
 # By the Numbers
 
 > Every implemented-project figure below was measured from the Operations
-> Reconciliation Close Control working snapshot prepared on June 22, 2026. It is repository
+> Root-Cause Programs working snapshot prepared on June 23, 2026. It is repository
 > evidence, not a production-performance claim.
 
 ## Delivery
@@ -9,20 +9,20 @@
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
-| Product milestones | 20 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 21 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Reconciliation Close Control | migration `017` |
-| Latest architecture milestone | Immutable daily close versions | Maker-checker control book |
+| Latest product milestone | Root-Cause Programs | migration `018` |
+| Latest architecture milestone | Deterministic remediation lifecycle | Two-clean-run verification |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 175 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 18,478 | repository source file list piped to `wc -l` |
-| Next.js API route files | 25 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 17 | `db/migrations/` |
-| Automated test cases | 82 | 68 unit/policy plus 14 PostgreSQL integration tests |
+| Repository files | 185 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 21,232 | repository source file list piped to `wc -l` |
+| Next.js API route files | 27 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 18 | `db/migrations/` |
+| Automated test cases | 88 | 72 unit/policy plus 16 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 11 | Adds role-aware `/close-control` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
@@ -38,6 +38,7 @@
 | Signed synthetic webhook providers | 3 | Razorpay-style, Cashfree-style, and PayU-style demo routes |
 | Seeded webhook attempts | 12 | accepted, previous-key, duplicate, rejected, conflict, and failed evidence |
 | Seeded close-control periods | 3 | approved, submitted, and reopened synthetic histories |
+| Seeded remediation programs | 4 | active, monitoring, verified, and abandoned synthetic histories |
 | Source snapshots in the standard 10-order demo | 27 | 10 order, 10 gateway, and 7 settlement rows |
 
 ## Product surface
@@ -49,8 +50,8 @@
 | Normalized provider event types | 6 typed event states in `lib/types.ts` |
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
-| Backend domain modules | 12 repositories under `lib/modules/` |
-| Domain service layers | 10: reconciliation, payment workflows, cases, evaluations, investigations, provider events, notifications, insights, settlement control, close control |
+| Backend domain modules | 13 repositories under `lib/modules/` |
+| Domain service layers | 11, including close control and remediation programs |
 | Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
@@ -72,6 +73,8 @@
 | Settlement policy versions | `settlement-policy-v1` and `india-demo-calendar-v1` |
 | Close-control states | open, submitted, approved, and reopened |
 | Close approval policy | preparer and administrator approver must be different users |
+| Recurrence threshold | 3 matching actionable cases in the trailing 30 days |
+| Verification policy | administrator confirmation after 2 qualifying clean runs |
 
 ## Quality evidence
 
@@ -79,8 +82,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 13 test files, 68 tests passing
-npm run test:integration -> 7 test files, 14 tests passing
+npm test       -> 14 test files, 72 tests passing
+npm run test:integration -> 8 test files, 16 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -128,6 +131,9 @@ Browser verification also exercised:
 - daily close readiness and materiality, a real administrator approval,
   certificate availability, viewer read-only behavior, immutable history, and
   a 390px layout with `scrollWidth` equal to `clientWidth`.
+- recurring suggestion promotion, program management, Operations drill-through,
+  administrator verification, viewer read-only behavior, and the 390px
+  recurrence control board.
 
 ## What is not measured
 

@@ -22,6 +22,7 @@ API route (transport and request validation)
 | `insights` | Yes | Yes | Deterministic period metrics, current queue health, provider comparison, and drill-down contracts |
 | `settlement-control` | Yes | Yes | Idempotent overdue promotion, organization locking, and audit |
 | `close-control` | Yes | Yes | Daily scope readiness, materiality, immutable versions, residual dispositions, maker-checker approval, reopen policy, certificates, and audit |
+| `remediation-programs` | Yes | Yes | Deterministic recurrence detection, lifecycle, automatic case linking, clean-run verification, and audit evidence |
 | `audit` | Yes | No | Organization-scoped writes and administrator reads |
 | `system` | Yes | No | Database health checks |
 

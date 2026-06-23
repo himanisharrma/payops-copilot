@@ -130,6 +130,12 @@ submitted period: the analyst is the maker and a different administrator is
 the checker. Approve it, download the JSON certificate, and explain that its
 snapshot hash remains unchanged even if the period is later reopened.
 
+Open **Root causes**. Show the ranked detection queue and explain that its
+fingerprint uses only provider, payment mode, exception status, and case
+origin. Promote a suggestion, then open a seeded monitoring program. Use the
+linked-case drill-through and two-clean-run rail to distinguish implementing a
+fix from administrator verification. Do not call verification permanent proof.
+
 Open **Quality** and show the versioned 30-case baseline, persisted run history,
 case-level evidence, and six-score human rubric. Do not claim OpenAI model
 quality: no paid model run completed in this repository snapshot.
@@ -183,6 +189,7 @@ Close with:
 | Administrator audit | `http://127.0.0.1:4317/audit` |
 | Webhook Trust Operations | `http://127.0.0.1:4317/webhook-operations` |
 | Daily Reconciliation Close | `http://127.0.0.1:4317/close-control` |
+| Recurrence Control Board | `http://127.0.0.1:4317/root-causes` |
 | Product summary | `http://127.0.0.1:4317/product-brief` |
 | Database health | `http://127.0.0.1:4317/api/health` |
 
@@ -198,6 +205,8 @@ Close with:
   delivery-success rate.
 - Do not describe the close certificate as a bank statement, provider
   attestation, accounting sign-off, or regulatory evidence.
+- Do not describe a verified remediation program as proof of a permanent
+  provider fix.
 - Do not claim measured analyst savings or AI accuracy.
 - Do not upload private company reports to the public portfolio instance.
 

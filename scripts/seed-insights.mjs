@@ -73,6 +73,11 @@ try {
   if (!admin || !analyst) throw new Error("Seed demo users first.");
 
   await client.query(
+    `DELETE FROM remediation_programs
+     WHERE organization_id = $1 AND created_by_name = 'Insights Seed'`,
+    [organizationId],
+  );
+  await client.query(
     `UPDATE reconciliation_close_periods period
      SET active_version_id = NULL
      WHERE organization_id = $1
@@ -626,9 +631,222 @@ try {
     );
   }
 
+  const recurrenceClusters = await client.query(
+    `SELECT run.provider_id, item.payment_mode, item.reconciliation_status,
+       payment_case.case_origin, COUNT(*)::int AS case_count,
+       SUM(
+         CASE WHEN item.reconciliation_status = 'amount_mismatch'
+           THEN ABS(item.variance) ELSE ABS(item.order_amount) END
+       )::float8 AS exposure,
+       ARRAY_AGG(payment_case.id ORDER BY payment_case.created_at) AS case_ids
+     FROM operations_cases payment_case
+     JOIN reconciliation_items item
+       ON item.id = payment_case.item_id
+      AND item.organization_id = payment_case.organization_id
+     JOIN reconciliation_runs run
+       ON run.id = payment_case.run_id
+      AND run.organization_id = payment_case.organization_id
+     WHERE payment_case.organization_id = $1
+       AND run.source_files->>'seed' = $2
+       AND payment_case.created_at >= NOW() - INTERVAL '30 days'
+       AND item.reconciliation_status NOT IN ('matched', 'pending')
+     GROUP BY run.provider_id, item.payment_mode,
+       item.reconciliation_status, payment_case.case_origin
+     HAVING COUNT(*) >= 3
+     ORDER BY case_count DESC, exposure DESC
+     LIMIT 4`,
+    [organizationId, marker],
+  );
+  const programStates = ["active", "monitoring", "verified", "abandoned"];
+  let seededPrograms = 0;
+  for (let index = 0; index < recurrenceClusters.rows.length; index += 1) {
+    const cluster = recurrenceClusters.rows[index];
+    const state = programStates[index];
+    const fingerprint = [
+      cluster.provider_id,
+      cluster.payment_mode.toLowerCase().trim(),
+      cluster.reconciliation_status,
+      cluster.case_origin,
+    ].join("|");
+    const implementedAt =
+      state === "monitoring" || state === "verified"
+        ? new Date(Date.now() - 30 * 60_000)
+        : null;
+    const program = await client.query(
+      `INSERT INTO remediation_programs (
+         organization_id, fingerprint, provider_id, payment_mode,
+         reconciliation_status, case_origin, status, owner_user_id,
+         owner_name, remediation_plan, target_date, detection_window_start,
+         detection_window_end, baseline_case_count, baseline_exposure,
+         implementation_summary, implementation_evidence_reference,
+         implemented_at, verified_by_user_id, verified_by_name, verified_at,
+         abandoned_by_user_id, abandoned_by_name, abandoned_reason,
+         abandoned_at, created_by_user_id, created_by_name, created_at,
+         updated_at
+       ) VALUES (
+         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
+         CURRENT_DATE + ($11::int), NOW() - INTERVAL '30 days', NOW(),
+         $12,$13,
+         CASE WHEN $14::timestamptz IS NOT NULL
+           THEN 'Synthetic integration and operating procedure were updated and deployed.'
+           ELSE NULL END,
+         CASE WHEN $14::timestamptz IS NOT NULL
+           THEN 'SYNTHETIC-CHANGE-RCP-' || $15 ELSE NULL END,
+         $14,
+         CASE WHEN $7 = 'verified' THEN $16::uuid ELSE NULL END,
+         CASE WHEN $7 = 'verified' THEN $17 ELSE NULL END,
+         CASE WHEN $7 = 'verified' THEN NOW() ELSE NULL END,
+         CASE WHEN $7 = 'abandoned' THEN $16::uuid ELSE NULL END,
+         CASE WHEN $7 = 'abandoned' THEN $17 ELSE NULL END,
+         CASE WHEN $7 = 'abandoned'
+           THEN 'Synthetic remediation was superseded by a provider migration.'
+           ELSE NULL END,
+         CASE WHEN $7 = 'abandoned' THEN NOW() ELSE NULL END,
+         $18,'Insights Seed',NOW() - INTERVAL '12 days',NOW()
+       ) RETURNING id`,
+      [
+        organizationId,
+        fingerprint,
+        cluster.provider_id,
+        cluster.payment_mode,
+        cluster.reconciliation_status,
+        cluster.case_origin,
+        state,
+        analyst.id,
+        analyst.name,
+        `Reduce recurring ${cluster.reconciliation_status.replaceAll(
+          "_",
+          " ",
+        )} exceptions through deterministic adapter validation and an owned operating control.`,
+        7 + index * 3,
+        cluster.case_count,
+        cluster.exposure,
+        implementedAt,
+        index + 1,
+        admin.id,
+        admin.name,
+        analyst.id,
+      ],
+    );
+    await client.query(
+      `INSERT INTO remediation_program_cases (
+         organization_id, program_id, case_id, link_type, linked_at
+       )
+       SELECT $1,$2,UNNEST($3::uuid[]),'baseline',NOW() - INTERVAL '11 days'`,
+      [organizationId, program.rows[0].id, cluster.case_ids],
+    );
+    const events = [
+      ["program_created", analyst.id, analyst.name, { seedMarker: marker }],
+      ...(implementedAt
+        ? [
+            [
+              "implementation_started",
+              analyst.id,
+              analyst.name,
+              { evidenceReference: `SYNTHETIC-CHANGE-RCP-${index + 1}` },
+            ],
+          ]
+        : []),
+      ...(state === "verified"
+        ? [["program_verified", admin.id, admin.name, { cleanRuns: 2 }]]
+        : state === "abandoned"
+          ? [
+              [
+                "program_abandoned",
+                admin.id,
+                admin.name,
+                { reason: "Superseded by provider migration." },
+              ],
+            ]
+          : []),
+    ];
+    for (const [eventType, actorUserId, actorName, details] of events) {
+      await client.query(
+        `INSERT INTO remediation_program_events (
+           organization_id, program_id, actor_user_id, actor_name,
+           event_type, details
+         ) VALUES ($1,$2,$3,$4,$5,$6)`,
+        [
+          organizationId,
+          program.rows[0].id,
+          actorUserId,
+          actorName,
+          eventType,
+          JSON.stringify(details),
+        ],
+      );
+    }
+    if (implementedAt) {
+      for (let runIndex = 0; runIndex < 2; runIndex += 1) {
+        const cleanAt = new Date(
+          implementedAt.getTime() + (runIndex + 1) * 8 * 60_000,
+        );
+        const cleanRun = await client.query(
+          `INSERT INTO reconciliation_runs (
+             organization_id, name, source_type, provider_id, status,
+             total_orders, processed_value, matched_value, unmatched_value,
+             matched_count, exception_count, match_rate, source_files, created_at
+           ) VALUES (
+             $1,$2,'demo',$3,'completed',1,2500,2500,0,1,0,100,$4,$5
+           ) RETURNING id`,
+          [
+            organizationId,
+            `Root-cause verification ${index + 1}.${runIndex + 1}`,
+            cluster.provider_id,
+            JSON.stringify({ seed: marker, fictional: true }),
+            cleanAt,
+          ],
+        );
+        const orderId = `RCP-CLEAN-${index + 1}-${runIndex + 1}`;
+        const cleanItem = await client.query(
+          `INSERT INTO reconciliation_items (
+             organization_id, run_id, order_id, gateway_reference,
+             payment_mode, order_amount, gateway_amount, settled_amount,
+             expected_net, variance, reconciliation_status, severity,
+             summary, evidence, created_at
+           ) VALUES (
+             $1,$2,$3,$4,$5,2500,2500,2500,2500,0,'matched','low',
+             'Synthetic clean run with no matching recurring exception.',
+             $6,$7
+           ) RETURNING id`,
+          [
+            organizationId,
+            cleanRun.rows[0].id,
+            orderId,
+            `PAY-${orderId}`,
+            cluster.payment_mode,
+            JSON.stringify(["Synthetic clean-run evidence"]),
+            cleanAt,
+          ],
+        );
+        const cleanEvidence = {
+          orderId,
+          amount: 2500,
+          fictional: true,
+          seedMarker: marker,
+        };
+        await client.query(
+          `INSERT INTO reconciliation_source_evidence (
+             organization_id, run_id, item_id, source_type, row_number,
+             normalized_values, source_values, integrity_hash, created_at
+           ) VALUES ($1,$2,$3,'orders',1,$4,$4,$5,$6)`,
+          [
+            organizationId,
+            cleanRun.rows[0].id,
+            cleanItem.rows[0].id,
+            JSON.stringify(cleanEvidence),
+            hashEvidence(cleanEvidence),
+            cleanAt,
+          ],
+        );
+      }
+    }
+    seededPrograms += 1;
+  }
+
   await client.query("COMMIT");
   console.log(
-    `Seeded ${18} runs, ${seededItems.length} items, ${actionable.length} cases, 8 signed evidence records, 12 webhook attempts, and ${closeScopes.rows.length} close controls.`,
+    `Seeded ${18} history runs, ${seededItems.length} items, ${actionable.length} cases, 8 signed evidence records, 12 webhook attempts, ${closeScopes.rows.length} close controls, and ${seededPrograms} remediation programs.`,
   );
 } catch (error) {
   await client.query("ROLLBACK");

@@ -60,6 +60,15 @@ and controlled reopening.
 
 ## Interaction rules
 
+## Recurrence control ledger
+
+Root-Cause Programs places ranked cluster cards beside a governed program
+portfolio. Its signature component is the two-run verification rail: run
+evidence is more prominent than the status label, and its conclusion states
+that verification is observed absence rather than permanent proof. Amber marks
+work under control, blue marks monitoring, and green is reserved for
+administrator-verified evidence.
+
 - Server authorization remains authoritative even when controls are disabled.
 - Loading, empty, error, and success states must remain visible in every queue.
 - Resolution and lifecycle transitions must explain why an action is blocked.

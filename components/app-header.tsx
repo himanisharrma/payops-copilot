@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Scale,
   ShieldCheck,
+  Waypoints,
 } from "lucide-react";
 import { auth, signOut } from "@/auth";
 import { NotificationCenter } from "@/components/notification-center";
@@ -23,6 +24,7 @@ export async function AppHeader({
     | "payments"
     | "runs"
     | "insights"
+    | "root-causes"
     | "quality"
     | "close"
     | "webhooks"
@@ -82,6 +84,13 @@ export async function AppHeader({
         >
           <ChartNoAxesCombined size={15} />
           Insights
+        </Link>
+        <Link
+          href="/root-causes"
+          className={`product-nav-link ${active === "root-causes" ? "active" : ""}`}
+        >
+          <Waypoints size={15} />
+          Root causes
         </Link>
         <Link
           href="/close-control"

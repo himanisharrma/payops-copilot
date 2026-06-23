@@ -162,6 +162,32 @@ Properties:
 
 Do not include external references, order IDs, notes, amounts, or evidence text.
 
+### `remediation_program_created`
+
+Properties:
+
+- `fingerprint_hash`
+- `provider_adapter`
+- `payment_mode`
+- `reconciliation_status`
+- `case_origin`
+- `baseline_case_count_band`
+- `baseline_exposure_band`
+- `target_days_band`
+
+### `remediation_program_transitioned`
+
+Properties:
+
+- `program_id`
+- `status_before`, `status_after`
+- `linked_case_count_band`
+- `clean_run_count`: `0`, `1`, or `2_plus`
+- `actor_role`
+
+Never include plan text, implementation summaries, evidence references,
+abandonment reasons, owner identity, case IDs, or exact amounts.
+
 ## Funnel definitions
 
 ### Reconciliation activation
