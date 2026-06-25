@@ -268,6 +268,28 @@ export function ReconciliationCloseControl({
               </strong>
               <small>Deterministic persisted values</small>
             </article>
+            <article>
+              <span>SETTLEMENT PAYABLE</span>
+              <strong>
+                {money.format(selected.readiness.settlementPayable)}
+              </strong>
+              <small>
+                {money.format(selected.readiness.settlementCredited)} credited
+              </small>
+            </article>
+            <article>
+              <span>OUTSTANDING PAYABLE</span>
+              <strong>
+                {money.format(selected.readiness.settlementOutstanding)}
+              </strong>
+              <small>
+                {money.format(
+                  selected.readiness.settlementHeldAmount +
+                    selected.readiness.settlementFailedAmount,
+                )}{" "}
+                held / failed
+              </small>
+            </article>
           </div>
 
           <div className="close-thresholds">
