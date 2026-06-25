@@ -36,6 +36,10 @@ operations-control portfolio product. Current shipped capabilities include:
 - recurring-exception remediation programs under `/root-causes`, including
   deterministic fingerprints, explicit promotion, linked cases, lifecycle
   events, owner controls, monitoring, and two-clean-run verification;
+- merchant settlement statements under `/settlements`, including synthetic
+  merchant accounts, settlement batches, line items, deductions, UTR
+  classification, bank-credit evidence, linked Operations cases, and settlement
+  rollups in Insights and Close Control;
 - close-control, webhook-operations, quality/evaluation, runs, operations,
   refunds/disputes, and guided `/demo-control-room` surfaces;
 - synthetic seeded history for demos, portfolio screenshots, and reviewer
@@ -59,7 +63,8 @@ distinction is:
 - **Reconciliation** proves every rupee by matching records across systems that
   update at different times.
 
-Future work should help a merchant or payment-ops manager answer:
+The implemented merchant settlement statement layer helps a merchant or
+payment-ops manager answer:
 
 ```text
 Order → Transaction → Gross amount
@@ -71,29 +76,26 @@ Order → Transaction → Gross amount
 → Evidence / Exception
 ```
 
-Recommended next release: **Merchant Settlement Statements**.
+Implemented release: **Merchant Settlement Statements**.
+
+Recommended next release: **Statement Import + Settlement Exception Desk**.
 
 Build this module before split settlements:
 
-1. Add a merchant settlement ledger with settlement batches, settlement line
-   items, deductions, statuses, expected/actual settlement dates, UTRs, and bank
-   credit matching.
-2. Add a deduction engine for MDR/commission, GST, refunds, chargebacks,
-   recoveries, adjustments, rental/subscription deductions, and holds.
-3. Model forward deductions: refunds and chargebacks may net against future
-   settlements rather than clawing back the original payout.
-4. Add `/settlements` as the merchant-facing statement surface: gross collected,
-   deductions, net settled, UTR, settlement status, drill-down to transaction
-   and deduction evidence, and linked cases.
-5. Extend reconciliation and operations with UTR-specific exceptions: missing
-   UTR, UTR not found in bank statement, duplicate UTR, amount mismatch, failed
-   payout, held settlement, delayed credit, and retry exhausted.
-6. Add synthetic reports/API-style proof surfaces for settlement summary,
-   settlement detail, order detail, transaction detail, refund/deduction report,
-   and bank credit mapping.
-7. Feed settlement totals into Insights and Close Control: gross payments,
-   deductions, merchant payable, payouts sent, held amount, failed settlements,
-   and outstanding payable.
+1. Import provider-style merchant settlement statement CSVs into a staging
+   workspace without overwriting the existing settlement ledger.
+2. Normalize provider-specific rows into deterministic statement records and
+   compare them to existing merchant settlement batches, deductions, UTRs, and
+   bank credits.
+3. Create settlement-specific exceptions for missing UTR, UTR not found in bank
+   statement, duplicate UTR, amount mismatch, failed payout, held settlement,
+   delayed credit, retry exhausted, deduction mismatch, unexplained hold, and
+   forward refund/chargeback mismatch.
+4. Add an Adjustment Desk for explicit admin/analyst proposals with reason,
+   evidence, maker/checker approval, audit history, and no money movement.
+5. Export reviewer-safe settlement evidence packets that show gross collected,
+   deductions, net payable, UTR, bank credit, linked cases, and adjustment
+   decisions.
 
 Build split settlement only after the normal settlement statement layer is
 solid. Split settlement should eventually support platform/vendor shares,
