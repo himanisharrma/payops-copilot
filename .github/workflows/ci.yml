@@ -18,7 +18,7 @@ jobs:
         env:
           POSTGRES_DB: payops
           POSTGRES_USER: payops
-          POSTGRES_PASSWORD: payops_ci
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -28,7 +28,7 @@ jobs:
           --health-retries 10
 
     env:
-      DATABASE_URL: postgresql://payops:payops_ci@127.0.0.1:5432/payops
+      DATABASE_URL: postgresql://payops@127.0.0.1:5432/payops
       AUTH_SECRET: ci-only-auth-secret-with-at-least-thirty-two-characters
       OPENAI_API_KEY: ""
 
