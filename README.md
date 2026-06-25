@@ -12,6 +12,22 @@
 
 ![PayOps root-cause control board](docs/portfolio/assets/root-cause-control-board.png)
 
+## Portfolio reviewer quick-start
+
+| Item | Details |
+| --- | --- |
+| Live app | [`payops-copilot.vercel.app`](https://payops-copilot.vercel.app) |
+| 90-second path | `/demo-control-room` |
+| Demo users | `admin@payops.local`, `analyst@payops.local`, `viewer@payops.local` |
+| Demo password | `PayOpsDemo123!` |
+| Inspect | Reconciliation evidence, operations SLAs, settlement policy evidence, webhook trust, Insights, and root-cause verification |
+| Boundary | Synthetic data only; no live provider connection, outbound notification, real payment data, or money movement |
+
+The public Vercel deployment is configured with demo-only application secrets
+and no OpenAI key, so AI paths fall back to deterministic evidence rules. Attach
+a managed PostgreSQL `DATABASE_URL`, then run `npm run db:migrate` and
+`npm run db:seed` before using the full live workspace.
+
 ## The headline
 
 | | |
