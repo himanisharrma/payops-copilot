@@ -100,6 +100,7 @@ export async function getInsightsDashboard(
     inboundEvidence,
     rootCauseSummary,
     recurrenceTrend,
+    merchantSettlements,
     paymentModes,
   ] = await Promise.all([
     query<MetricRow>(
@@ -565,6 +566,73 @@ export async function getInsightsDashboard(
         filters.paymentMode,
       ],
     ),
+    query<{
+      gross_collected: string;
+      total_deductions: string;
+      net_payable: string;
+      credited_amount: string;
+      held_amount: string;
+      failed_amount: string;
+      forward_deductions: string;
+      total_batches: number;
+      matched_batches: number;
+    }>(
+      `WITH scoped_batches AS (
+         SELECT batch.*
+         FROM merchant_settlement_batches batch
+         WHERE batch.organization_id = $1
+           AND batch.expected_settlement_at >= $2
+           AND batch.expected_settlement_at < $3
+           AND ($4::text = 'all' OR batch.provider_id = $4)
+           AND ($5::text = 'all' OR batch.payment_mode = $5)
+           AND (
+             $6::text = 'all'
+             OR EXISTS (
+               SELECT 1
+               FROM merchant_settlement_case_links link
+               JOIN operations_cases payment_case
+                 ON payment_case.id = link.case_id
+                AND payment_case.organization_id = link.organization_id
+               WHERE link.organization_id = batch.organization_id
+                 AND link.batch_id = batch.id
+                 AND payment_case.priority = $6
+             )
+           )
+       ),
+       forward_deductions AS (
+         SELECT COALESCE(SUM(deduction.amount), 0) AS amount
+         FROM merchant_settlement_deductions deduction
+         JOIN scoped_batches batch
+           ON batch.id = deduction.batch_id
+          AND batch.organization_id = deduction.organization_id
+         WHERE deduction.direction = 'forward_deduction'
+       )
+       SELECT
+         COALESCE(SUM(batch.gross_amount), 0)::text AS gross_collected,
+         COALESCE(SUM(batch.deduction_amount), 0)::text AS total_deductions,
+         COALESCE(SUM(batch.net_amount), 0)::text AS net_payable,
+         COALESCE(SUM(batch.bank_credit_amount), 0)::text AS credited_amount,
+         COALESCE(SUM(batch.net_amount) FILTER (
+           WHERE batch.status = 'held'
+         ), 0)::text AS held_amount,
+         COALESCE(SUM(batch.net_amount) FILTER (
+           WHERE batch.status = 'failed'
+         ), 0)::text AS failed_amount,
+         (SELECT amount::text FROM forward_deductions) AS forward_deductions,
+         COUNT(*)::int AS total_batches,
+         COUNT(*) FILTER (
+           WHERE batch.utr_match_status = 'matched'
+         )::int AS matched_batches
+       FROM scoped_batches batch`,
+      [
+        organizationId,
+        startAt,
+        endAt,
+        filters.provider,
+        filters.paymentMode,
+        filters.priority,
+      ],
+    ),
     query<{ payment_mode: string }>(
       `SELECT DISTINCT item.payment_mode
        FROM reconciliation_items item
@@ -703,6 +771,26 @@ export async function getInsightsDashboard(
         date: row.date.toISOString(),
         linkedCases: row.linked_cases,
       })),
+    },
+    merchantSettlements: {
+      grossCollected: Number(merchantSettlements.rows[0].gross_collected),
+      totalDeductions: Number(merchantSettlements.rows[0].total_deductions),
+      netPayable: Number(merchantSettlements.rows[0].net_payable),
+      creditedAmount: Number(merchantSettlements.rows[0].credited_amount),
+      heldAmount: Number(merchantSettlements.rows[0].held_amount),
+      failedAmount: Number(merchantSettlements.rows[0].failed_amount),
+      forwardDeductions: Number(
+        merchantSettlements.rows[0].forward_deductions,
+      ),
+      utrMatchRate: merchantSettlements.rows[0].total_batches
+        ? Number(
+            (
+              (merchantSettlements.rows[0].matched_batches /
+                merchantSettlements.rows[0].total_batches) *
+              100
+            ).toFixed(1),
+          )
+        : null,
     },
   };
 }
