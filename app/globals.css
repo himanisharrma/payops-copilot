@@ -5720,6 +5720,13 @@ button:disabled {
   text-decoration: none;
 }
 
+.settlement-insights-note {
+  margin: 1rem 0 0;
+  color: rgba(236, 232, 219, 0.68);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
 .suggestion-card footer button {
   padding: 7px 11px;
   border: 1px solid rgba(239, 178, 87, 0.45);
@@ -7843,6 +7850,466 @@ button:disabled {
   font-weight: 700;
 }
 
+/* Merchant settlement statements */
+.settlement-statements-hero h1 {
+  max-width: 920px;
+}
+
+.settlement-boundary-card {
+  width: min(100%, 380px);
+  padding: 24px;
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--ink);
+  background:
+    radial-gradient(circle at top right, rgba(255, 92, 53, 0.25), transparent 38%),
+    var(--paper-strong);
+  box-shadow: 9px 9px 0 rgba(21, 23, 19, 0.1);
+}
+
+.settlement-boundary-card svg {
+  color: var(--green);
+}
+
+.settlement-boundary-card span,
+.settlement-statements-filter-rail label,
+.settlement-statements-kpis span,
+.settlement-table-head,
+.settlement-detail-panel header > span,
+.settlement-detail-ledger span,
+.deduction-waterfall span,
+.bank-evidence-card span,
+.bank-evidence-card dt,
+.statement-evidence-list > span,
+.linked-case-panel span,
+.settlement-proof-strip span {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settlement-boundary-card span,
+.settlement-detail-panel header > span,
+.bank-evidence-card span,
+.statement-evidence-list > span,
+.linked-case-panel span,
+.settlement-proof-strip span {
+  color: var(--orange-dark);
+}
+
+.settlement-boundary-card strong {
+  font-size: 23px;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+}
+
+.settlement-boundary-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.settlement-statements-filter-rail {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 20px clamp(22px, 5vw, 76px);
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+}
+
+.settlement-statements-filter-rail label {
+  min-width: 0;
+  padding: 13px 14px;
+  display: grid;
+  gap: 8px;
+  background: var(--paper-strong);
+  color: var(--muted);
+}
+
+.settlement-statements-filter-rail select,
+.settlement-statements-filter-rail input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.settlement-statements-page {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 34px clamp(22px, 5vw, 76px) 82px;
+}
+
+.settlement-statements-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--ink);
+}
+
+.settlement-statements-kpis article {
+  min-width: 0;
+  padding: 23px;
+  border-right: 1px solid var(--ink);
+  background: rgba(255, 253, 247, 0.72);
+}
+
+.settlement-statements-kpis article:last-child {
+  border-right: 0;
+}
+
+.settlement-statements-kpis strong {
+  display: block;
+  margin: 17px 0 10px;
+  font-size: clamp(25px, 3vw, 42px);
+  letter-spacing: -0.06em;
+}
+
+.settlement-statements-kpis small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.settlement-statements-layout {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.16fr) minmax(350px, 0.84fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.settlement-statement-list,
+.settlement-detail-panel,
+.settlement-proof-strip {
+  min-width: 0;
+  border: 1px solid var(--ink);
+  background: rgba(255, 253, 247, 0.76);
+}
+
+.settlement-table-head,
+.settlement-table-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.45fr) 0.78fr 0.78fr 0.78fr minmax(118px, 0.86fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.settlement-table-head {
+  padding: 14px 18px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--ink);
+}
+
+.settlement-table-row {
+  min-height: 76px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.settlement-table-row:last-child {
+  border-bottom: 0;
+}
+
+.settlement-table-row.active {
+  background: #f5efd9;
+  box-shadow: inset 5px 0 0 var(--orange);
+}
+
+.settlement-table-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.settlement-table-row strong {
+  display: block;
+  font-size: 12px;
+}
+
+.settlement-table-row small {
+  margin-top: 4px;
+  display: block;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.utr-chip {
+  width: fit-content;
+  max-width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--ink);
+  background: var(--paper-strong);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 7px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.utr-chip.matched {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.utr-chip.missing,
+.utr-chip.not_found,
+.utr-chip.duplicate,
+.utr-chip.mismatch {
+  border-color: #b64027;
+  background: var(--red-soft);
+  color: #7f2b17;
+}
+
+.settlement-empty-state {
+  min-height: 320px;
+  padding: 48px 24px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.settlement-empty-state h2 {
+  margin: 14px 0 6px;
+}
+
+.settlement-empty-state p {
+  max-width: 360px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.settlement-detail-panel {
+  padding: 25px;
+  display: grid;
+  gap: 22px;
+  position: sticky;
+  top: 98px;
+}
+
+.settlement-detail-panel h2 {
+  margin: 7px 0 6px;
+  font-size: clamp(28px, 3vw, 42px);
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+}
+
+.settlement-detail-panel header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.settlement-detail-ledger {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--ink);
+}
+
+.settlement-detail-ledger div {
+  min-width: 0;
+  padding: 14px;
+  border-right: 1px solid var(--ink);
+}
+
+.settlement-detail-ledger div:last-child {
+  border-right: 0;
+}
+
+.settlement-detail-ledger strong {
+  display: block;
+  margin-top: 9px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.deduction-waterfall {
+  display: grid;
+  border: 1px solid var(--ink);
+}
+
+.deduction-waterfall > div {
+  min-width: 0;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.deduction-waterfall > div:last-child {
+  border-bottom: 0;
+}
+
+.deduction-waterfall strong {
+  font-family: var(--font-space-mono), monospace;
+}
+
+.deduction-waterfall small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.deduction-waterfall .net {
+  background: var(--ink);
+  color: var(--paper-strong);
+}
+
+.deduction-waterfall .net small {
+  color: #d8d1bf;
+}
+
+.bank-evidence-card {
+  padding: 18px;
+  border: 1px solid var(--ink);
+  background: #f5efd9;
+}
+
+.bank-evidence-card header {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.bank-evidence-card h3 {
+  margin: 5px 0 0;
+  font-size: 18px;
+}
+
+.bank-evidence-card dl {
+  margin: 16px 0 0;
+  display: grid;
+  gap: 10px;
+}
+
+.bank-evidence-card div {
+  min-width: 0;
+}
+
+.bank-evidence-card dt {
+  color: #6b5216;
+}
+
+.bank-evidence-card dd {
+  margin: 4px 0 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.statement-evidence-list {
+  display: grid;
+  gap: 10px;
+}
+
+.statement-evidence-list article {
+  min-width: 0;
+  padding: 13px;
+  display: flex;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: var(--paper-strong);
+}
+
+.statement-evidence-list article svg {
+  flex: 0 0 auto;
+  color: var(--green);
+}
+
+.statement-evidence-list article div {
+  min-width: 0;
+}
+
+.statement-evidence-list strong {
+  display: block;
+  font-size: 12px;
+}
+
+.statement-evidence-list p {
+  margin: 5px 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.statement-evidence-list small {
+  font-family: var(--font-space-mono), monospace;
+  font-size: 8px;
+  overflow-wrap: anywhere;
+}
+
+.linked-case-panel {
+  display: grid;
+  gap: 9px;
+}
+
+.linked-case-panel > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.linked-case-panel a {
+  min-height: 40px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--ink);
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 9px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.linked-case-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.settlement-proof-strip {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.settlement-proof-strip article {
+  min-width: 0;
+  padding: 20px;
+  display: grid;
+  gap: 8px;
+  border-right: 1px solid var(--ink);
+}
+
+.settlement-proof-strip article:last-child {
+  border-right: 0;
+}
+
+.settlement-proof-strip strong {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
 /* Control room demo */
 .demo-control-hero h1 {
   max-width: 760px;
@@ -8119,6 +8586,30 @@ button:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .settlement-statements-filter-rail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .settlement-statements-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settlement-statements-kpis article:nth-child(2) {
+    border-right: 0;
+  }
+
+  .settlement-statements-kpis article:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .settlement-statements-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .settlement-detail-panel {
+    position: static;
+  }
+
   .demo-control-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -8180,11 +8671,65 @@ button:disabled {
   }
 
   .settlement-control-rail,
-  .settlement-filter-rail {
+  .settlement-filter-rail,
+  .settlement-statements-filter-rail {
     margin-right: 14px;
     margin-left: 14px;
     padding-right: 1px;
     padding-left: 1px;
+  }
+
+  .settlement-statements-filter-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settlement-statements-page {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .settlement-statements-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .settlement-statements-kpis article,
+  .settlement-statements-kpis article:nth-child(2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .settlement-statements-kpis article:last-child {
+    border-bottom: 0;
+  }
+
+  .settlement-table-head,
+  .settlement-table-row {
+    grid-template-columns: minmax(0, 1.4fr) 0.8fr 0.8fr;
+  }
+
+  .settlement-table-head span:nth-child(2),
+  .settlement-table-head span:nth-child(3),
+  .settlement-table-row > span:nth-child(2),
+  .settlement-table-row > span:nth-child(3) {
+    display: none;
+  }
+
+  .settlement-detail-ledger,
+  .settlement-proof-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .settlement-detail-ledger div,
+  .settlement-detail-ledger div:last-child,
+  .settlement-proof-strip article,
+  .settlement-proof-strip article:last-child {
+    border-right: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .settlement-detail-ledger div:last-child,
+  .settlement-proof-strip article:last-child {
+    border-bottom: 0;
   }
 
   .settlement-control-rail {
@@ -8252,5 +8797,34 @@ button:disabled {
   .demo-control-proof a,
   .demo-control-step a {
     width: 100%;
+  }
+}
+
+@media (max-width: 390px) {
+  .settlement-statements-filter-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .settlement-table-head,
+  .settlement-table-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .settlement-table-head span:nth-child(4),
+  .settlement-table-row > span:nth-child(4) {
+    display: none;
+  }
+
+  .utr-chip {
+    justify-self: end;
+  }
+
+  .settlement-detail-panel {
+    padding: 18px;
+  }
+
+  .deduction-waterfall > div {
+    grid-template-columns: 1fr;
   }
 }
