@@ -35,3 +35,25 @@ calendar. It is distinct from the operational case SLA.
 A successful payment with no supplied settlement row after its persisted
 expected-settlement timestamp. Only this state promotes a missing-settlement
 record into an operations case.
+
+# Recurrence fingerprint
+
+A deterministic key composed of provider adapter, normalized payment mode,
+reconciliation status, and case origin. It excludes notes, comments, AI output,
+and other free text.
+
+# Remediation program
+
+An owned, target-dated control record promoted from a recurring-exception
+suggestion. It links baseline and future matching cases and retains append-only
+implementation and verification evidence.
+
+# Clean run
+
+A completed reconciliation run after implementation for the same provider and
+payment mode with zero exceptions matching the program fingerprint.
+
+# Verified remediation
+
+Administrator-attributed confirmation that the two latest qualifying runs were
+clean. It means observed absence, not a permanent provider fix.

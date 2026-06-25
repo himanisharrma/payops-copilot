@@ -347,9 +347,21 @@ compatibility with Razorpay, Cashfree, or PayU production signatures.
 a bank statement, provider attestation, accounting opinion, or regulatory
 sign-off.
 
-### After that: deepen payment operations
+### Completed operations depth: recurring-exception programs
 
-- Add recurring-exception root-cause programs and remediation ownership.
+- A deterministic four-field fingerprint identifies repeated actionable work
+  without reading notes, comments, AI output, or free text.
+- Three cases in the trailing 30 days create a ranked suggestion; an admin or
+  analyst must explicitly promote it.
+- Programs retain eligible ownership, targets, implementation evidence,
+  linked cases, and append-only lifecycle history.
+- Only an administrator may verify two subsequent clean runs or abandon a
+  program with an attributed reason.
+
+**Boundary:** verified means observed absence in two qualifying runs, not a
+permanent provider-side correction.
+
+### After that: deepen payment operations
 - Add a controlled escalation outbox for approved evidence packs.
 - Add configurable business calendars and outbound escalation notifications.
 

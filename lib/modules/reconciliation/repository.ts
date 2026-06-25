@@ -6,6 +6,7 @@ import type {
   RunSummary,
 } from "@/lib/types";
 import { isCaseActionable } from "@/lib/settlement-policy";
+import { linkProgramCasesForRun } from "@/lib/modules/remediation-programs/repository";
 
 export async function saveReconciliationRun(
   client: PoolClient,
@@ -97,6 +98,11 @@ export async function saveReconciliationRun(
         );
     }
   }
+  await linkProgramCasesForRun(
+    client,
+    metadata.organizationId,
+    runId,
+  );
 
   return {
     ...result,

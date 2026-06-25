@@ -189,6 +189,7 @@ The migration chain is append-only:
 | `015_settlement_control.sql` | Persisted settlement clocks, policy evidence, and case origin |
 | `016_webhook_trust_operations.sql` | Signature metadata, key-rotation evidence, and hash-only inbound attempt observability |
 | `017_reconciliation_close_control.sql` | Daily close periods, immutable versions, residual dispositions, maker-checker approval, and reopen evidence |
+| `018_recurring_exception_programs.sql` | Organization-scoped remediation programs, linked cases, implementation evidence, verification attribution, and append-only events |
 
 ## 4. Identity, organization, and roles
 
@@ -217,7 +218,7 @@ route handler -> domain policy/service -> domain repository -> lib/db.ts
 
 Current modules are reconciliation, cases, investigations, evaluations,
 payment workflows, provider events, notifications, insights, settlement
-control, close control, audit, and system health.
+control, close control, remediation programs, audit, and system health.
 This preserves one deployment
 while removing the central repository as a coupling point.
 
@@ -229,6 +230,20 @@ AI execution; and write audit evidence. Their API routes handle authentication,
 JSON parsing, and HTTP responses. `lib/api-errors.ts` centralizes access,
 domain-error, and generic service-error translation so each route uses the same
 transport behavior.
+
+## Recurring exception programs
+
+The remediation-program module fingerprints only persisted structured fields:
+`provider_id + normalized payment_mode + reconciliation_status + case_origin`.
+It never reads notes, comments, investigation output, or free text.
+Suggestions require three actionable cases in the trailing 30 days and are
+ranked by recurrence, deterministic exposure, SLA breaches, and recency.
+
+Promotion is explicit. Active and monitoring programs automatically link
+future matching cases and append program evidence. Administrator verification
+requires the two latest qualifying completed runs after implementation to have
+zero matching exceptions. This is observed absence in a bounded window, not
+proof that an external provider permanently fixed an issue.
 
 Case collaboration stays inside the cases module. Bulk assignment updates a
 bounded ID set in one transaction and verifies that every requested case
