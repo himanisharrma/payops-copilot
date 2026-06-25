@@ -5,6 +5,7 @@ import {
   FileSearch,
   Gauge,
   Landmark,
+  ReceiptText,
   Route,
   ShieldCheck,
   Waypoints,
@@ -25,6 +26,16 @@ const journey = [
   },
   {
     number: "02",
+    title: "Merchant settlement statement",
+    control: "Gross collections become merchant payable after deductions.",
+    lookFor:
+      "MDR, GST, refunds, chargebacks, holds, net settlement, UTR state, bank credit evidence, and linked cases.",
+    href: "/settlements",
+    cta: "Open settlements",
+    icon: ReceiptText,
+  },
+  {
+    number: "03",
     title: "Exception case",
     control: "Actionable differences become owned operational work.",
     lookFor:
@@ -34,7 +45,7 @@ const journey = [
     icon: FileSearch,
   },
   {
-    number: "03",
+    number: "04",
     title: "Settlement deadline evidence",
     control: "Aging is measured from the expected settlement time.",
     lookFor:
@@ -44,7 +55,7 @@ const journey = [
     icon: Gauge,
   },
   {
-    number: "04",
+    number: "05",
     title: "Signed webhook evidence",
     control: "Synthetic provider events are accepted only through the trust boundary.",
     lookFor:
@@ -55,7 +66,7 @@ const journey = [
     adminOnly: true,
   },
   {
-    number: "05",
+    number: "06",
     title: "Insights dashboard",
     control: "Managers see deterministic metrics, not analytics theatre.",
     lookFor:
@@ -65,7 +76,7 @@ const journey = [
     icon: BellRing,
   },
   {
-    number: "06",
+    number: "07",
     title: "Root-cause program verification",
     control: "Recurring exceptions become governed remediation programs.",
     lookFor:

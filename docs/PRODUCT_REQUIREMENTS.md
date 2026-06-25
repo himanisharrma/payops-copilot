@@ -21,13 +21,19 @@ gateway records. Existing work is slow, repetitive, and difficult to audit.
 A user can upload three CSV files and receive a transparent reconciliation
 report with provider mapping diagnostics, matched transactions, prioritized
 exceptions, row-level evidence, durable cases, SLA controls, bounded AI
-assistance, evaluation evidence, and separate refund and chargeback queues.
+assistance, evaluation evidence, separate refund and chargeback queues, and
+synthetic merchant settlement statement proof data.
 
 ## User story
 
 As a payment operations analyst, I can upload internal orders, gateway
 transactions, and settlement reports so that I can understand why expected and
 actual settlements differ.
+
+As a merchant operations manager, I can inspect a synthetic settlement
+statement that separates gross collections, deterministic deductions, net
+payable, UTR evidence, bank-credit mapping, and linked line-level cases so that
+the distinction between settlement and reconciliation is explicit.
 
 ## Acceptance criteria
 
@@ -111,6 +117,16 @@ actual settlements differ.
   altering the prior certificate.
 - Approved synthetic close certificates are downloadable by every
   organization-scoped role.
+- Merchant settlement statement proof data covers credited-with-UTR,
+  pending/scheduled, held, failed, partially credited, delayed credit, missing
+  UTR, duplicate UTR, amount mismatch, forward refund, forward chargeback, and
+  hold/release scenarios.
+- Merchant settlement statement seed data is idempotent under marker
+  `merchant-settlements-v1` and deletes/recreates only seed-owned settlement
+  batches, source evidence, and linked cases.
+- Settlement statement evidence is deterministic and persisted. It must never
+  imply live provider connectivity, bank-side confirmation, or payout
+  execution.
 - No real payment is initiated and no payment-provider credentials are
   collected.
 
@@ -132,6 +148,9 @@ actual settlements differ.
   attestation, or regulatory sign-off.
 - Using notes, comments, AI output, or free text to detect recurrence.
 - Treating two clean runs as proof of a permanent provider correction.
+- Moving split-settlement logic ahead of the normal merchant statement layer.
+- Treating statement seed data as production settlement delivery, provider
+  settlement success, or bank confirmation.
 
 ## Product principles
 
@@ -155,9 +174,12 @@ actual settlements differ.
 
 ## Next releases
 
-1. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
-2. Turn approved analyst corrections into governed synthetic regression cases.
-3. Add controlled evidence-pack escalation for remediation programs.
-4. Add configurable business calendars and outbound escalation notifications.
-5. Add production identity, managed secrets, incident response, observability,
+1. Complete Merchant Settlement Statements before split settlement: richer
+   statement exports, order/transaction/deduction detail proof surfaces,
+   Insights totals, Close Control rollups, and UTR-specific operations views.
+2. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
+3. Turn approved analyst corrections into governed synthetic regression cases.
+4. Add controlled evidence-pack escalation for remediation programs.
+5. Add configurable business calendars and outbound escalation notifications.
+6. Add production identity, managed secrets, incident response, observability,
    and retention controls.

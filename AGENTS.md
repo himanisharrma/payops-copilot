@@ -13,6 +13,93 @@ investigations, human review, and audit history.
 The product is a portfolio MVP. All demo data is synthetic. It must never imply
 that it connects to live payment providers or can move money.
 
+## Current product state
+
+The project has evolved from a basic reconciliation workspace into an
+operations-control portfolio product. Current shipped capabilities include:
+
+- deterministic three-file reconciliation for internal orders, gateway reports,
+  and bank settlements;
+- organization-scoped exception cases with owners, priorities, SLA state,
+  comments, audit history, and role-based access;
+- evidence and integrity controls, including persisted source evidence,
+  hash-only delivery records, signed synthetic provider events, idempotent
+  webhook ingestion, and operational timelines;
+- bounded AI investigation support with human review, reviewer disagreement
+  tracking, and explicit guardrails that prevent AI from becoming financial
+  truth;
+- settlement-control policies for provider/payment-mode cycles, Indian demo
+  business-calendar rules, expected settlement dates, overdue classification,
+  and evidence explaining the rule that produced each deadline;
+- manager-focused `/insights` metrics built from deterministic persisted
+  records, with URL-backed filters and drill-through into Operations;
+- recurring-exception remediation programs under `/root-causes`, including
+  deterministic fingerprints, explicit promotion, linked cases, lifecycle
+  events, owner controls, monitoring, and two-clean-run verification;
+- close-control, webhook-operations, quality/evaluation, runs, operations,
+  refunds/disputes, and guided `/demo-control-room` surfaces;
+- synthetic seeded history for demos, portfolio screenshots, and reviewer
+  walkthroughs;
+- a protected GitHub `main` branch, PR-based workflow, required `verify` and
+  GitGuardian checks, and production Vercel deployment at
+  `https://payops-copilot.vercel.app`.
+
+The homepage now includes a reviewer-oriented start path. New reviewers should
+begin at `/demo-control-room`, then inspect `/operations`, `/insights`, and
+`/root-causes`, and only then use the CSV reconciliation workspace.
+
+## Product direction
+
+The next strategic direction is to deepen PayOps into a merchant settlement
+trust engine, not just an exception-management tool. The important product
+distinction is:
+
+- **Settlement** moves or represents money owed to merchants, net of fees,
+  taxes, refunds, chargebacks, recoveries, holds, and adjustments.
+- **Reconciliation** proves every rupee by matching records across systems that
+  update at different times.
+
+Future work should help a merchant or payment-ops manager answer:
+
+```text
+Order → Transaction → Gross amount
+→ MDR / GST / refund / chargeback / recovery / hold
+→ Net settlement
+→ Settlement batch
+→ UTR
+→ Bank credit
+→ Evidence / Exception
+```
+
+Recommended next release: **Merchant Settlement Statements**.
+
+Build this module before split settlements:
+
+1. Add a merchant settlement ledger with settlement batches, settlement line
+   items, deductions, statuses, expected/actual settlement dates, UTRs, and bank
+   credit matching.
+2. Add a deduction engine for MDR/commission, GST, refunds, chargebacks,
+   recoveries, adjustments, rental/subscription deductions, and holds.
+3. Model forward deductions: refunds and chargebacks may net against future
+   settlements rather than clawing back the original payout.
+4. Add `/settlements` as the merchant-facing statement surface: gross collected,
+   deductions, net settled, UTR, settlement status, drill-down to transaction
+   and deduction evidence, and linked cases.
+5. Extend reconciliation and operations with UTR-specific exceptions: missing
+   UTR, UTR not found in bank statement, duplicate UTR, amount mismatch, failed
+   payout, held settlement, delayed credit, and retry exhausted.
+6. Add synthetic reports/API-style proof surfaces for settlement summary,
+   settlement detail, order detail, transaction detail, refund/deduction report,
+   and bank credit mapping.
+7. Feed settlement totals into Insights and Close Control: gross payments,
+   deductions, merchant payable, payouts sent, held amount, failed settlements,
+   and outstanding payable.
+
+Build split settlement only after the normal settlement statement layer is
+solid. Split settlement should eventually support platform/vendor shares,
+fee/tax splits, refund splits, and vendor settlement files, but it should not be
+the next foundation.
+
 ## Non-negotiable boundaries
 
 - Financial truth must come from deterministic TypeScript code and persisted
@@ -26,6 +113,15 @@ that it connects to live payment providers or can move money.
 - Mutations require `admin` or `analyst`; audit reads require `admin`.
 - Never commit credentials, real payment data, card data, bank data, or personal
   customer information.
+- Demo provider names, webhook behavior, calendar rules, and settlement policies
+  are synthetic. Do not imply PayOps is integrated with Paytm, Razorpay,
+  Cashfree, PayU, banks, card networks, or any live payment rail.
+- Do not claim settlement delivery success rates, provider-side outcomes, or
+  bank-side events unless they are directly measured in persisted synthetic
+  records.
+- If credentials or database URLs are pasted into chat, screenshots, logs, or
+  commits, treat them as compromised and rotate them before presenting the repo
+  as production-quality.
 
 ## Architecture map
 
@@ -34,8 +130,9 @@ that it connects to live payment providers or can move money.
 - `lib/reconciliation.ts`: deterministic normalization, matching, and arithmetic.
 - `lib/ai-investigator.ts`: bounded OpenAI and deterministic fallback paths.
 - `lib/modules/`: domain-owned backend repositories for reconciliation, cases,
-  investigations, evaluations, payment workflows, audit, and system health.
-  Services own validation and orchestration; repositories own SQL.
+  investigations, evaluations, payment workflows, provider events, insights,
+  settlement control, remediation programs, close control, audit, and system
+  health. Services own validation and orchestration; repositories own SQL.
 - `lib/db.ts`: shared PostgreSQL pool, query helper, and transaction boundary.
 - `lib/access.ts`: authentication and role checks.
 - `lib/sla.ts`: SLA policy and status calculation.
@@ -58,6 +155,9 @@ that it connects to live payment providers or can move money.
 7. Run the required checks before committing.
 8. Update every affected README, product document, architecture claim, demo
    instruction, measured count, and roadmap item in the same change.
+9. For portfolio-facing UX, optimize for a 90-second reviewer path before
+   optimizing for expert workflows. The app should always make the next click
+   obvious to a recruiter, fintech PM, or engineering reviewer.
 
 ## Required checks
 

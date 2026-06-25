@@ -358,6 +358,12 @@ export type ReconciliationCloseReadiness = {
   unresolvedCaseCount: number;
   unresolvedExposure: number;
   blockingCaseCount: number;
+  settlementPayable: number;
+  settlementDeductions: number;
+  settlementCredited: number;
+  settlementOutstanding: number;
+  settlementHeldAmount: number;
+  settlementFailedAmount: number;
   unresolvedCountThreshold: number;
   unresolvedAmountThreshold: number;
   ready: boolean;
@@ -649,6 +655,16 @@ export type InsightsDashboard = {
       date: string;
       linkedCases: number;
     }>;
+  };
+  merchantSettlements: {
+    grossCollected: number;
+    totalDeductions: number;
+    netPayable: number;
+    creditedAmount: number;
+    heldAmount: number;
+    failedAmount: number;
+    forwardDeductions: number;
+    utrMatchRate: number | null;
   };
 };
 

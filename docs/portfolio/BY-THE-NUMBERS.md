@@ -1,8 +1,8 @@
 # By the Numbers
 
 > Every implemented-project figure below was measured from the Operations
-> Root-Cause Programs working snapshot prepared on June 23, 2026. It is repository
-> evidence, not a production-performance claim.
+> Merchant Settlement Statements working snapshot prepared on June 25, 2026. It
+> is repository evidence, not a production-performance claim.
 
 ## Delivery
 
@@ -11,20 +11,20 @@
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
 | Product milestones | 21 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Root-Cause Programs | migration `018` |
-| Latest architecture milestone | Deterministic remediation lifecycle | Two-clean-run verification |
+| Latest product milestone | Merchant Settlement Statements seed evidence | seed marker `merchant-settlements-v1` |
+| Latest architecture milestone | Merchant settlement ledger foundation | migration `019` |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 185 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 21,232 | repository source file list piped to `wc -l` |
-| Next.js API route files | 27 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 18 | `db/migrations/` |
-| Automated test cases | 88 | 72 unit/policy plus 16 PostgreSQL integration tests |
+| Repository files | 200 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 23,635 | repository source file list piped to `wc -l` |
+| Next.js API route files | 30 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 19 | `db/migrations/` |
+| Automated test cases | 96 | 78 unit/policy plus 18 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
-| Product pages | 12 | Adds reviewer-focused `/demo-control-room` |
+| Product pages | 14 | Includes reviewer-focused `/demo-control-room` and merchant `/settlements` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
 | Baseline automated checks | 180 | 30 cases x 6 evaluation dimensions |
 | Persisted scenario rows per run | 7 | one summary for each evaluation scenario |
@@ -39,6 +39,9 @@
 | Seeded webhook attempts | 12 | accepted, previous-key, duplicate, rejected, conflict, and failed evidence |
 | Seeded close-control periods | 3 | approved, submitted, and reopened synthetic histories |
 | Seeded remediation programs | 4 | active, monitoring, verified, and abandoned synthetic histories |
+| Seeded merchant settlement lines | 12 | `merchant-settlements-v1` idempotent seed scenarios |
+| Seeded merchant settlement batches | 12 | one synthetic batch per statement scenario when migration `019` is present |
+| Seeded merchant settlement line-level cases | 8 | UTR, amount, held, failed, delayed, and hold-release review links |
 | Source snapshots in the standard 10-order demo | 27 | 10 order, 10 gateway, and 7 settlement rows |
 
 ## Product surface
@@ -50,8 +53,8 @@
 | Normalized provider event types | 6 typed event states in `lib/types.ts` |
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
-| Backend domain modules | 13 repositories under `lib/modules/` |
-| Domain service layers | 11, including close control and remediation programs |
+| Backend domain modules | 14 repositories under `lib/modules/` |
+| Domain service layers | 12, including merchant settlements, close control, and remediation programs |
 | Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
@@ -71,6 +74,9 @@
 | Case comment policy | attributed, append-only, 2,000-character maximum |
 | Settlement cycles | T+0, T+1, and T+2 fictional policies |
 | Settlement policy versions | `settlement-policy-v1` and `india-demo-calendar-v1` |
+| Merchant settlement seed marker | `merchant-settlements-v1` | deletes/recreates only seed-owned records |
+| Merchant statement UTR scenarios | 8 | matched, missing, not found/delayed, duplicate, mismatch, failed, held, not due |
+| Forward deduction scenarios | 2 | forward refund and forward chargeback |
 | Close-control states | open, submitted, approved, and reopened |
 | Close approval policy | preparer and administrator approver must be different users |
 | Recurrence threshold | 3 matching actionable cases in the trailing 30 days |
@@ -83,8 +89,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 14 test files, 72 tests passing
-npm run test:integration -> 8 test files, 16 tests passing
+npm test       -> 15 test files, 78 tests passing
+npm run test:integration -> 9 test files, 18 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -126,6 +132,10 @@ Browser verification also exercised:
 - shareable settlement filters, audited refresh, dual settlement/case clocks,
   policy evidence, provider timing performance, and 390px layouts without
   horizontal overflow.
+- merchant settlement statement seed coverage for credited, scheduled, held,
+  failed, partially credited, delayed credit, missing UTR, duplicate UTR,
+  amount mismatch, forward refund, forward chargeback, and hold/release
+  scenarios.
 - administrator webhook trust evidence, previous-key visibility, precise
   rejected-attempt codes, viewer denial, and a 390px layout without horizontal
   overflow.

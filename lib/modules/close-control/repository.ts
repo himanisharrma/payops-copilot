@@ -126,7 +126,39 @@ export async function getCloseReadiness(
       scope.paymentMode,
     ],
   );
+  const settlementResult = await execute<{
+    payable: string;
+    deductions: string;
+    credited: string;
+    outstanding: string;
+    held: string;
+    failed: string;
+  }>(
+    `SELECT
+       COALESCE(SUM(batch.net_amount), 0)::text AS payable,
+       COALESCE(SUM(batch.deduction_amount), 0)::text AS deductions,
+       COALESCE(SUM(batch.bank_credit_amount), 0)::text AS credited,
+       COALESCE(SUM(GREATEST(batch.net_amount - batch.bank_credit_amount, 0)), 0)::text AS outstanding,
+       COALESCE(SUM(batch.net_amount) FILTER (
+         WHERE batch.status = 'held'
+       ), 0)::text AS held,
+       COALESCE(SUM(batch.net_amount) FILTER (
+         WHERE batch.status = 'failed'
+       ), 0)::text AS failed
+     FROM merchant_settlement_batches batch
+     WHERE batch.organization_id = $1
+       AND (batch.expected_settlement_at AT TIME ZONE 'Asia/Kolkata')::date = $2::date
+       AND batch.provider_id = $3
+       AND LOWER(batch.payment_mode) = LOWER($4)`,
+    [
+      organizationId,
+      scope.businessDate,
+      scope.providerId,
+      scope.paymentMode,
+    ],
+  );
   const row = result.rows[0];
+  const settlement = settlementResult.rows[0];
   return withCloseReadiness({
     ...scope,
     runCount: Number(row.run_count),
@@ -137,6 +169,12 @@ export async function getCloseReadiness(
     unresolvedCaseCount: Number(row.unresolved_case_count),
     unresolvedExposure: Number(row.unresolved_exposure),
     blockingCaseCount: Number(row.blocking_case_count),
+    settlementPayable: Number(settlement.payable),
+    settlementDeductions: Number(settlement.deductions),
+    settlementCredited: Number(settlement.credited),
+    settlementOutstanding: Number(settlement.outstanding),
+    settlementHeldAmount: Number(settlement.held),
+    settlementFailedAmount: Number(settlement.failed),
     ...thresholds,
     unresolvedCases: unresolved.rows.map((item) => ({
       id: item.id,

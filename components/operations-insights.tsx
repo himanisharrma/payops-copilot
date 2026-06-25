@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   CircleGauge,
   DatabaseZap,
+  Banknote,
   GitBranch,
   ShieldCheck,
 } from "lucide-react";
@@ -448,6 +449,58 @@ export function OperationsInsights({
                   </Link>
                 ))}
               </div>
+            </article>
+
+            <article className="insights-panel settlement-insights-panel">
+              <header>
+                <div>
+                  <span>MERCHANT SETTLEMENTS</span>
+                  <h2>Gross-to-net payable evidence</h2>
+                </div>
+                <Banknote size={20} />
+              </header>
+              <div className="root-cause-insights-ledger">
+                <div>
+                  <span>Gross collected</span>
+                  <strong>{money(dashboard.merchantSettlements.grossCollected)}</strong>
+                </div>
+                <div>
+                  <span>Deductions</span>
+                  <strong>{money(dashboard.merchantSettlements.totalDeductions)}</strong>
+                </div>
+                <div>
+                  <span>Net payable</span>
+                  <strong>{money(dashboard.merchantSettlements.netPayable)}</strong>
+                </div>
+                <div>
+                  <span>Credited</span>
+                  <strong>{money(dashboard.merchantSettlements.creditedAmount)}</strong>
+                </div>
+                <div>
+                  <span>Held / failed</span>
+                  <strong>
+                    {money(
+                      dashboard.merchantSettlements.heldAmount +
+                        dashboard.merchantSettlements.failedAmount,
+                    )}
+                  </strong>
+                </div>
+                <div>
+                  <span>UTR match</span>
+                  <strong>
+                    {dashboard.merchantSettlements.utrMatchRate === null
+                      ? "Not enough data"
+                      : `${dashboard.merchantSettlements.utrMatchRate}%`}
+                  </strong>
+                </div>
+              </div>
+              <p className="settlement-insights-note">
+                Includes synthetic settlement batches only; no live bank or
+                payout integration is measured.
+              </p>
+              <Link className="root-cause-insights-link" href="/settlements">
+                Open settlement statements <ArrowRight size={14} />
+              </Link>
             </article>
 
             <article className="insights-panel governance-panel">
