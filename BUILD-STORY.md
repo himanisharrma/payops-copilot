@@ -473,6 +473,23 @@ verification evidence rail over a celebratory status badge.
 No language model groups or scores recurrence. “Verified” records observed
 absence across two qualifying runs, not proof of a permanent external fix.
 
+### From reconciliation control to merchant settlement trust
+
+The next product direction is Merchant Settlement Statements, not split
+settlement. The important distinction is that settlement explains the merchant
+payable path - gross collection, deductions, net amount, UTR, bank credit, and
+evidence - while reconciliation proves whether records agree across systems
+that update at different times.
+
+The first slice adds synthetic, idempotent seed evidence under
+`merchant-settlements-v1`: credited with UTR, pending/scheduled, held, failed,
+partially credited, delayed credit, missing UTR, duplicate UTR, amount
+mismatch, forward refund, forward chargeback, hold/release, and linked
+line-level cases.
+
+This is proof data for a portfolio MVP. It does not connect to live providers,
+move money, certify a bank credit, or claim settlement success rates.
+
 This is a portfolio MVP, not a production payment system. It has synthetic
 data, local credentials, a simple SLA calendar, and a focused test suite. It
 does not connect to provider APIs, claim production webhook compatibility,

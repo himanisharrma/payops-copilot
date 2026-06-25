@@ -49,6 +49,9 @@ Use it as the portfolio landing path when the reviewer has little time:
    operations queue.
 6. **Root-cause program verification** - show deterministic recurrence grouping
    and two clean-run verification.
+7. **Merchant settlement statements** - if the `/settlements` surface is in the
+   build, show gross-to-net deductions, UTR state, bank-credit mapping, and
+   linked line-level cases as synthetic evidence only.
 
 Recommended screenshots for portfolio review:
 
@@ -139,6 +142,14 @@ Open **Refunds & disputes**. Show that refunds and chargebacks have separate
 states, deadlines, evidence checklists, owners, and timelines. Explain that the
 application records operational decisions but has no provider integration that
 moves money.
+
+If available, open **Settlements**. Explain the product distinction:
+settlement is the merchant payable trail from gross collection through
+deductions, net payable, UTR, and bank credit evidence; reconciliation proves
+whether records from different systems agree. Show a credited statement, a
+missing-UTR or duplicate-UTR case link, and a forward refund/chargeback
+deduction. Say clearly that all records are fictional and no payout is
+executed.
 
 ### 4:05-4:30 - Show quality and accountability
 

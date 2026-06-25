@@ -361,8 +361,33 @@ sign-off.
 **Boundary:** verified means observed absence in two qualifying runs, not a
 permanent provider-side correction.
 
+### In progress: merchant settlement statements
+
+- The normal merchant settlement statement layer comes before split
+  settlement.
+- The ledger foundation tracks synthetic merchant accounts, settlement batches,
+  line items, deductions, bank credits, UTR classifications, linked cases, and
+  events.
+- The idempotent `merchant-settlements-v1` seed covers credited-with-UTR,
+  pending/scheduled, held, failed, partially credited, delayed credit, missing
+  UTR, duplicate UTR, amount mismatch, forward refund, forward chargeback, and
+  hold/release scenarios.
+- Forward refunds and chargebacks are modeled as deductions against later
+  payable batches rather than provider-side clawbacks.
+
+**Boundary:** these records are synthetic statement evidence. They do not
+prove live provider outcomes, bank-side events, payout success, or money
+movement.
+
 ### After that: deepen payment operations
+
 - Add a controlled escalation outbox for approved evidence packs.
+- Feed merchant settlement totals into Insights and Close Control: gross
+  payments, deductions, merchant payable, payouts sent, held amount, failed
+  settlements, and outstanding payable.
+- Add report-style proof surfaces for settlement summary, settlement detail,
+  order detail, transaction detail, refund/deduction reports, and bank-credit
+  mapping.
 - Add configurable business calendars and outbound escalation notifications.
 
 ### Then: production controls
@@ -377,6 +402,8 @@ permanent provider-side correction.
 ### Expansion options
 
 - Multi-merchant/provider workspaces.
+- Split settlement after the normal statement layer is solid: platform/vendor
+  shares, fee/tax splits, refund splits, and vendor settlement files.
 - Payout and reserve reconciliation.
 - Dispute evidence preparation.
 - Natural-language portfolio analytics over verified database queries.

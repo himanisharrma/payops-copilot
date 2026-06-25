@@ -8,12 +8,19 @@
 - **Gateway reference:** Identifier assigned to a transaction by the payment gateway.
 - **GST:** Goods and Services Tax, including tax applied to payment processing fees.
 - **MDR:** Merchant Discount Rate, the fee charged for processing a payment.
+- **Merchant settlement statement:** A merchant-facing view of gross
+  collections, deductions, net payable, UTRs, bank-credit mapping, evidence,
+  and exceptions for a settlement batch. In PayOps this is synthetic proof data
+  only and does not move money.
 - **Net settlement:** Amount transferred after fees, taxes, refunds, and adjustments.
 - **Payment aggregator:** Entity that provides merchants access to payment methods and settlement services.
 - **Refund:** Return of a captured payment amount to a customer. This project tracks the operational lifecycle but does not initiate the transfer.
 - **Representment:** A merchant or acquirer's evidence-backed response to a chargeback.
 - **Reconciliation:** Comparing records across systems to confirm that money and transaction states agree.
 - **Settlement:** Transfer of collected payment funds to the merchant's bank account.
+- **Split settlement:** Future platform/vendor distribution logic that divides
+  a collected payment across multiple parties. It comes after the normal
+  merchant settlement statement layer.
 - **SLA:** Service-level target used here to define when an operations case is due based on its priority.
 - **UPI:** Unified Payments Interface, India's real-time bank payment system.
 - **UTR:** Unique Transaction Reference used to identify a bank transfer.
@@ -29,6 +36,23 @@ PayOps demo policies are not live provider contracts.
 The deterministic deadline calculated from the payment timestamp, synthetic
 provider/payment-mode policy, IST cutoff, weekends, and fictional closure
 calendar. It is distinct from the operational case SLA.
+
+# Settlement versus reconciliation
+
+Settlement describes the merchant payable path: gross collected minus MDR,
+GST, refunds, chargebacks, recoveries, adjustments, holds, and releases, then
+net amount, settlement batch, UTR, and bank credit evidence.
+
+Reconciliation proves whether records agree across systems that update at
+different times: internal order, gateway transaction, settlement report, bank
+credit, and any resulting exception. PayOps keeps both deterministic and never
+lets AI become financial truth.
+
+# Forward deduction
+
+A refund or chargeback that is netted against a later settlement rather than
+clawed back from the original payout. The demo records these as synthetic
+deductions, not provider-side actions.
 
 # Settlement overdue
 

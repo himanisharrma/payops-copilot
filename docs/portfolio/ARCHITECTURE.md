@@ -190,6 +190,7 @@ The migration chain is append-only:
 | `016_webhook_trust_operations.sql` | Signature metadata, key-rotation evidence, and hash-only inbound attempt observability |
 | `017_reconciliation_close_control.sql` | Daily close periods, immutable versions, residual dispositions, maker-checker approval, and reopen evidence |
 | `018_recurring_exception_programs.sql` | Organization-scoped remediation programs, linked cases, implementation evidence, verification attribution, and append-only events |
+| `019_merchant_settlement_statements.sql` | Synthetic merchant accounts, settlement batches, line items, deductions, bank credits, case links, and timeline events |
 
 ## 4. Identity, organization, and roles
 
@@ -218,7 +219,8 @@ route handler -> domain policy/service -> domain repository -> lib/db.ts
 
 Current modules are reconciliation, cases, investigations, evaluations,
 payment workflows, provider events, notifications, insights, settlement
-control, close control, remediation programs, audit, and system health.
+control, merchant settlements, close control, remediation programs, audit, and
+system health.
 This preserves one deployment
 while removing the central repository as a coupling point.
 
@@ -275,6 +277,24 @@ Submission creates a new immutable JSON snapshot and SHA-256 hash. The
 preparer may be an analyst or administrator; approval requires a different
 administrator. Reopening records an attributed reason on the period but does
 not edit the approved version. A later submission creates the next version.
+
+Merchant Settlement Statements are the next settlement-trust layer above
+three-file reconciliation. The ledger models synthetic merchant accounts,
+settlement batches, line items, deductions, bank credits, UTR classifications,
+case links, and statement events. Seed marker `merchant-settlements-v1` creates
+credited, scheduled, held, failed, partial-credit, delayed-credit, missing-UTR,
+duplicate-UTR, amount-mismatch, forward-refund, forward-chargeback, and
+hold/release scenarios.
+
+This layer separates settlement from reconciliation:
+
+- settlement explains merchant payable math from gross collection to
+  deductions, net amount, UTR, and bank credit evidence;
+- reconciliation proves whether order, gateway, settlement, and bank records
+  agree across systems that update at different times.
+
+The data remains fictional. It is not provider-side confirmation, a bank
+statement, split-settlement execution, or money movement.
 
 ## 6. SLA as policy
 
@@ -403,6 +423,9 @@ provider-event records. The language model is not involved.
   key-rotation, provider, rejection, and attempt evidence.
 - `components/reconciliation-close-control.tsx`: daily readiness, materiality,
   residual-risk register, maker-checker chain, certificate, reopen, and history.
+- `components/merchant-settlement-statements.tsx`: read-only synthetic merchant
+  statement evidence for gross, deductions, net settlement, UTR state, bank
+  credit mapping, and linked cases.
 - `components/ui/`: shared search, evidence-ledger, and provider-event
   presentation primitives.
 - `components/cases/`: case queue and controlled-resolution components.
