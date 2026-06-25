@@ -1,21 +1,46 @@
 import Link from "next/link";
 import {
+  BookCheck,
   FileClock,
   FlaskConical,
+  ChartNoAxesCombined,
   History,
   ListChecks,
   LogOut,
   RotateCcw,
   Scale,
+  ShieldCheck,
 } from "lucide-react";
 import { auth, signOut } from "@/auth";
+import { NotificationCenter } from "@/components/notification-center";
+import { getOperationalNotifications } from "@/lib/modules/notifications/service";
 
 export async function AppHeader({
   active,
 }: {
-  active: "operations" | "payments" | "runs" | "quality" | "audit";
+  active:
+    | "operations"
+    | "payments"
+    | "runs"
+    | "insights"
+    | "quality"
+    | "close"
+    | "webhooks"
+    | "audit";
 }) {
   const session = await auth();
+  const actor = session?.user
+    ? {
+        id: session.user.id,
+        name: session.user.name ?? "Unknown user",
+        role: session.user.role,
+        organizationId: session.user.organizationId,
+        organizationName: session.user.organizationName,
+      }
+    : null;
+  const notifications = actor
+    ? await getOperationalNotifications(actor)
+    : [];
   return (
     <header className="topbar app-page-header">
       <Link className="brand" href="/" aria-label="PayOps Copilot home">
@@ -52,12 +77,35 @@ export async function AppHeader({
           Run history
         </Link>
         <Link
+          href="/insights"
+          className={`product-nav-link ${active === "insights" ? "active" : ""}`}
+        >
+          <ChartNoAxesCombined size={15} />
+          Insights
+        </Link>
+        <Link
+          href="/close-control"
+          className={`product-nav-link ${active === "close" ? "active" : ""}`}
+        >
+          <BookCheck size={15} />
+          Daily close
+        </Link>
+        <Link
           href="/quality"
           className={`product-nav-link ${active === "quality" ? "active" : ""}`}
         >
           <FlaskConical size={15} />
           AI quality
         </Link>
+        {session?.user.role === "admin" && (
+          <Link
+            href="/webhook-operations"
+            className={`product-nav-link ${active === "webhooks" ? "active" : ""}`}
+          >
+            <ShieldCheck size={15} />
+            Webhook trust
+          </Link>
+        )}
         {session?.user.role === "admin" && (
           <Link
             href="/audit"
@@ -69,6 +117,10 @@ export async function AppHeader({
         )}
       </nav>
       <div className="session-identity">
+        <NotificationCenter
+          initialNotifications={notifications}
+          canManage={actor?.role !== "viewer"}
+        />
         <span>
           <strong>{session?.user.organizationName}</strong>
           {session?.user.name} · {session?.user.role}

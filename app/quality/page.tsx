@@ -20,6 +20,11 @@ export default async function QualityPage() {
       <QualityLab
         initialRuns={runs}
         canRun={session.user.role !== "viewer"}
+        actor={{
+          id: session.user.id,
+          name: session.user.name ?? "Unknown user",
+          role: session.user.role,
+        }}
         baseline={baseline}
         scenarioResults={summarizeEvaluationScenarios(baseline.results)}
         openAIConfigured={Boolean(process.env.OPENAI_API_KEY)}

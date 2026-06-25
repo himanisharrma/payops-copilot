@@ -7,4 +7,11 @@ export default defineConfig({
       "@": fileURLToPath(new URL(".", import.meta.url)),
     },
   },
+  test: {
+    exclude: [
+      "**/*.integration.test.ts",
+      "**/node_modules/**",
+      "**/.git/**",
+    ],
+  },
 });

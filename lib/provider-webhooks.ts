@@ -174,6 +174,28 @@ export function providerEventsForEntity(entity: {
     );
 }
 
+export function mergeProviderEvents(
+  fixtureEvents: NormalizedProviderEvent[],
+  persistedEvents: NormalizedProviderEvent[],
+) {
+  const events = new Map<string, NormalizedProviderEvent>();
+  for (const providerEvent of [...fixtureEvents, ...persistedEvents]) {
+    const key = [
+      providerEvent.providerId,
+      providerEvent.eventType,
+      providerEvent.occurredAt,
+      providerEvent.orderId,
+      providerEvent.paymentReference,
+      providerEvent.externalReference,
+    ].join(":");
+    events.set(key, providerEvent);
+  }
+  return [...events.values()].sort(
+    (left, right) =>
+      new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime(),
+  );
+}
+
 function normalizeRazorpayWebhook(
   webhook: ProviderWebhookPayload,
 ): NormalizedProviderEvent {

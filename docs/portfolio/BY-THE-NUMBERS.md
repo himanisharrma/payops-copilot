@@ -1,30 +1,30 @@
 # By the Numbers
 
-> Every implemented-project figure below was measured from the AI-quality
-> working snapshot prepared on June 16, 2026. It is repository evidence, not a
-> production-performance claim.
+> Every implemented-project figure below was measured from the Operations
+> Reconciliation Close Control working snapshot prepared on June 22, 2026. It is repository
+> evidence, not a production-performance claim.
 
 ## Delivery
 
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
-| Product milestones | 10 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 20 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Refund and chargeback operations | commit `ae7cea0`, migration `009` |
-| Latest architecture milestone | Synthetic provider event timelines | `lib/provider-webhooks.ts` |
+| Latest product milestone | Reconciliation Close Control | migration `017` |
+| Latest architecture milestone | Immutable daily close versions | Maker-checker control book |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 110 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 7,679 | repository file list piped to `wc -l` |
-| Next.js API route files | 14 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 9 | `db/migrations/` |
-| Automated test cases | 33 | Vitest output |
+| Repository files | 175 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 18,478 | repository source file list piped to `wc -l` |
+| Next.js API route files | 25 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 17 | `db/migrations/` |
+| Automated test cases | 82 | 68 unit/policy plus 14 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
-| Product pages | 8 | Adds `/refunds-disputes` |
+| Product pages | 11 | Adds role-aware `/close-control` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
 | Baseline automated checks | 180 | 30 cases x 6 evaluation dimensions |
 | Persisted scenario rows per run | 7 | one summary for each evaluation scenario |
@@ -35,6 +35,10 @@
 | Payment lifecycle states | 11 | 5 refund and 6 chargeback states |
 | Synthetic provider adapters | 4 | generic, Razorpay-style, Cashfree-style, PayU-style |
 | Synthetic provider webhook fixtures | 10 | payment, settlement, refund, and chargeback events |
+| Signed synthetic webhook providers | 3 | Razorpay-style, Cashfree-style, and PayU-style demo routes |
+| Seeded webhook attempts | 12 | accepted, previous-key, duplicate, rejected, conflict, and failed evidence |
+| Seeded close-control periods | 3 | approved, submitted, and reopened synthetic histories |
+| Source snapshots in the standard 10-order demo | 27 | 10 order, 10 gateway, and 7 settlement rows |
 
 ## Product surface
 
@@ -45,8 +49,8 @@
 | Normalized provider event types | 6 typed event states in `lib/types.ts` |
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
-| Backend domain modules | 7 repositories under `lib/modules/` |
-| Domain service layers | 5: reconciliation, payment workflows, cases, evaluations, investigations |
+| Backend domain modules | 12 repositories under `lib/modules/` |
+| Domain service layers | 10: reconciliation, payment workflows, cases, evaluations, investigations, provider events, notifications, insights, settlement control, close control |
 | Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
@@ -55,6 +59,19 @@
 | Versioned AI inputs | dataset, prompt, provider, and model identifiers |
 | Evaluation authorization | admin/analyst run, all roles read within organization |
 | Review attribution | reviewer, timestamp, notes, and audit event |
+| Case resolution controls | durable evidence, reason, confirmation, resolver, timestamp |
+| Shared frontend primitives | search, evidence ledger, provider timeline, case queue, resolution control |
+| Evaluation reviewer slots | 2 independent reviewers per run |
+| Human review states | unreviewed, single, agreed, disputed, adjudicated |
+| Operational notification types | provider event, SLA at risk, SLA overdue |
+| Insights reporting windows | 7, 30, and 90 days |
+| Seeded fictional Insights history | 18 runs, 144 items, 59 cases, 8 signed evidence records |
+| Bulk assignment bound | 1-100 cases per atomic request |
+| Case comment policy | attributed, append-only, 2,000-character maximum |
+| Settlement cycles | T+0, T+1, and T+2 fictional policies |
+| Settlement policy versions | `settlement-policy-v1` and `india-demo-calendar-v1` |
+| Close-control states | open, submitted, approved, and reopened |
+| Close approval policy | preparer and administrator approver must be different users |
 
 ## Quality evidence
 
@@ -62,7 +79,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 7 test files, 33 tests passing
+npm test       -> 13 test files, 68 tests passing
+npm run test:integration -> 7 test files, 14 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -89,6 +107,27 @@ Browser verification also exercised:
 - refund/chargeback mobile layout at 390px with no horizontal overflow;
 - a payment-workflow priority mutation through the service layer with matching
   PostgreSQL audit events.
+- forged, accepted, and duplicate synthetic webhook responses through the real
+  HTTP route;
+- persisted provider evidence in a refund timeline and audited notification
+  read state;
+- the notification evidence inbox at 390px with no horizontal overflow.
+- the manager Insights dashboard, shareable 7-day filter, exception drill-down,
+  direct case selection, and 390px layout without horizontal overflow;
+- fictional Insights seeding twice with stable seed-owned counts and preserved
+  user-created run counts.
+- viewer read-only access to the handoff ledger, admin bulk assignment,
+  attributed comment persistence after reload, and the dispatch rail at 390px
+  without horizontal overflow.
+- shareable settlement filters, audited refresh, dual settlement/case clocks,
+  policy evidence, provider timing performance, and 390px layouts without
+  horizontal overflow.
+- administrator webhook trust evidence, previous-key visibility, precise
+  rejected-attempt codes, viewer denial, and a 390px layout without horizontal
+  overflow.
+- daily close readiness and materiality, a real administrator approval,
+  certificate availability, viewer read-only behavior, immutable history, and
+  a 390px layout with `scrollWidth` equal to `clientWidth`.
 
 ## What is not measured
 

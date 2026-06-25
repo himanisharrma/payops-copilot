@@ -19,23 +19,29 @@ import {
   ShieldCheck,
   Sparkles,
   Upload,
-  X,
 } from "lucide-react";
 import Papa from "papaparse";
 import { useMemo, useState } from "react";
+import { ReconciliationEvidenceDrawer } from "@/components/reconciliation/evidence-drawer";
+import { OpsSearchField } from "@/components/ui/ops-search-field";
 import type {
   RawRecord,
   ProviderId,
   ReconciliationItem,
   ReconciliationResult,
   ReconciliationStatus,
+  SettlementTimingStatus,
 } from "@/lib/types";
 import { providerAdapters } from "@/lib/provider-adapters";
 
 type SourceKey = "orders" | "gateway" | "settlements";
 type UploadState = Record<SourceKey, RawRecord[]>;
 type FileNames = Record<SourceKey, string>;
-type FilterKey = "all" | "exceptions" | ReconciliationStatus;
+type FilterKey =
+  | "all"
+  | "exceptions"
+  | "monitored"
+  | ReconciliationStatus;
 
 const emptyUploads: UploadState = {
   orders: [],
@@ -77,6 +83,42 @@ const statusLabels: Record<ReconciliationStatus, string> = {
   duplicate: "Duplicate capture",
   pending: "Pending",
 };
+
+const settlementLabels: Record<SettlementTimingStatus, string> = {
+  not_due: "Within cycle",
+  due_today: "Due today",
+  overdue: "Overdue",
+  settled: "Settled",
+  timing_unavailable: "Timing unavailable",
+};
+
+function isActionable(item: ReconciliationItem) {
+  return (
+    !["matched", "pending"].includes(item.status) &&
+    !(
+      item.status === "missing_settlement" &&
+      item.settlementStatus !== "overdue"
+    )
+  );
+}
+
+function isMonitoredSettlement(item: ReconciliationItem) {
+  return (
+    item.status === "missing_settlement" &&
+    ["not_due", "due_today", "timing_unavailable"].includes(
+      item.settlementStatus,
+    )
+  );
+}
+
+function reconciliationLabel(item: ReconciliationItem) {
+  if (item.status !== "missing_settlement") return statusLabels[item.status];
+  if (item.settlementStatus === "overdue") return "Settlement overdue";
+  if (item.settlementStatus === "timing_unavailable") {
+    return "Settlement timing unavailable";
+  }
+  return "Settlement monitored";
+}
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat("en-IN", {
@@ -221,8 +263,8 @@ export function PayOpsWorkspace({
     return result.items.filter((item) => {
       const matchesFilter =
         filter === "all" ||
-        (filter === "exceptions" &&
-          !["matched", "pending"].includes(item.status)) ||
+        (filter === "exceptions" && isActionable(item)) ||
+        (filter === "monitored" && isMonitoredSettlement(item)) ||
         item.status === filter;
       const matchesQuery =
         !normalizedQuery ||
@@ -232,6 +274,34 @@ export function PayOpsWorkspace({
       return matchesFilter && matchesQuery;
     });
   }, [filter, query, result]);
+
+  const settlementControl = useMemo(() => {
+    if (!result) {
+      return {
+        actionableValue: 0,
+        monitoredCount: 0,
+        monitoredValue: 0,
+      };
+    }
+
+    return result.items.reduce(
+      (totals, item) => {
+        if (isActionable(item)) {
+          totals.actionableValue += Math.abs(item.variance);
+        }
+        if (isMonitoredSettlement(item)) {
+          totals.monitoredCount += 1;
+          totals.monitoredValue += item.expectedNet ?? item.orderAmount;
+        }
+        return totals;
+      },
+      {
+        actionableValue: 0,
+        monitoredCount: 0,
+        monitoredValue: 0,
+      },
+    );
+  }, [result]);
 
   return (
     <main className="shell">
@@ -520,17 +590,29 @@ export function PayOpsWorkspace({
             </article>
             <article className="metric-card danger">
               <p>VALUE TO INVESTIGATE</p>
-              <strong>{formatMoney(result.summary.unmatchedValue)}</strong>
+              <strong>{formatMoney(settlementControl.actionableValue)}</strong>
               <span>{result.summary.exceptionCount} actionable exceptions</span>
             </article>
-            <article className="metric-card">
-              <p>CONTROL STATUS</p>
+            <article
+              className={`metric-card ${
+                settlementControl.monitoredCount ? "monitoring" : ""
+              }`}
+            >
+              <p>SETTLEMENT CONTROL</p>
               <strong className="status-copy">
-                {result.summary.exceptionCount ? "REVIEW" : "CLEAR"}
+                {settlementControl.monitoredCount
+                  ? `${settlementControl.monitoredCount} MONITORED`
+                  : result.summary.exceptionCount
+                    ? "REVIEW"
+                    : "CLEAR"}
               </strong>
               <span>
-                {result.summary.exceptionCount
-                  ? "Human action required"
+                {settlementControl.monitoredCount
+                  ? `${formatMoney(
+                      settlementControl.monitoredValue,
+                    )} is within cycle or lacks timing evidence`
+                  : result.summary.exceptionCount
+                    ? "Human action required"
                   : "No exceptions found"}
               </span>
             </article>
@@ -542,6 +624,7 @@ export function PayOpsWorkspace({
                 {[
                   ["all", "All"],
                   ["exceptions", "Exceptions"],
+                  ["monitored", "Monitored"],
                   ["matched", "Matched"],
                   ["pending", "Pending"],
                 ].map(([value, label]) => (
@@ -554,18 +637,18 @@ export function PayOpsWorkspace({
                     {value === "exceptions" && (
                       <span>{result.summary.exceptionCount}</span>
                     )}
+                    {value === "monitored" && (
+                      <span>{settlementControl.monitoredCount}</span>
+                    )}
                   </button>
                 ))}
               </div>
-              <label className="search-box">
-                <Search size={16} />
-                <span className="sr-only">Search transactions</span>
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search order or reference"
-                />
-              </label>
+              <OpsSearchField
+                label="Search transactions"
+                value={query}
+                onChange={setQuery}
+                placeholder="Search order or reference"
+              />
               <button className="filter-button" title="More filters">
                 <Filter size={16} /> Filters
               </button>
@@ -590,13 +673,36 @@ export function PayOpsWorkspace({
                     <tr
                       key={item.orderId}
                       onClick={() => setSelected(item)}
-                      className={item.status !== "matched" ? "has-issue" : ""}
+                      className={
+                        isActionable(item)
+                          ? "has-issue"
+                          : isMonitoredSettlement(item)
+                            ? "is-monitored"
+                            : ""
+                      }
                     >
                       <td>
-                        <span className={`status-pill ${item.status}`}>
-                          <i />
-                          {statusLabels[item.status]}
-                        </span>
+                        <div className="reconciliation-status-stack">
+                          <span
+                            className={`status-pill ${item.status} ${
+                              isMonitoredSettlement(item) ? "monitored" : ""
+                            }`}
+                          >
+                            <i />
+                            {reconciliationLabel(item)}
+                          </span>
+                          {item.status === "missing_settlement" && (
+                            <span
+                              className={`settlement-timing-pill ${item.settlementStatus}`}
+                            >
+                              <Clock3 size={11} />
+                              {settlementLabels[item.settlementStatus]}
+                              {item.settlementCycle
+                                ? ` · ${item.settlementCycle}`
+                                : ""}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <strong className="mono">{item.orderId}</strong>
@@ -659,90 +765,11 @@ export function PayOpsWorkspace({
       </footer>
 
       {selected && (
-        <div
-          className="drawer-backdrop"
-          onClick={() => setSelected(null)}
-          role="presentation"
-        >
-          <aside
-            className="evidence-drawer"
-            aria-label={`Evidence for ${selected.orderId}`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              className="drawer-close"
-              onClick={() => setSelected(null)}
-              aria-label="Close evidence"
-            >
-              <X size={19} />
-            </button>
-            <p className="eyebrow">EXCEPTION EVIDENCE</p>
-            <div className={`drawer-icon ${selected.status}`}>
-              {selected.status === "matched" ? (
-                <BadgeCheck size={28} />
-              ) : selected.status === "pending" ? (
-                <Clock3 size={28} />
-              ) : (
-                <AlertTriangle size={28} />
-              )}
-            </div>
-            <h2>{selected.orderId}</h2>
-            <span className={`status-pill ${selected.status}`}>
-              <i />
-              {statusLabels[selected.status]}
-            </span>
-            <p className="drawer-summary">{selected.summary}</p>
-
-            <div className="money-trail">
-              <div>
-                <span>ORDER</span>
-                <strong>{formatMoney(selected.orderAmount)}</strong>
-              </div>
-              <ArrowRight size={17} />
-              <div>
-                <span>EXPECTED</span>
-                <strong>
-                  {selected.expectedNet === null
-                    ? "—"
-                    : formatMoney(selected.expectedNet)}
-                </strong>
-              </div>
-              <ArrowRight size={17} />
-              <div>
-                <span>SETTLED</span>
-                <strong>
-                  {selected.settledAmount === null
-                    ? "—"
-                    : formatMoney(selected.settledAmount)}
-                </strong>
-              </div>
-            </div>
-
-            <div className="evidence-list">
-              <p>EVIDENCE TRAIL</p>
-              {selected.evidence.map((evidence, index) => (
-                <div key={evidence}>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <p>{evidence}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="suggested-action">
-              <Sparkles size={18} />
-              <div>
-                <span>SUGGESTED NEXT STEP</span>
-                <p>
-                  {selected.status === "matched"
-                    ? "No action needed. Keep this transaction in the audit record."
-                    : selected.status === "pending"
-                      ? "Wait for the gateway status to become final, then run reconciliation again."
-                      : "Confirm the source row with the payment provider before changing any financial record."}
-                </p>
-              </div>
-            </div>
-          </aside>
-        </div>
+        <ReconciliationEvidenceDrawer
+          selected={selected}
+          onClose={() => setSelected(null)}
+          formatMoney={formatMoney}
+        />
       )}
     </main>
   );

@@ -10,12 +10,13 @@ import {
   FileCheck2,
   LoaderCircle,
   RotateCcw,
-  Search,
   ShieldAlert,
   UserRound,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { OpsSearchField } from "@/components/ui/ops-search-field";
+import { ProviderEventTimeline } from "@/components/ui/provider-event-timeline";
 import {
   checklistProgress,
   terminalWorkflowStatuses,
@@ -227,15 +228,13 @@ export function PaymentLifecycle({ canEdit }: { canEdit: boolean }) {
                 </button>
               ))}
             </div>
-            <label className="search-box">
-              <Search size={15} />
-              <span className="sr-only">Search payment workflows</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search reference, order or owner"
-              />
-            </label>
+            <OpsSearchField
+              label="Search payment workflows"
+              value={query}
+              onChange={setQuery}
+              placeholder="Search reference, order or owner"
+              iconSize={15}
+            />
           </div>
 
           {error && <div className="error-banner">{error}</div>}
@@ -443,41 +442,12 @@ export function PaymentLifecycle({ canEdit }: { canEdit: boolean }) {
                 />
               </label>
 
-              <section className="provider-event-panel">
-                <div className="timeline-heading">
-                  <span>SYNTHETIC PROVIDER EVENTS</span>
-                  <small>{selected.providerEvents?.length ?? 0} events</small>
-                </div>
-                {selected.providerEvents?.length ? (
-                  selected.providerEvents.map((event) => (
-                    <article key={event.id}>
-                      <i />
-                      <div>
-                        <strong>{event.title}</strong>
-                        <p>
-                          {event.externalReference ?? event.paymentReference} ·{" "}
-                          {dateTime(event.occurredAt)}
-                        </p>
-                        <dl>
-                          <div>
-                            <dt>Proves</dt>
-                            <dd>{event.proves}</dd>
-                          </div>
-                          <div>
-                            <dt>Does not prove</dt>
-                            <dd>{event.doesNotProve}</dd>
-                          </div>
-                        </dl>
-                      </div>
-                    </article>
-                  ))
-                ) : (
-                  <div className="provider-event-empty">
-                    <AlertTriangle size={15} />
-                    No synthetic provider event matched this workflow.
-                  </div>
-                )}
-              </section>
+              <ProviderEventTimeline
+                events={selected.providerEvents}
+                emptyMessage="No synthetic provider event matched this workflow."
+                formatDateTime={dateTime}
+                preferReference="external"
+              />
 
               <section className="workflow-timeline">
                 <div className="timeline-heading">

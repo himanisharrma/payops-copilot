@@ -1,6 +1,10 @@
 import { query, transaction } from "@/lib/db";
 import { terminalWorkflowStatuses } from "@/lib/payment-workflow";
-import { providerEventsForEntity } from "@/lib/provider-webhooks";
+import {
+  mergeProviderEvents,
+  providerEventsForEntity,
+} from "@/lib/provider-webhooks";
+import { listPersistedProviderEvents } from "@/lib/modules/provider-events/repository";
 import type {
   PaymentWorkflow,
   PaymentWorkflowStatus,
@@ -60,6 +64,8 @@ export async function listPaymentWorkflows(
        workflow.created_at DESC`,
     [organizationId],
   );
+  const persistedProviderEvents =
+    await listPersistedProviderEvents(organizationId);
 
   return result.rows.map((row) => ({
     id: row.id,
@@ -79,11 +85,19 @@ export async function listPaymentWorkflows(
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     events: row.events,
-    providerEvents: providerEventsForEntity({
-      orderId: row.order_id,
-      paymentReference: row.payment_reference,
-      externalReference: row.external_reference,
-    }),
+    providerEvents: mergeProviderEvents(
+      providerEventsForEntity({
+        orderId: row.order_id,
+        paymentReference: row.payment_reference,
+        externalReference: row.external_reference,
+      }),
+      persistedProviderEvents.filter(
+        (providerEvent) =>
+          providerEvent.orderId === row.order_id ||
+          providerEvent.paymentReference === row.payment_reference ||
+          providerEvent.externalReference === row.external_reference,
+      ),
+    ),
   }));
 }
 

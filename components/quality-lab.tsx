@@ -35,12 +35,18 @@ const scenarioLabels = {
 export function QualityLab({
   initialRuns,
   canRun,
+  actor,
   baseline,
   scenarioResults,
   openAIConfigured,
 }: {
   initialRuns: EvaluationRun[];
   canRun: boolean;
+  actor: {
+    id: string;
+    name: string;
+    role: "admin" | "analyst" | "viewer";
+  };
   baseline: {
     datasetVersion: string;
     promptVersion: string;
@@ -62,6 +68,8 @@ export function QualityLab({
   >(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [savingReview, setSavingReview] = useState(false);
+  const [savingAdjudication, setSavingAdjudication] = useState(false);
+  const [claimingSlot, setClaimingSlot] = useState(false);
   const [selectedRun, setSelectedRun] = useState<EvaluationRunDetail | null>(
     null,
   );
@@ -101,8 +109,17 @@ export function QualityLab({
 
   function selectCase(result: EvaluationCaseResult) {
     setSelectedCase(result);
-    setScores(result.reviewScores);
-    setReviewNotes(result.reviewerNotes);
+    const actorReview = result.reviews.find(
+      (review) => review.reviewerUserId === actor.id,
+    );
+    const effectiveScores =
+      result.adjudication?.scores ?? actorReview?.scores ?? result.reviewScores;
+    setScores(effectiveScores);
+    setReviewNotes(
+      result.adjudication?.notes ??
+        actorReview?.notes ??
+        result.reviewerNotes,
+    );
   }
 
   async function openRun(id: string) {
@@ -116,8 +133,7 @@ export function QualityLab({
       const firstCase = payload.run.cases[0] ?? null;
       setSelectedCase(firstCase);
       if (firstCase) {
-        setScores(firstCase.reviewScores);
-        setReviewNotes(firstCase.reviewerNotes);
+        selectCase(firstCase);
       }
     } catch (caught) {
       setError(
@@ -159,9 +175,76 @@ export function QualityLab({
     }
   }
 
+  async function claimReviewerSlot() {
+    if (!selectedRun) return;
+    setClaimingSlot(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/evaluations/${selectedRun.id}`, {
+        method: "PATCH",
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setSelectedRun(payload.run);
+      const updated = payload.run.cases.find(
+        (item: EvaluationCaseResult) => item.id === selectedCase?.id,
+      );
+      if (updated) selectCase(updated);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Reviewer slot could not be claimed.",
+      );
+    } finally {
+      setClaimingSlot(false);
+    }
+  }
+
+  async function saveAdjudication() {
+    if (!selectedRun || !selectedCase) return;
+    setSavingAdjudication(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/evaluations/${selectedRun.id}/cases/${selectedCase.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "adjudicate",
+            scores,
+            notes: reviewNotes,
+          }),
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setSelectedRun(payload.run);
+      const updated = payload.run.cases.find(
+        (item: EvaluationCaseResult) => item.id === selectedCase.id,
+      );
+      if (updated) selectCase(updated);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Adjudication could not be saved.",
+      );
+    } finally {
+      setSavingAdjudication(false);
+    }
+  }
+
   const reviewComplete = Object.values(scores).every(
     (score) => typeof score === "number",
   );
+  const currentAssignment = selectedRun?.reviewerAssignments.find(
+    (assignment) => assignment.reviewerUserId === actor.id,
+  );
+  const canScoreSelected =
+    Boolean(currentAssignment) ||
+    (actor.role === "admin" && selectedCase?.reviews.length === 2);
 
   return (
     <>
@@ -430,6 +513,26 @@ export function QualityLab({
                   results available
                 </p>
               </div>
+              <div className="review-summary-strip">
+                <span>
+                  REVIEWERS
+                  <strong>{selectedRun.humanSummary.assignedReviewers}/2</strong>
+                </span>
+                <span>
+                  DOUBLE REVIEWED
+                  <strong>{selectedRun.humanSummary.doubleReviewedCases}</strong>
+                </span>
+                <span>
+                  DISPUTED
+                  <strong>{selectedRun.humanSummary.disputedCases}</strong>
+                </span>
+                <span>
+                  HUMAN AVG
+                  <strong>
+                    {selectedRun.humanSummary.averageScore ?? "—"}/12
+                  </strong>
+                </span>
+              </div>
               <button
                 aria-label="Close review workspace"
                 onClick={() => {
@@ -439,6 +542,37 @@ export function QualityLab({
               >
                 <X size={18} />
               </button>
+            </div>
+
+            <div className="reviewer-assignment-bar">
+              {[1, 2].map((slot) => {
+                const assignment = selectedRun.reviewerAssignments.find(
+                  (item) => item.slot === slot,
+                );
+                return (
+                  <div key={slot}>
+                    <span>REVIEWER {slot}</span>
+                    <strong>{assignment?.reviewerName ?? "Unassigned"}</strong>
+                  </div>
+                );
+              })}
+              {!currentAssignment &&
+                selectedRun.reviewerAssignments.length < 2 &&
+                canRun && (
+                  <button onClick={claimReviewerSlot} disabled={claimingSlot}>
+                    {claimingSlot ? (
+                      <LoaderCircle className="spin" size={15} />
+                    ) : (
+                      <ClipboardCheck size={15} />
+                    )}
+                    Claim reviewer slot
+                  </button>
+                )}
+              {currentAssignment && (
+                <small>
+                  You are reviewer {currentAssignment.slot} for this run.
+                </small>
+              )}
             </div>
 
             {selectedRun.cases.length ? (
@@ -453,7 +587,7 @@ export function QualityLab({
                       <span>{scenarioLabels[result.scenario]}</span>
                       <strong>{result.caseKey}</strong>
                       <small>
-                        {result.reviewedAt ? "HUMAN REVIEWED" : "PENDING REVIEW"}
+                        {result.reviewStatus.replaceAll("_", " ")}
                       </small>
                       <ChevronRight size={15} />
                     </button>
@@ -541,6 +675,40 @@ export function QualityLab({
                       </section>
                     </div>
 
+                    {selectedCase.reviews.length > 0 && (
+                      <div className="review-comparison">
+                        <div className="review-rubric-heading">
+                          <Eye size={20} />
+                          <div>
+                            <span>INDEPENDENT REVIEWS</span>
+                            <strong>
+                              {selectedCase.reviewStatus.replaceAll("_", " ")}
+                            </strong>
+                          </div>
+                        </div>
+                        <div>
+                          {selectedCase.reviews.map((review) => (
+                            <article key={review.id}>
+                              <span>REVIEWER {review.reviewerSlot}</span>
+                              <strong>{review.reviewerName}</strong>
+                              <b>{review.totalScore}/12</b>
+                              <p>{review.notes || "No reviewer notes."}</p>
+                            </article>
+                          ))}
+                        </div>
+                        {selectedCase.adjudication && (
+                          <aside>
+                            <span>ADJUDICATED RESULT</span>
+                            <strong>
+                              {selectedCase.adjudication.totalScore}/12 by{" "}
+                              {selectedCase.adjudication.adjudicatedByName}
+                            </strong>
+                            <p>{selectedCase.adjudication.notes}</p>
+                          </aside>
+                        )}
+                      </div>
+                    )}
+
                     <div className="review-rubric">
                       <div className="review-rubric-heading">
                         <ClipboardCheck size={20} />
@@ -573,7 +741,7 @@ export function QualityLab({
                                     [key]: score,
                                   }))
                                 }
-                                disabled={!canRun}
+                                disabled={!canRun || !canScoreSelected}
                               >
                                 {score}
                               </button>
@@ -587,18 +755,26 @@ export function QualityLab({
                           value={reviewNotes}
                           onChange={(event) => setReviewNotes(event.target.value)}
                           placeholder="Explain corrections, risks, or why this output is acceptable."
-                          disabled={!canRun}
+                          disabled={!canRun || !canScoreSelected}
                         />
                       </label>
                       <div className="review-save-row">
                         <span>
-                          {selectedCase.reviewedAt
-                            ? `Last reviewed by ${selectedCase.reviewedByName}`
-                            : "No human review saved"}
+                          {currentAssignment
+                            ? `Saving as reviewer ${currentAssignment.slot}`
+                            : actor.role === "admin" &&
+                                selectedCase.reviews.length === 2
+                              ? "Administrator adjudication"
+                              : "Claim a reviewer slot to score this case"}
                         </span>
                         <button
                           onClick={saveReview}
-                          disabled={!canRun || !reviewComplete || savingReview}
+                          disabled={
+                            !canRun ||
+                            !currentAssignment ||
+                            !reviewComplete ||
+                            savingReview
+                          }
                         >
                           {savingReview ? (
                             <LoaderCircle className="spin" size={16} />
@@ -607,6 +783,23 @@ export function QualityLab({
                           )}
                           Save human review
                         </button>
+                        {actor.role === "admin" &&
+                          selectedCase.reviews.length === 2 && (
+                            <button
+                              className="adjudicate-button"
+                              onClick={saveAdjudication}
+                              disabled={
+                                !reviewComplete || savingAdjudication
+                              }
+                            >
+                              {savingAdjudication ? (
+                                <LoaderCircle className="spin" size={16} />
+                              ) : (
+                                <ShieldCheck size={16} />
+                              )}
+                              Save adjudication
+                            </button>
+                          )}
                       </div>
                     </div>
                   </div>

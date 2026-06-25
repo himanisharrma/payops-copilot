@@ -163,7 +163,7 @@ portfolio must stay credential-free and safe to clone.
 **Cost accepted:** the adapters demonstrate extensibility and data-quality
 controls, not production export compatibility.
 
-### ADR-14: Synthetic webhook fixtures before inbound webhooks
+### ADR-14: Synthetic fixtures before signed inbound delivery
 
 **Chose:** local provider webhook fixtures normalized into case and workflow
 timelines.
@@ -173,31 +173,185 @@ timelines.
 **Why:** event timelines are important to payment operations, but a public
 portfolio should not simulate live provider connectivity or signature trust.
 
-**Cost accepted:** the timeline proves the internal event model and UX, not
-delivery reliability, idempotency, or signature verification.
+**Cost accepted:** the first slice proved the internal event model and UX before
+delivery reliability and trust controls were added.
+
+### ADR-15: A signed synthetic boundary before production connectivity
+
+**Chose:** one environment-managed demo signing key, exact-body HMAC
+verification, tenant/provider/event idempotency, normalized-event persistence,
+and hash-only delivery evidence.
+
+**Over:** storing raw payloads, provider credentials, or claiming compatibility
+with a production provider signature scheme.
+
+**Why:** the portfolio can now demonstrate the security and replay boundaries
+of inbound events without pretending to operate a live payment integration.
+
+**Cost accepted:** real deployment still needs provider-certified
+verification, managed secret rotation, production telemetry, retention policy,
+and incident response.
+
+### ADR-16: Synthetic key rotation evidence before managed secrets
+
+**Chose:** fictional provider-specific canonical strings, active and previous
+environment-managed keys, hash-only attempt records, and an administrator trust
+ledger.
+
+**Over:** copying production provider signature schemes or presenting local
+attempt outcomes as a reliability SLA.
+
+**Why:** rotation behavior, replay boundaries, and rejection evidence can be
+demonstrated safely without credentials or live connectivity.
+
+**Cost accepted:** production deployment still needs a managed secrets system,
+provider-certified contracts, retention policy, alerting, and incident
+response.
+
+### ADR-17: A signed operational close over another analytics dashboard
+
+**Chose:** deterministic daily readiness, explicit materiality, residual-risk
+dispositions, immutable versions, and analyst/administrator maker-checker.
+
+**Over:** a mutable “closed” flag or a report that merely summarizes match
+rate.
+
+**Why:** payment operations need a defensible finish line: what was reviewed,
+which risks remained, who prepared it, and who independently approved it.
+
+**Cost accepted:** this portfolio policy is intentionally simple and still
+needs configurable legal entities, accounting periods, and production control
+ownership before real deployment.
 
 ## Roadmap
 
-### Now: produce model-quality evidence
+### Completed foundation: automate release confidence
+
+- GitHub Actions now runs migration verification, lint, 68 unit/policy tests,
+  fourteen PostgreSQL-backed integration tests, production build, and diff checks.
+- Organization isolation tests cover scoped reads, blocked cross-tenant writes,
+  database tenant constraints, and mutation/audit rollback.
+- Authorization tests cover administrator, analyst, viewer, and unauthenticated
+  behavior for reads, mutations, and audit access.
+
+The evidence-integrity release now persists hashed source-row snapshots,
+enforces tenant relationships across reconciliation records, and requires an
+attributed evidence-backed case resolution.
+
+### Completed foundation: extract the frontend system
+
+- Shared operations-console primitives now own queue search, source-evidence
+  ledgers, and provider-event timelines.
+- Case queue and controlled-resolution UI are workflow-owned components.
+- The reconciliation evidence drawer is isolated from upload and matching state.
+- The visual direction, responsive rules, and evidence-rail differentiator are
+  documented in `DESIGN-SYSTEM.md`.
+
+### Completed foundation: governed model-quality review
+
+- Two distinct reviewers can claim run-level assignments and save independent
+  six-dimension scores without overwriting each other.
+- Case results classify review state as unreviewed, single review, agreed,
+  disputed, or adjudicated.
+- Administrators can record a final adjudication after two reviews.
+- Run details calculate assigned reviewers, reviewed cases, disagreement counts,
+  adjudication counts, and aggregate human score.
+
+### Completed foundation: signed events and operational signals
+
+- The synthetic provider endpoint verifies an HMAC over organization, external
+  event ID, and exact body before parsing.
+- Deliveries are idempotent and persist only a body hash plus normalized event.
+- Tenant-owned cases and payment workflows receive matching persisted evidence.
+- The header inbox surfaces provider events and deterministic SLA risk.
+- All roles can inspect signals; only administrators and analysts can mark them
+  read, with an audit event.
+
+### Completed foundation: operations intelligence
+
+- Manager-focused 7/30/90-day metrics compare throughput, match rate,
+  actionable exceptions, and median resolution with the preceding period.
+- Current queue health, SLA breach outcome, exception mix, aging, provider
+  performance, AI governance, and inbound evidence are deterministic SQL
+  aggregates.
+- URL-backed filters and chart drill-downs connect management signals to
+  underlying cases instead of creating a detached reporting surface.
+- The fictional demo-history seed is idempotent and deletes only records
+  carrying its explicit marker.
+
+### Next: complete measured model evidence
 
 - Configure a controlled API key and execute the implemented 30-case OpenAI run.
-- Add two-reviewer human scoring for grounding, uncertainty, and action quality.
-- Add reviewer assignment, disagreement resolution, and aggregate human scores.
+- Complete representative two-reviewer scoring rather than relying on the
+  workflow-verification cases.
 - Expand adversarial tests before changing the default model or instructions.
 - Turn approved analyst corrections into anonymized synthetic regression cases.
 
 The evaluation design and initial release thresholds are documented in
 [AI Model Evaluation](AI-MODEL-EVALUATION.md). Deterministic and guarded model
 execution are implemented; actual model evidence and representative
-two-reviewer scoring remain the next slice.
+representative scoring remain the next evidence-collection slice.
 
-### Next: deepen payment operations
+### Completed operations depth: case collaboration
 
-- Add inbound webhook ingestion, idempotency, signature verification, and
-  settlement-cycle metadata.
-- Add provider settlement-cycle fixtures behind the typed adapters.
-- Add bulk case assignment and operational comments.
-- Add configurable business calendars and escalation notifications.
+- Admins and analysts can mark up to 100 cases and assign or unassign the
+  selection in one transaction.
+- A missing or cross-organization case rejects the complete batch rather than
+  leaving a partial assignment.
+- Internal comments are attributed, append-only, organization-scoped, and
+  readable by viewers without exposing mutation controls.
+- Bulk assignment and comment creation write audit evidence in the same
+  transaction as the operational mutation.
+
+### Completed operations depth: settlement control
+
+- Provider and payment-mode cycle policies calculate expected settlement using
+  IST cutoffs, weekends, and versioned fictional closure dates.
+- Reconciliation keeps financial status separate from settlement timing, so a
+  missing settlement can remain monitored without becoming a premature case.
+- An organization-scoped refresh promotes newly overdue records exactly once
+  and writes an audit summary in the same transaction.
+- Provider performance separates on-time, late, overdue, and timing-ineligible
+  records without inventing dates for historical data.
+
+**Boundary:** the policies demonstrate product and engineering controls; they
+are not live provider contracts or an RBI settlement calendar.
+
+### Completed operations depth: webhook trust operations
+
+- Three fictional provider contracts use distinct canonical strings with
+  explicit version and key headers.
+- Active and previous keys support a bounded rotation window without storing
+  secrets or signatures.
+- Known-tenant attempts persist hash-only accepted, duplicate, rejected,
+  conflict, and failed evidence with precise failure codes.
+- The administrator trust ledger compares provider outcomes, previous-key
+  usage, and processing time while avoiding production reliability claims.
+
+**Boundary:** these contracts are synthetic and intentionally do not claim
+compatibility with Razorpay, Cashfree, or PayU production signatures.
+
+### Completed financial control: reconciliation close
+
+- A daily control book scopes readiness by organization, IST business date,
+  provider, and payment mode.
+- High-priority exceptions block close; lower-priority residuals require
+  materiality headroom and an evidence-confirmed disposition.
+- Submission freezes an immutable, hashed version instead of mutating the live
+  queue underneath an approval.
+- A different administrator approves the analyst-prepared version.
+- Controlled reopening preserves the approved certificate and creates room for
+  a later version.
+
+**Boundary:** the downloadable certificate is internal synthetic evidence, not
+a bank statement, provider attestation, accounting opinion, or regulatory
+sign-off.
+
+### After that: deepen payment operations
+
+- Add recurring-exception root-cause programs and remediation ownership.
+- Add a controlled escalation outbox for approved evidence packs.
+- Add configurable business calendars and outbound escalation notifications.
 
 ### Then: production controls
 
