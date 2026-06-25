@@ -143,6 +143,9 @@ mutate operations data; viewers cannot. Audit access is admin-only.
 - Daily reconciliation close controls with materiality, residual-risk
   dispositions, immutable snapshot hashes, independent administrator approval,
   controlled reopening, and synthetic certificates.
+- Deterministic recurrence detection and governed remediation programs with
+  explicit promotion, ownership, implementation evidence, automatic future
+  case linking, and administrator verification against two clean runs.
 - Role-aware login and organization-scoped APIs.
 - 4/24/72-hour SLA policy with at-risk, overdue, met, and breached states.
 - Historical run view and administrator audit ledger.
@@ -150,7 +153,7 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   six-score human review, latency, token metadata, and audit attribution.
 - Separate refund and chargeback queues with lifecycle transitions, ownership,
   deadlines, evidence gates, notes, and timelines.
-- A modular monolith backend with thin API routes, domain services, twelve
+- A modular monolith backend with thin API routes, domain services, thirteen
   repositories, and shared PostgreSQL infrastructure.
 
 ## Success metrics
@@ -168,6 +171,8 @@ metrics a real pilot should measure:
 | AI investigation approval rate | Usefulness with human oversight |
 | AI correction and rejection reasons | Input to the evaluation set |
 | Repeat exception rate by provider/status | Root-cause prioritization |
+| Recurring exposure under open programs | Remediation portfolio priority |
+| Verified programs with two clean runs | Evidence of observed improvement |
 
 ## What this project demonstrates
 

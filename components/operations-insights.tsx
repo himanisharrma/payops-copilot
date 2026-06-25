@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   CircleGauge,
   DatabaseZap,
+  GitBranch,
   ShieldCheck,
 } from "lucide-react";
 import { operationsDrilldown } from "@/lib/insights";
@@ -41,6 +42,12 @@ const money = (value: number) =>
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);
+
+const shortDate = (value: string) =>
+  new Date(value).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+  });
 
 function MetricDelta({
   metric,
@@ -480,6 +487,52 @@ export function OperationsInsights({
                   <p>No signed provider evidence in this period.</p>
                 )}
               </div>
+            </article>
+
+            <article className="insights-panel root-cause-insights-panel">
+              <header>
+                <div>
+                  <span>ROOT-CAUSE CONTROL</span>
+                  <h2>Recurring work converted into programs</h2>
+                </div>
+                <GitBranch size={20} />
+              </header>
+              <div className="root-cause-insights-ledger">
+                <div>
+                  <span>Open programs</span>
+                  <strong>{dashboard.rootCausePrograms.openPrograms}</strong>
+                </div>
+                <div>
+                  <span>Recurring exposure</span>
+                  <strong>{money(dashboard.rootCausePrograms.recurringExposure)}</strong>
+                </div>
+                <div>
+                  <span>Verified fixes</span>
+                  <strong>{dashboard.rootCausePrograms.verifiedFixes}</strong>
+                </div>
+              </div>
+              <div className="root-cause-mini-trend" aria-label="Linked recurring cases by day">
+                {dashboard.rootCausePrograms.recurrenceTrend.map((point) => {
+                  const max = Math.max(
+                    1,
+                    ...dashboard.rootCausePrograms.recurrenceTrend.map(
+                      (item) => item.linkedCases,
+                    ),
+                  );
+                  return (
+                    <i
+                      key={point.date}
+                      style={{
+                        height: `${Math.max(5, (point.linkedCases / max) * 100)}%`,
+                      }}
+                      title={`${shortDate(point.date)}: ${point.linkedCases} linked cases`}
+                    />
+                  );
+                })}
+              </div>
+              <Link className="root-cause-insights-link" href="/root-causes">
+                Open recurrence control board <ArrowRight size={14} />
+              </Link>
             </article>
           </section>
         </div>

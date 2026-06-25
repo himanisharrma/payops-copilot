@@ -30,6 +30,32 @@ legacy signed event endpoint. To demonstrate rotation evidence, copy the safe
 fictional `SYNTHETIC_WEBHOOK_KEYRING` shape from `.env.example`. Never reuse a
 real provider secret.
 
+## 90-second reviewer path
+
+Open **Control Room Demo Mode** at
+`http://127.0.0.1:4317/demo-control-room`.
+
+Use it as the portfolio landing path when the reviewer has little time:
+
+1. **Reconciliation run** - show that three synthetic reports become one
+   deterministic ledger.
+2. **Exception case** - show that actionable differences become owned work with
+   source evidence and SLA context.
+3. **Settlement deadline evidence** - show that expected dates come from a
+   fictional settlement-cycle policy and India demo calendar.
+4. **Signed webhook evidence** - as an administrator, show accepted and rejected
+   synthetic provider attempts without raw payload retention.
+5. **Insights dashboard** - show manager KPIs and drill-through into the
+   operations queue.
+6. **Root-cause program verification** - show deterministic recurrence grouping
+   and two clean-run verification.
+
+Recommended screenshots for portfolio review:
+
+- `docs/portfolio/assets/root-cause-control-board.png`
+- `docs/portfolio/assets/settlement-evidence-workflow.png`
+- `docs/portfolio/assets/payops-architecture-proof.png`
+
 ## Five-minute script
 
 ### 0:00-0:40 - Frame the problem
@@ -130,6 +156,12 @@ submitted period: the analyst is the maker and a different administrator is
 the checker. Approve it, download the JSON certificate, and explain that its
 snapshot hash remains unchanged even if the period is later reopened.
 
+Open **Root causes**. Show the ranked detection queue and explain that its
+fingerprint uses only provider, payment mode, exception status, and case
+origin. Promote a suggestion, then open a seeded monitoring program. Use the
+linked-case drill-through and two-clean-run rail to distinguish implementing a
+fix from administrator verification. Do not call verification permanent proof.
+
 Open **Quality** and show the versioned 30-case baseline, persisted run history,
 case-level evidence, and six-score human rubric. Do not claim OpenAI model
 quality: no paid model run completed in this repository snapshot.
@@ -183,6 +215,8 @@ Close with:
 | Administrator audit | `http://127.0.0.1:4317/audit` |
 | Webhook Trust Operations | `http://127.0.0.1:4317/webhook-operations` |
 | Daily Reconciliation Close | `http://127.0.0.1:4317/close-control` |
+| Recurrence Control Board | `http://127.0.0.1:4317/root-causes` |
+| Control Room Demo Mode | `http://127.0.0.1:4317/demo-control-room` |
 | Product summary | `http://127.0.0.1:4317/product-brief` |
 | Database health | `http://127.0.0.1:4317/api/health` |
 
@@ -198,6 +232,8 @@ Close with:
   delivery-success rate.
 - Do not describe the close certificate as a bank statement, provider
   attestation, accounting sign-off, or regulatory evidence.
+- Do not describe a verified remediation program as proof of a permanent
+  provider fix.
 - Do not claim measured analyst savings or AI accuracy.
 - Do not upload private company reports to the public portfolio instance.
 

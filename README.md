@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-82%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-88%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -10,7 +10,7 @@
 > payment teams. Deterministic code calculates the money; AI helps investigate
 > exceptions; humans retain decision authority.
 
-![PayOps operations inbox with SLA tracking](docs/portfolio/assets/operations-inbox.png)
+![PayOps root-cause control board](docs/portfolio/assets/root-cause-control-board.png)
 
 ## The headline
 
@@ -22,7 +22,7 @@
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
 | **Backend shape** | Modular monolith with thin routes, domain services, twelve repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 20 product milestones, 25 API routes, 17 migrations, and 82 unit/integration tests at the Reconciliation Close Control snapshot |
+| **Build evidence** | 21 product milestones, 27 API routes, 18 migrations, and 88 unit/integration tests at the Root-Cause Programs snapshot |
 
 ## Why this exists
 
@@ -49,6 +49,10 @@ to production gateways or move money.
   <tr>
     <td width="50%"><img src="docs/portfolio/assets/case-investigation.png" alt="Evidence-grounded AI investigation"/><br/><sub><b>Investigate</b> - generate a bounded draft that requires human review</sub></td>
     <td width="50%"><img src="docs/portfolio/assets/audit-ledger.png" alt="Administrator audit ledger"/><br/><sub><b>Audit</b> - record who performed important operational actions</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/portfolio/assets/settlement-evidence-workflow.png" alt="Settlement evidence and operations workflow"/><br/><sub><b>Control</b> - explain exactly which cycle and calendar rule produced the settlement deadline</sub></td>
+    <td width="50%"><img src="docs/portfolio/assets/root-cause-control-board.png" alt="Recurring exception control board"/><br/><sub><b>Improve</b> - turn recurring exceptions into governed remediation programs with two clean-run verification</sub></td>
   </tr>
 </table>
 
@@ -103,6 +107,11 @@ to production gateways or move money.
     snapshot with materiality controls, residual-risk dispositions,
     analyst/administrator maker-checker approval, controlled reopening, and a
     downloadable synthetic certificate.
+27. Detects recurring exception fingerprints from deterministic records,
+    promotes them into owned remediation programs, automatically links future
+    matching cases, and lets an administrator verify two subsequent clean runs.
+28. Adds a reviewer-focused Control Room Demo Mode that links the core
+    PayOps evidence journey into a 90-second synthetic portfolio walkthrough.
 
 ## The product judgment
 
@@ -207,6 +216,8 @@ For the five-minute walkthrough, use the
 | `GET` | `/api/notifications` | List organization-scoped provider and SLA signals |
 | `PATCH` | `/api/notifications/:id` | Mark a notification read as admin or analyst |
 | `GET` | `/api/insights` | Return deterministic organization-scoped operations metrics |
+| `GET/POST` | `/api/remediation-programs` | List recurrence suggestions and explicitly promote a governed program |
+| `GET/PATCH` | `/api/remediation-programs/:id` | Inspect evidence or manage the program lifecycle |
 | `GET` | `/api/health` | Check application and database health |
 
 The synthetic webhook route requires `x-payops-organization`,
@@ -233,7 +244,7 @@ attribution, residual-risk dispositions, reopen reasons, and hashes.
 npm run verify
 ```
 
-The verification command runs lint, 68 unit/policy tests, fourteen PostgreSQL-backed
+The verification command runs lint, 72 unit/policy tests, sixteen PostgreSQL-backed
 integration tests, a production build, and `git diff --check`. GitHub
 Actions runs the same command against a clean PostgreSQL 17 service.
 
@@ -255,6 +266,8 @@ quality baseline. Portfolio claims are intentionally bounded:
 - no money movement is implemented;
 - close certificates are internal synthetic evidence snapshots, not bank or
   provider attestations;
+- recurring clusters use only persisted structured fields; verification means
+  two observed clean runs, not proof of a permanent provider fix;
 - AI output is assistance, not settlement truth;
 - real deployment would require enterprise identity, secrets management,
   observability, retention controls, and production-derived evaluation data.

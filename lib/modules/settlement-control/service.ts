@@ -5,6 +5,7 @@ import {
   lockSettlementRefresh,
   promoteOverdueSettlements,
 } from "@/lib/modules/settlement-control/repository";
+import { linkProgramCasesByIds } from "@/lib/modules/remediation-programs/repository";
 
 export async function refreshSettlementControl(actor: Actor) {
   return transaction(async (client) => {
@@ -12,6 +13,11 @@ export async function refreshSettlementControl(actor: Actor) {
     const result = await promoteOverdueSettlements(
       client,
       actor.organizationId,
+    );
+    const linkedPrograms = await linkProgramCasesByIds(
+      client,
+      actor.organizationId,
+      result.createdCaseIds,
     );
 
     await recordAuditEvent(
@@ -26,6 +32,7 @@ export async function refreshSettlementControl(actor: Actor) {
           scannedCount: result.scannedCount,
           createdCount: result.createdCount,
           createdCaseIds: result.createdCaseIds,
+          linkedProgramCases: linkedPrograms.length,
         },
       },
       client,

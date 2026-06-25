@@ -130,6 +130,8 @@ actual settlements differ.
 - Real provider settlement contracts or an RBI holiday calendar.
 - Treating a PayOps close certificate as a bank statement, provider
   attestation, or regulatory sign-off.
+- Using notes, comments, AI output, or free text to detect recurrence.
+- Treating two clean runs as proof of a permanent provider correction.
 
 ## Product principles
 
@@ -139,11 +141,23 @@ actual settlements differ.
 4. Never silently discard an uploaded row.
 5. Synthetic data by default for the public portfolio.
 
+## Recurring-exception programs
+
+- Suggest a recurrence only when at least three actionable cases share
+  provider, normalized payment mode, reconciliation status, and case origin in
+  the trailing 30 days.
+- Use persisted deterministic records for grouping, exposure, ranking,
+  automatic linking, and clean-run verification.
+- Allow admins and analysts to create and manage programs; viewers remain
+  read-only; only admins may verify or abandon.
+- Require implementation summary and evidence before monitoring, then two
+  subsequent qualifying clean runs before administrator verification.
+
 ## Next releases
 
 1. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
 2. Turn approved analyst corrections into governed synthetic regression cases.
-3. Add recurring-exception root-cause programs and controlled escalation.
+3. Add controlled evidence-pack escalation for remediation programs.
 4. Add configurable business calendars and outbound escalation notifications.
 5. Add production identity, managed secrets, incident response, observability,
    and retention controls.

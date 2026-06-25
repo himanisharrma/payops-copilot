@@ -462,6 +462,17 @@ must all reinforce the same boundary. Safety cannot live in one sentence.
 
 ## Honest current limits
 
+### From case handling to recurrence control
+
+The next product question was how to stop repeated exceptions from returning.
+Codex added migration `018`, a deterministic four-field fingerprint, explicit
+promotion, automatic future-case links, implementation evidence, and a
+two-clean-run administrator-verification policy. The interface emphasizes the
+verification evidence rail over a celebratory status badge.
+
+No language model groups or scores recurrence. “Verified” records observed
+absence across two qualifying runs, not proof of a permanent external fix.
+
 This is a portfolio MVP, not a production payment system. It has synthetic
 data, local credentials, a simple SLA calendar, and a focused test suite. It
 does not connect to provider APIs, claim production webhook compatibility,

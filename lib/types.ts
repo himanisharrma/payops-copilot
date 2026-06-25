@@ -418,6 +418,118 @@ export type ReconciliationCloseWorkspace = {
   history: ReconciliationClosePeriod[];
 };
 
+export type RemediationFingerprint = {
+  providerId: ProviderId;
+  paymentMode: string;
+  reconciliationStatus: Exclude<
+    ReconciliationStatus,
+    "matched" | "pending"
+  >;
+  caseOrigin: OperationsCaseOrigin;
+};
+
+export type RemediationProgramStatus =
+  | "active"
+  | "monitoring"
+  | "verified"
+  | "abandoned";
+
+export type RecurrenceSuggestion = RemediationFingerprint & {
+  fingerprint: string;
+  caseCount: number;
+  exposure: number;
+  breachedCases: number;
+  openCases: number;
+  firstOccurredAt: string;
+  lastOccurredAt: string;
+  rankScore: number;
+  promoted: boolean;
+};
+
+export type RemediationCleanRun = {
+  runId: string;
+  runName: string;
+  createdAt: string;
+  qualifyingItems: number;
+  recurringExceptions: number;
+  clean: boolean;
+};
+
+export type RemediationProgramEvent = {
+  id: string;
+  eventType:
+    | "program_created"
+    | "program_updated"
+    | "case_linked"
+    | "implementation_started"
+    | "program_verified"
+    | "program_abandoned";
+  actorName: string;
+  details: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type RemediationProgramCase = {
+  id: string;
+  orderId: string;
+  priority: "low" | "medium" | "high";
+  status: CaseStatus;
+  exposure: number;
+  dueAt: string;
+  resolvedAt: string | null;
+  linkType: "baseline" | "automatic";
+  linkedAt: string;
+};
+
+export type RemediationProgram = RemediationFingerprint & {
+  id: string;
+  fingerprint: string;
+  status: RemediationProgramStatus;
+  ownerUserId: string;
+  ownerName: string;
+  remediationPlan: string;
+  targetDate: string;
+  detectionWindowStart: string;
+  detectionWindowEnd: string;
+  baselineCaseCount: number;
+  baselineExposure: number;
+  implementationSummary: string | null;
+  implementationEvidenceReference: string | null;
+  implementedAt: string | null;
+  verifiedByName: string | null;
+  verifiedAt: string | null;
+  abandonedByName: string | null;
+  abandonedReason: string | null;
+  abandonedAt: string | null;
+  createdByName: string;
+  createdAt: string;
+  updatedAt: string;
+  linkedCases: RemediationProgramCase[];
+  cleanRuns: RemediationCleanRun[];
+  events: RemediationProgramEvent[];
+};
+
+export type RemediationProgramsWorkspace = {
+  summary: {
+    suggestedClusters: number;
+    recurringExposure: number;
+    openPrograms: number;
+    verifiedPrograms: number;
+  };
+  filters: {
+    provider: ProviderId | "all";
+    paymentMode: string | "all";
+    status: RemediationProgramStatus | "all";
+  };
+  options: {
+    providers: ProviderId[];
+    paymentModes: string[];
+    owners: Array<{ id: string; name: string; role: "admin" | "analyst" }>;
+  };
+  suggestions: RecurrenceSuggestion[];
+  programs: RemediationProgram[];
+};
+
 export type InsightsRange = "7d" | "30d" | "90d";
 
 export type InsightsFilters = {
@@ -529,6 +641,15 @@ export type InsightsDashboard = {
     deliveries: number;
     matchedEvents: number;
   }>;
+  rootCausePrograms: {
+    openPrograms: number;
+    recurringExposure: number;
+    verifiedFixes: number;
+    recurrenceTrend: Array<{
+      date: string;
+      linkedCases: number;
+    }>;
+  };
 };
 
 export type AuditEvent = {
