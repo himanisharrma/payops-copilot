@@ -37,8 +37,8 @@ a managed PostgreSQL `DATABASE_URL`, then run `npm run db:migrate` and
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Backend shape** | Modular monolith with thin routes, domain services, twelve repositories, and shared PostgreSQL infrastructure |
-| **Build evidence** | 21 product milestones, 27 API routes, 18 migrations, and 88 unit/integration tests at the Root-Cause Programs snapshot |
+| **Backend shape** | Modular monolith with thin routes, domain services, fourteen domain modules, and shared PostgreSQL infrastructure |
+| **Build evidence** | 21 product milestones, 30 API routes, 19 migrations, and 96 unit/integration tests at the Merchant Settlement Statements snapshot |
 
 ## Why this exists
 
@@ -128,6 +128,9 @@ to production gateways or move money.
     matching cases, and lets an administrator verify two subsequent clean runs.
 28. Adds a reviewer-focused Control Room Demo Mode that links the core
     PayOps evidence journey into a 90-second synthetic portfolio walkthrough.
+29. Seeds merchant settlement statement proof data for credited, scheduled,
+    held, failed, partial, delayed, missing-UTR, duplicate-UTR, mismatch,
+    forward refund, forward chargeback, and hold/release scenarios.
 
 ## The product judgment
 
@@ -234,6 +237,9 @@ For the five-minute walkthrough, use the
 | `GET` | `/api/insights` | Return deterministic organization-scoped operations metrics |
 | `GET/POST` | `/api/remediation-programs` | List recurrence suggestions and explicitly promote a governed program |
 | `GET/PATCH` | `/api/remediation-programs/:id` | Inspect evidence or manage the program lifecycle |
+| `GET` | `/api/settlements` | List synthetic merchant settlement statement batches |
+| `GET` | `/api/settlements/:id` | Inspect a synthetic merchant settlement statement detail |
+| `POST` | `/api/settlements/refresh` | Refresh synthetic merchant settlement statement classifications |
 | `GET` | `/api/health` | Check application and database health |
 
 The synthetic webhook route requires `x-payops-organization`,
@@ -253,6 +259,10 @@ and reviews, refund and chargeback workflows, decision timelines, audit events,
 normalized provider events, hash-only webhook attempt evidence, and migration
 history. Daily close periods retain immutable snapshot versions, maker/checker
 attribution, residual-risk dispositions, reopen reasons, and hashes.
+Merchant settlement statement tables retain synthetic merchant accounts,
+settlement batches, line items, deterministic deductions, bank-credit mappings,
+case links, and timeline events. They are read-only proof surfaces for the
+portfolio demo; they do not connect to providers, banks, or payout rails.
 
 ## Quality and safety
 
@@ -260,7 +270,7 @@ attribution, residual-risk dispositions, reopen reasons, and hashes.
 npm run verify
 ```
 
-The verification command runs lint, 72 unit/policy tests, sixteen PostgreSQL-backed
+The verification command runs lint, 78 unit/policy tests, 18 PostgreSQL-backed
 integration tests, a production build, and `git diff --check`. GitHub
 Actions runs the same command against a clean PostgreSQL 17 service.
 
@@ -284,6 +294,8 @@ quality baseline. Portfolio claims are intentionally bounded:
   provider attestations;
 - recurring clusters use only persisted structured fields; verification means
   two observed clean runs, not proof of a permanent provider fix;
+- merchant settlement statement records are synthetic ledger evidence, not
+  live payouts, provider confirmations, bank statements, or money movement;
 - AI output is assistance, not settlement truth;
 - real deployment would require enterprise identity, secrets management,
   observability, retention controls, and production-derived evaluation data.
@@ -336,6 +348,9 @@ constraints, and completion conditions; encode durable repository guidance in
 - Feed approved analyst corrections into new anonymized evaluation cases.
 - Add configurable business calendars and outbound escalation channels.
 - Add provider-specific investigation tools with scoped permissions.
+- Expand Merchant Settlement Statements before attempting split settlements:
+  deeper report exports, transaction/deduction drill-downs, and Insights/Close
+  Control rollups should come before platform/vendor split-payout logic.
 - Add managed secrets, provider-certified signatures, tamper-evident audit
   retention, incident response, and production observability.
 
