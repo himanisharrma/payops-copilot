@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  mergeProviderEvents,
   normalizeProviderWebhook,
   providerEventsForEntity,
   providerWebhookFixtures,
 } from "./provider-webhooks";
+import {
+  syntheticWebhookSignature,
+  verifySyntheticWebhookSignature,
+} from "./modules/provider-events/service";
 
 describe("provider webhook normalizer", () => {
   it("normalizes Razorpay-style captured payments", () => {
@@ -18,6 +23,39 @@ describe("provider webhook normalizer", () => {
     });
     expect(event.proves).toContain("captured payment");
     expect(event.doesNotProve).toContain("bank settlement");
+  });
+
+  it("deduplicates persisted copies when timelines are merged", () => {
+    const fixture = normalizeProviderWebhook(providerWebhookFixtures[0]);
+    const persisted = { ...fixture, id: "persisted-event-id" };
+    expect(mergeProviderEvents([fixture], [persisted])).toEqual([persisted]);
+  });
+
+  it("signs the tenant, event ID, and exact body", () => {
+    const input = {
+      secret: "test-secret",
+      organizationSlug: "payops-portfolio",
+      externalEventId: "evt-100",
+      rawBody: '{"eventType":"payment.captured"}',
+    };
+    const signature = syntheticWebhookSignature(input);
+    expect(
+      verifySyntheticWebhookSignature({ ...input, signature }),
+    ).toBe(true);
+    expect(
+      verifySyntheticWebhookSignature({
+        ...input,
+        externalEventId: "evt-replayed",
+        signature,
+      }),
+    ).toBe(false);
+    expect(
+      verifySyntheticWebhookSignature({
+        ...input,
+        rawBody: '{"eventType":"payment.failed"}',
+        signature,
+      }),
+    ).toBe(false);
   });
 
   it("normalizes Cashfree-style duplicate payment events into the same contract", () => {

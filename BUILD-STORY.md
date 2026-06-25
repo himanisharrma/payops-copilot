@@ -10,7 +10,7 @@ team. I knew the operational pain: merchant order reports, gateway exports,
 and bank settlements rarely line up cleanly, and finding a mismatch is only the
 start of the work.
 
-Codex helped convert that knowledge into a working system in ten milestones.
+Codex helped convert that knowledge into a working system in eighteen milestones.
 The productive pattern was not "ask AI to build an app." It was a repeated
 loop of narrowing the problem, inspecting the current repository, building one
 coherent vertical slice, verifying it in the database and browser, and pushing
@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The ten milestones
+## The twenty milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -47,6 +47,15 @@ The dates and commits below come directly from the repository history.
 | June 15, 2026 | `1597d5f` | Added case-level outputs, six-score review, notes, attribution, and audit |
 | June 15, 2026 | `489d5dd` | Added guarded OpenAI execution with latency and token evidence |
 | June 15, 2026 | `ae7cea0` | Added refunds, chargebacks, evidence gates, deadlines, and timelines |
+| June 19, 2026 | current release | Added source-row integrity evidence and controlled case resolution |
+| June 19, 2026 | current release | Added PostgreSQL-backed CI, tenancy attacks, and role tests |
+| June 19, 2026 | current release | Extracted the operations-console design system and workflow components |
+| June 19, 2026 | current release | Added independent reviewers, disagreement, and adjudication |
+| June 20, 2026 | `4cd3cde` | Added deterministic Operations Intelligence and drill-through |
+| June 20, 2026 | current release | Added bulk case dispatch and append-only handoff comments |
+| June 22, 2026 | `4e30df9`, `47ba6f4` | Added deterministic settlement clocks and overdue promotion |
+| June 22, 2026 | `4bdb6eb` + current release | Added provider-specific key rotation and webhook trust evidence |
+| June 22, 2026 | `e1302a1` + current release | Added deterministic daily reconciliation close and maker-checker control |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -228,6 +237,138 @@ keeps the portfolio honest. The product can demonstrate event reasoning without
 claiming live webhook ingestion, provider credentials, signature verification,
 or production delivery guarantees.
 
+### Milestone 11: Make financial evidence reconstructable
+
+The evidence-integrity release persists the contributing order, gateway, and
+settlement row snapshots for each new reconciliation item. Each snapshot keeps
+the original row number, selected normalized values, retained source values,
+and a SHA-256 integrity hash without storing the complete uploaded file.
+
+Tenant-linked foreign keys keep runs, items, cases, and evidence inside the
+same organization. Reconciliation creation and case updates now commit their
+audit events in the same database transaction. A case cannot be resolved until
+an analyst provides a reason, confirms the persisted evidence was reviewed, and
+accepts resolver attribution.
+
+### Milestone 12: Turn repository rules into executable gates
+
+The next release replaced the self-attested PR checklist with one
+`npm run verify` contract used locally and in GitHub Actions. CI starts a clean
+PostgreSQL 17 service, applies every migration, and then runs lint, unit tests,
+database integration tests, the production build, and diff checks.
+
+The integration suite creates two organizations and attempts cross-tenant reads,
+writes, and mixed-tenant relationships. It also forces a transaction failure to
+prove that case mutations and audit events roll back together. Separate role
+tests cover administrator, analyst, viewer, and unauthenticated behavior.
+
+### Milestone 13: Make the interface system reusable
+
+The frontend already had a distinct visual language, but repeated search
+controls, source evidence, provider timelines, case queues, and resolution
+controls were embedded in large workflow files. This release extracted those
+patterns into `components/ui/`, `components/cases/`, and
+`components/reconciliation/`.
+
+The design-system document names the product direction—an evidence-dense
+editorial operations console—and records its paper grid, ink borders, mono
+control labels, semantic colors, responsive rules, and evidence-rail signature.
+Domain components still own workflow state and mutations; shared components own
+repeated presentation and accessibility.
+
+### Milestone 14: Make human evaluation genuinely independent
+
+The first Quality Lab stored one review directly on each case, which meant a
+second reviewer would overwrite the first. The new schema adds two run-level
+reviewer slots, reviewer-owned case scores, and a separate administrator
+adjudication record.
+
+Quality Lab now exposes assignment coverage, double-reviewed cases,
+disagreements, adjudications, reviewer comparison, and aggregate human score.
+Database integration tests prove that two reviewers remain independent and that
+an adjudicated score supersedes their disagreement without deleting either
+original judgment.
+
+### Milestone 15: Make inbound evidence trustworthy without claiming live connectivity
+
+The final roadmap slice turns the fictional provider-event model into a
+controlled inbound boundary. A request is accepted only when its HMAC covers
+the organization slug, external event ID, and exact body. PostgreSQL prevents
+replay within an organization and provider, while persistence keeps only a
+SHA-256 body hash and the deterministic normalized event.
+
+Matching events appear beside the existing case and payment-workflow evidence.
+The header evidence inbox also surfaces linked provider events and cases that
+enter the last 25% of their SLA or become overdue. Read state is
+organization-scoped, viewer-safe, and audited for administrators and analysts.
+Nothing in the release contacts a provider, sends an external notification, or
+moves money.
+
+### Milestone 16: Turn operational records into management decisions
+
+The next slice adds a deterministic Operations Intelligence workspace rather
+than a disconnected analytics mockup. PostgreSQL calculates period comparisons,
+queue health, exception mix, workload aging, provider performance, SLA outcome,
+AI review evidence, and signed inbound-event counts from organization-scoped
+records.
+
+Every distribution remains actionable: chart bars and provider rows open the
+existing operations queue with shareable URL filters, and direct case links
+select the underlying record. An idempotent fictional-history seed creates a
+meaningful clean-install demo while preserving all user-created runs.
+
+### Milestone 17: Make queue collaboration operational
+
+The next operations slice reduces repetitive ownership updates without turning
+the queue into an opaque automation surface. Admins and analysts mark cases
+directly on the ledger, then assign or unassign the bounded selection in one
+organization-scoped transaction.
+
+Each case also gains an attributed handoff log. Comments are append-only,
+viewer-readable, and audited alongside the operational write, preserving the
+existing distinction between mutable working notes and durable collaboration
+history.
+
+### Milestone 18: Separate settlement lateness from case urgency
+
+The Settlement Control release adds a second deterministic clock. Fictional
+provider and payment-mode policies calculate when a successful transaction is
+expected to settle after IST cutoffs, weekends, and versioned synthetic
+closures. Those inputs and the full calculation snapshot persist beside the
+financial evidence.
+
+A missing settlement now remains monitored while it is not due or due today.
+Only an overdue record creates an operations case, either during reconciliation
+or through an audited idempotent refresh. The UI keeps that settlement clock
+visually separate from the case SLA, and Insights excludes incomplete timing
+evidence from provider on-time denominators.
+
+### Milestone 19: Make synthetic inbound trust operable
+
+The next boundary release replaces one generic demo signature with versioned,
+fictional provider contracts. Each provider has an explicit canonical string;
+the Cashfree-style demo also rejects stale timestamps. Active and previous key
+IDs model a safe rotation window without persisting signatures or secrets.
+
+Every known-organization request leaves hash-only decision evidence: accepted,
+duplicate, rejected, conflict, or failed, with a precise failure code and
+processing time. Administrators inspect that evidence in a provider rotation
+spine and attempt ledger. The UI deliberately avoids calling these local
+attempt outcomes provider uptime or delivery reliability.
+
+### Milestone 20: Give reconciliation a controlled finish line
+
+The next release turns “the queue looks manageable” into a durable daily
+decision. A close is scoped by IST business date, provider, and payment mode.
+Deterministic policy blocks every high-priority exception and compares remaining
+case count and monetary exposure with explicit materiality thresholds.
+
+Every permitted residual receives a written, evidence-confirmed disposition.
+Submission freezes a hashed snapshot; a different administrator approves the
+analyst-prepared version. Reopening records a reason without mutating the old
+certificate, so a corrected close becomes a new version rather than rewritten
+history.
+
 ## The working workflow
 
 This was the recurring delivery loop:
@@ -323,8 +464,9 @@ must all reinforce the same boundary. Safety cannot live in one sentence.
 
 This is a portfolio MVP, not a production payment system. It has synthetic
 data, local credentials, a simple SLA calendar, and a focused test suite. It
-does not ingest provider APIs or webhooks, initiate provider-side refunds, store
-payment credentials, send notifications, or use production-derived labeled
+does not connect to provider APIs, claim production webhook compatibility,
+initiate provider-side refunds, store payment credentials or raw webhook
+payloads, send external notifications, or use production-derived labeled
 evaluation data.
 
 Those are not hidden gaps. They are the next product and engineering decisions,

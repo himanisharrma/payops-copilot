@@ -8,9 +8,11 @@ import {
 import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import { DomainError } from "@/lib/modules/errors";
 import {
+  claimEvaluationReviewer,
   getEvaluationRun,
   listEvaluationRuns,
-  reviewEvaluationCase,
+  saveEvaluationCaseAdjudication,
+  saveEvaluationCaseReview,
   saveEvaluationRun,
 } from "@/lib/modules/evaluations/repository";
 import type { EvaluationReviewScores } from "@/lib/types";
@@ -102,7 +104,22 @@ export async function reviewEvaluation(
 ) {
   validateEvaluationReview(input.scores);
   const scores = input.scores!;
-  const runId = await reviewEvaluationCase(
+  const existing = await getEvaluationRun(
+    evaluationId,
+    actor.organizationId,
+  );
+  if (!existing) throw new DomainError("Evaluation run not found.", 404);
+  if (
+    !existing.reviewerAssignments.some(
+      (assignment) => assignment.reviewerUserId === actor.id,
+    )
+  ) {
+    throw new DomainError(
+      "Claim a reviewer slot before saving an independent review.",
+      409,
+    );
+  }
+  const runId = await saveEvaluationCaseReview(
     caseId,
     evaluationId,
     actor.organizationId,
@@ -120,6 +137,86 @@ export async function reviewEvaluation(
     actorUserId: actor.id,
     actorName: actor.name,
     action: "evaluation_case.reviewed",
+    entityType: "evaluation_case_result",
+    entityId: caseId,
+    details: { evaluationRunId: evaluationId, scores },
+  });
+
+  return getEvaluationRun(evaluationId, actor.organizationId);
+}
+
+export async function claimEvaluationReviewSlot(
+  evaluationId: string,
+  actor: Actor,
+) {
+  const result = await claimEvaluationReviewer(
+    evaluationId,
+    actor.organizationId,
+    actor,
+  );
+  if (result.status === "not_found") {
+    throw new DomainError("Evaluation run not found.", 404);
+  }
+  if (result.status === "full") {
+    throw new DomainError("Both reviewer slots are already assigned.", 409);
+  }
+
+  await recordAuditEvent({
+    organizationId: actor.organizationId,
+    actorUserId: actor.id,
+    actorName: actor.name,
+    action: "evaluation_reviewer.assigned",
+    entityType: "evaluation_run",
+    entityId: evaluationId,
+    details: { reviewerSlot: result.slot },
+  });
+
+  return getEvaluationRun(evaluationId, actor.organizationId);
+}
+
+export async function adjudicateEvaluation(
+  evaluationId: string,
+  caseId: string,
+  input: { scores?: EvaluationReviewScores; notes?: string },
+  actor: Actor,
+) {
+  if (actor.role !== "admin") {
+    throw new DomainError("Only administrators can adjudicate reviews.", 403);
+  }
+  validateEvaluationReview(input.scores);
+  const existing = await getEvaluationRun(
+    evaluationId,
+    actor.organizationId,
+  );
+  if (!existing) throw new DomainError("Evaluation run not found.", 404);
+  const evaluationCase = existing.cases.find((item) => item.id === caseId);
+  if (!evaluationCase) throw new DomainError("Evaluation case not found.", 404);
+  if (evaluationCase.reviews.length !== 2) {
+    throw new DomainError(
+      "Two independent reviews are required before adjudication.",
+      409,
+    );
+  }
+
+  const scores = input.scores!;
+  const runId = await saveEvaluationCaseAdjudication(
+    caseId,
+    evaluationId,
+    actor.organizationId,
+    {
+      scores,
+      notes: input.notes?.trim() ?? "",
+      adjudicatorId: actor.id,
+      adjudicatorName: actor.name,
+    },
+  );
+  if (!runId) throw new DomainError("Evaluation case not found.", 404);
+
+  await recordAuditEvent({
+    organizationId: actor.organizationId,
+    actorUserId: actor.id,
+    actorName: actor.name,
+    action: "evaluation_case.adjudicated",
     entityType: "evaluation_case_result",
     entityId: caseId,
     details: { evaluationRunId: evaluationId, scores },

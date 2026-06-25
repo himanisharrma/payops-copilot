@@ -1,33 +1,59 @@
+import type { PoolClient } from "pg";
 import { query } from "@/lib/db";
-import { providerEventsForEntity } from "@/lib/provider-webhooks";
+import {
+  mergeProviderEvents,
+  providerEventsForEntity,
+} from "@/lib/provider-webhooks";
+import { listPersistedProviderEvents } from "@/lib/modules/provider-events/repository";
 import { getSlaStatus } from "@/lib/sla";
+import {
+  classifySettlement,
+  settlementDaysOverdue,
+} from "@/lib/settlement-policy";
 import type {
   AIInvestigation,
   CaseStatus,
   OperationsCase,
+  OperationsCaseComment,
+  SourceEvidence,
 } from "@/lib/types";
 
 export async function listCases(
   organizationId: string,
+  client?: PoolClient,
 ): Promise<OperationsCase[]> {
-  const result = await query<{
+  const execute = client ? client.query.bind(client) : query;
+  const result = await execute<{
     id: string;
     run_id: string;
     run_name: string;
+    provider_id: OperationsCase["providerId"];
     order_id: string;
     gateway_reference: string;
     payment_mode: string;
     order_amount: string;
     variance: string;
+    settled_amount: string | null;
     reconciliation_status: OperationsCase["reconciliationStatus"];
+    case_origin: OperationsCase["caseOrigin"];
+    transaction_at: Date | null;
+    transaction_timestamp_source: OperationsCase["transactionTimestampSource"];
+    settlement_recorded_at: Date | null;
+    settlement_cycle: OperationsCase["settlementCycle"];
+    expected_settlement_at: Date | null;
+    settlement_timing_evidence: OperationsCase["settlementTimingEvidence"];
     summary: string;
     evidence: string[];
+    source_evidence: SourceEvidence[] | null;
     priority: OperationsCase["priority"];
     case_status: CaseStatus;
     owner: string | null;
     notes: string;
     due_at: Date;
     resolved_at: Date | null;
+    resolution_reason: string | null;
+    resolution_evidence_confirmed: boolean;
+    resolved_by_name: string | null;
     created_at: Date;
     updated_at: Date;
     investigation_id: string | null;
@@ -46,9 +72,13 @@ export async function listCases(
     investigation_created_at: Date | null;
     investigation_updated_at: Date | null;
   }>(
-    `SELECT c.*, r.name AS run_name, i.order_id, i.gateway_reference,
-       i.payment_mode, i.order_amount, i.variance, i.reconciliation_status,
-       i.summary, i.evidence,
+    `SELECT c.*, r.name AS run_name, r.provider_id, i.order_id, i.gateway_reference,
+       i.payment_mode, i.order_amount, i.variance, i.settled_amount,
+       i.reconciliation_status,
+       i.transaction_at, i.transaction_timestamp_source,
+       i.settlement_recorded_at, i.settlement_cycle,
+       i.expected_settlement_at, i.settlement_timing_evidence,
+       i.summary, i.evidence, evidence.source_evidence,
        ai.id AS investigation_id, ai.provider AS investigation_provider,
        ai.model AS investigation_model,
        ai.prompt_version AS investigation_prompt_version,
@@ -58,8 +88,32 @@ export async function listCases(
        ai.feedback_notes, ai.created_at AS investigation_created_at,
        ai.updated_at AS investigation_updated_at
      FROM operations_cases c
-     JOIN reconciliation_runs r ON r.id = c.run_id
-     JOIN reconciliation_items i ON i.id = c.item_id
+     JOIN reconciliation_runs r
+       ON r.id = c.run_id AND r.organization_id = c.organization_id
+     JOIN reconciliation_items i
+       ON i.id = c.item_id
+      AND i.run_id = c.run_id
+      AND i.organization_id = c.organization_id
+     LEFT JOIN LATERAL (
+       SELECT JSONB_AGG(
+         JSONB_BUILD_OBJECT(
+           'sourceType', source_type,
+           'rowNumber', row_number,
+           'normalizedValues', normalized_values,
+           'sourceValues', source_values,
+           'integrityHash', integrity_hash
+         )
+         ORDER BY
+           CASE source_type
+             WHEN 'orders' THEN 1
+             WHEN 'gateway' THEN 2
+             ELSE 3
+           END,
+           row_number
+       ) AS source_evidence
+       FROM reconciliation_source_evidence
+       WHERE item_id = i.id AND organization_id = c.organization_id
+     ) evidence ON TRUE
      LEFT JOIN LATERAL (
        SELECT * FROM ai_investigations
        WHERE case_id = c.id
@@ -73,8 +127,18 @@ export async function listCases(
        c.created_at DESC`,
     [organizationId],
   );
+  const persistedProviderEvents = await listPersistedProviderEvents(
+    organizationId,
+    client,
+  );
+  const requestNow = new Date();
 
   return result.rows.map((row) => {
+    const settlementStatus = classifySettlement({
+      hasSettlementRecord: row.settled_amount !== null,
+      expectedSettlementAt: row.expected_settlement_at,
+      now: requestNow,
+    });
     const createdAt = row.created_at.toISOString();
     const dueAt = row.due_at.toISOString();
     const resolvedAt = row.resolved_at?.toISOString() ?? null;
@@ -82,20 +146,39 @@ export async function listCases(
       id: row.id,
       runId: row.run_id,
       runName: row.run_name,
+      providerId: row.provider_id,
       orderId: row.order_id,
       gatewayReference: row.gateway_reference,
       paymentMode: row.payment_mode,
       orderAmount: Number(row.order_amount),
       variance: Number(row.variance),
       reconciliationStatus: row.reconciliation_status,
+      caseOrigin: row.case_origin,
+      settlementStatus,
+      transactionAt: row.transaction_at?.toISOString() ?? null,
+      transactionTimestampSource: row.transaction_timestamp_source,
+      settlementRecordedAt:
+        row.settlement_recorded_at?.toISOString() ?? null,
+      settlementCycle: row.settlement_cycle,
+      expectedSettlementAt:
+        row.expected_settlement_at?.toISOString() ?? null,
+      settlementDaysOverdue: settlementDaysOverdue({
+        expectedSettlementAt: row.expected_settlement_at,
+        now: requestNow,
+      }),
+      settlementTimingEvidence: row.settlement_timing_evidence,
       summary: row.summary,
       evidence: row.evidence,
+      sourceEvidence: row.source_evidence ?? [],
       priority: row.priority,
       status: row.case_status,
       owner: row.owner,
       notes: row.notes,
       dueAt,
       resolvedAt,
+      resolutionReason: row.resolution_reason,
+      resolutionEvidenceConfirmed: row.resolution_evidence_confirmed,
+      resolvedByName: row.resolved_by_name,
       slaStatus: getSlaStatus({
         createdAt,
         dueAt,
@@ -125,19 +208,33 @@ export async function listCases(
             updatedAt: row.investigation_updated_at!.toISOString(),
           }
         : null,
-      providerEvents: providerEventsForEntity({
-        orderId: row.order_id,
-        paymentReference: row.gateway_reference,
-      }),
+      providerEvents: mergeProviderEvents(
+        providerEventsForEntity({
+          orderId: row.order_id,
+          paymentReference: row.gateway_reference,
+        }),
+        persistedProviderEvents.filter(
+          (providerEvent) =>
+            providerEvent.orderId === row.order_id ||
+            providerEvent.paymentReference === row.gateway_reference,
+        ),
+      ),
     };
   });
 }
 
-export async function getCase(id: string, organizationId: string) {
-  return (await listCases(organizationId)).find((item) => item.id === id) ?? null;
+export async function getCase(
+  id: string,
+  organizationId: string,
+  client?: PoolClient,
+) {
+  return (await listCases(organizationId, client)).find(
+    (item) => item.id === id,
+  ) ?? null;
 }
 
 export async function updateCase(
+  client: PoolClient,
   id: string,
   organizationId: string,
   patch: {
@@ -145,15 +242,19 @@ export async function updateCase(
     priority?: OperationsCase["priority"];
     owner?: string | null;
     notes?: string;
+    resolutionReason?: string;
+    resolutionEvidenceConfirmed?: boolean;
+    resolvedByUserId?: string;
+    resolvedByName?: string;
   },
 ) {
-  const existing = await query<{ case_status: CaseStatus }>(
+  const existing = await client.query<{ case_status: CaseStatus }>(
     "SELECT case_status FROM operations_cases WHERE id = $1 AND organization_id = $2",
     [id, organizationId],
   );
   if (!existing.rowCount) return null;
 
-  await query(
+  await client.query(
     `UPDATE operations_cases SET
        case_status = COALESCE($2, case_status),
        priority = COALESCE($3, priority),
@@ -166,12 +267,32 @@ export async function updateCase(
        owner = CASE WHEN $4::boolean THEN $5 ELSE owner END,
        notes = COALESCE($6, notes),
        resolved_at = CASE
-         WHEN $2 = 'resolved' THEN NOW()
+         WHEN $2 = 'resolved' THEN COALESCE(resolved_at, NOW())
          WHEN $2 IS NOT NULL AND $2 <> 'resolved' THEN NULL
          ELSE resolved_at
        END,
+       resolution_reason = CASE
+         WHEN $2 = 'resolved' THEN $7
+         WHEN $2 IS NOT NULL AND $2 <> 'resolved' THEN NULL
+         ELSE resolution_reason
+       END,
+       resolution_evidence_confirmed = CASE
+         WHEN $2 = 'resolved' THEN $8
+         WHEN $2 IS NOT NULL AND $2 <> 'resolved' THEN FALSE
+         ELSE resolution_evidence_confirmed
+       END,
+       resolved_by_user_id = CASE
+         WHEN $2 = 'resolved' THEN $9
+         WHEN $2 IS NOT NULL AND $2 <> 'resolved' THEN NULL
+         ELSE resolved_by_user_id
+       END,
+       resolved_by_name = CASE
+         WHEN $2 = 'resolved' THEN $10
+         WHEN $2 IS NOT NULL AND $2 <> 'resolved' THEN NULL
+         ELSE resolved_by_name
+       END,
        updated_at = NOW()
-     WHERE id = $1 AND organization_id = $7`,
+     WHERE id = $1 AND organization_id = $11`,
     [
       id,
       patch.status ?? null,
@@ -179,8 +300,102 @@ export async function updateCase(
       Object.prototype.hasOwnProperty.call(patch, "owner"),
       patch.owner ?? null,
       patch.notes ?? null,
+      patch.resolutionReason ?? null,
+      patch.resolutionEvidenceConfirmed ?? false,
+      patch.resolvedByUserId ?? null,
+      patch.resolvedByName ?? null,
       organizationId,
     ],
   );
-  return getCase(id, organizationId);
+  return getCase(id, organizationId, client);
+}
+
+export async function bulkAssignCases(
+  client: PoolClient,
+  ids: string[],
+  organizationId: string,
+  owner: string | null,
+) {
+  const result = await client.query<{ id: string }>(
+    `UPDATE operations_cases
+     SET owner = $3, updated_at = NOW()
+     WHERE organization_id = $1
+       AND id = ANY($2::uuid[])
+     RETURNING id`,
+    [organizationId, ids, owner],
+  );
+  return result.rows.map((row) => row.id);
+}
+
+export async function listCaseComments(
+  caseId: string,
+  organizationId: string,
+  client?: PoolClient,
+): Promise<OperationsCaseComment[]> {
+  const execute = client ? client.query.bind(client) : query;
+  const result = await execute<{
+    id: string;
+    case_id: string;
+    author_name: string;
+    body: string;
+    created_at: Date;
+  }>(
+    `SELECT id, case_id, author_name, body, created_at
+     FROM operations_case_comments
+     WHERE organization_id = $1 AND case_id = $2
+     ORDER BY created_at ASC`,
+    [organizationId, caseId],
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    caseId: row.case_id,
+    authorName: row.author_name,
+    body: row.body,
+    createdAt: row.created_at.toISOString(),
+  }));
+}
+
+export async function createCaseComment(
+  client: PoolClient,
+  input: {
+    caseId: string;
+    organizationId: string;
+    authorUserId: string;
+    authorName: string;
+    body: string;
+  },
+) {
+  const result = await client.query<{
+    id: string;
+    case_id: string;
+    author_name: string;
+    body: string;
+    created_at: Date;
+  }>(
+    `INSERT INTO operations_case_comments (
+       organization_id, case_id, author_user_id, author_name, body
+     )
+     SELECT $1, payment_case.id, $3, $4, $5
+     FROM operations_cases payment_case
+     WHERE payment_case.id = $2
+       AND payment_case.organization_id = $1
+     RETURNING id, case_id, author_name, body, created_at`,
+    [
+      input.organizationId,
+      input.caseId,
+      input.authorUserId,
+      input.authorName,
+      input.body,
+    ],
+  );
+  const row = result.rows[0];
+  return row
+    ? {
+        id: row.id,
+        caseId: row.case_id,
+        authorName: row.author_name,
+        body: row.body,
+        createdAt: row.created_at.toISOString(),
+      }
+    : null;
 }

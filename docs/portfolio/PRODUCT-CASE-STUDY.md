@@ -89,14 +89,19 @@ payment records, and the app does not persist original upload contents.
 
 ### Evidence before explanation
 
-Every reconciliation item carries source-derived evidence. The AI assistant is
-downstream of this bundle and is instructed not to invent payment events,
-policies, provider responses, or money movement.
+Every new reconciliation item carries source-derived evidence plus minimal
+snapshots of its contributing report rows, including original row numbers,
+normalized values, retained source values, and integrity hashes. The AI
+assistant is downstream of this bundle and is instructed not to invent payment
+events, policies, provider responses, or money movement.
 
 ### Operations, not only analytics
 
 Exceptions automatically become cases. This changes the product from a report
 viewer into a work-management system.
+
+Cases require a reason, evidence-review confirmation, and resolver attribution
+before they can become resolved.
 
 ### Human authority
 
@@ -117,6 +122,14 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   amounts, duplicate order references, unknown statuses, and row counts.
 - Synthetic provider webhook normalization for payment, settlement, refund, and
   chargeback events.
+- HMAC-signed, idempotent synthetic event ingestion with hash-only delivery
+  evidence and organization-scoped matching.
+- Fictional provider-specific signature contracts with active/previous key
+  rotation, timestamp freshness where required, precise rejection evidence,
+  and an administrator-only trust ledger.
+- In-app provider and SLA notification controls with role-aware read state.
+- Manager Operations Intelligence for period trends, queue pressure, SLA
+  outcome, provider comparison, AI governance, and evidence-linked drill-down.
 - Case and workflow timelines that distinguish what provider events prove from
   what they do not prove.
 - Six result states: matched, mismatch, missing settlement, missing gateway,
@@ -124,7 +137,12 @@ mutate operations data; viewers cannot. Audit access is admin-only.
 - PostgreSQL persistence for runs, items, cases, investigations, users, and
   audit events.
 - Operations queue with search, status filters, SLA filters, ownership, notes,
-  evidence, and AI review.
+  evidence, bulk assignment, attributed handoff comments, and AI review.
+- Deterministic settlement clocks that prevent premature missing-settlement
+  cases and expose provider timing evidence separately from financial truth.
+- Daily reconciliation close controls with materiality, residual-risk
+  dispositions, immutable snapshot hashes, independent administrator approval,
+  controlled reopening, and synthetic certificates.
 - Role-aware login and organization-scoped APIs.
 - 4/24/72-hour SLA policy with at-risk, overdue, met, and breached states.
 - Historical run view and administrator audit ledger.
@@ -132,7 +150,7 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   six-score human review, latency, token metadata, and audit attribution.
 - Separate refund and chargeback queues with lifecycle transitions, ownership,
   deadlines, evidence gates, notes, and timelines.
-- A modular monolith backend with thin API routes, domain services, seven
+- A modular monolith backend with thin API routes, domain services, twelve
   repositories, and shared PostgreSQL infrastructure.
 
 ## Success metrics
@@ -167,13 +185,16 @@ For an AI Product Manager role, the artifact demonstrates:
 
 - No production payment-provider connection.
 - No live provider credentials or production export compatibility claim.
-- No live webhook endpoint or provider signature verification.
+- No production provider webhook compatibility, certified signature contract,
+  managed secrets system, or provider reliability telemetry.
 - No provider-side refund, payout, or money-movement action.
 - No business-day or holiday calendar in SLA calculations.
-- No outbound email, Slack, or incident notification.
+- No outbound email, Slack, or incident notification; alerts are in-app only.
 - No enterprise SSO or production secrets system.
 - No production-derived or representative two-reviewer evaluation dataset yet.
 - No production telemetry or load testing.
+- No legal-entity accounting close, bank attestation, or production control
+  certification; the close certificate is an internal synthetic snapshot.
 
 ---
 

@@ -20,12 +20,60 @@ export type ProviderId =
   | "cashfree_demo"
   | "payu_demo";
 
+export type SettlementCycle = "T+0" | "T+1" | "T+2";
+export type SettlementStatus =
+  | "not_due"
+  | "due_today"
+  | "overdue"
+  | "settled";
+export type SettlementTimingStatus =
+  | SettlementStatus
+  | "timing_unavailable";
+export type SettlementTimestampSource =
+  | "gateway_capture"
+  | "order_created";
+export type OperationsCaseOrigin =
+  | "reconciliation_exception"
+  | "settlement_overdue";
+
+export type SettlementPolicy = {
+  providerId: ProviderId;
+  paymentMode: string;
+  cycle: SettlementCycle;
+  captureCutoff: "15:00";
+  settlementCutoff: "18:00";
+  timezone: "Asia/Kolkata";
+  policyVersion: "settlement-policy-v1";
+  calendarVersion: "india-demo-calendar-v1";
+  usedFallback: boolean;
+};
+
+export type SettlementTimingEvidence = {
+  providerId: ProviderId;
+  paymentMode: string;
+  cycle: SettlementCycle;
+  transactionAt: string;
+  transactionTimestampSource: SettlementTimestampSource;
+  captureCutoff: "15:00";
+  afterCaptureCutoff: boolean;
+  cycleAnchorDate: string;
+  skippedNonBusinessDates: string[];
+  expectedSettlementAt: string;
+  settlementCutoff: "18:00";
+  timezone: "Asia/Kolkata";
+  policyVersion: "settlement-policy-v1";
+  calendarVersion: "india-demo-calendar-v1";
+  usedFallbackPolicy: boolean;
+};
+
 export type ProviderFieldMapping =
   | "orderId"
   | "amount"
   | "status"
   | "paymentMode"
   | "gatewayReference"
+  | "transactionAt"
+  | "settlementAt"
   | "settledAmount"
   | "fee"
   | "tax"
@@ -37,6 +85,11 @@ export type DataQualityIssue = {
   code:
     | "missing_field_mapping"
     | "invalid_amount"
+    | "missing_transaction_timestamp"
+    | "invalid_transaction_timestamp"
+    | "missing_settlement_timestamp"
+    | "invalid_settlement_timestamp"
+    | "fallback_settlement_cycle"
     | "duplicate_order_reference"
     | "unknown_status";
   message: string;
@@ -69,6 +122,43 @@ export type ProviderWebhookPayload = {
   payload: Record<string, unknown>;
 };
 
+export type ProviderWebhookAttempt = {
+  id: string;
+  providerId: Exclude<ProviderId, "generic">;
+  externalEventId: string;
+  eventType: string | null;
+  signatureVersion: string;
+  signatureKeyId: string | null;
+  keyState: "active" | "previous" | null;
+  outcome: "accepted" | "duplicate" | "rejected" | "conflict" | "failed";
+  httpStatus: number;
+  failureCode: string | null;
+  matchedRecords: number;
+  processingMs: number;
+  receivedAt: string;
+};
+
+export type ProviderWebhookObservability = {
+  summary: {
+    total: number;
+    accepted: number;
+    duplicate: number;
+    rejected: number;
+    conflict: number;
+    failed: number;
+    previousKeyAccepted: number;
+    averageProcessingMs: number | null;
+  };
+  byProvider: Array<{
+    providerId: Exclude<ProviderId, "generic">;
+    total: number;
+    accepted: number;
+    rejected: number;
+    previousKeyAccepted: number;
+  }>;
+  recent: ProviderWebhookAttempt[];
+};
+
 export type NormalizedProviderEvent = {
   id: string;
   providerId: Exclude<ProviderId, "generic">;
@@ -90,6 +180,18 @@ export type NormalizedProviderEvent = {
   doesNotProve: string;
 };
 
+export type OperationalNotification = {
+  id: string;
+  type: "provider_event" | "sla_at_risk" | "sla_overdue";
+  severity: "info" | "warning" | "critical";
+  title: string;
+  message: string;
+  entityType: "operations_case" | "payment_workflow" | null;
+  entityId: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
 export type ReconciliationStatus =
   | "matched"
   | "amount_mismatch"
@@ -97,6 +199,16 @@ export type ReconciliationStatus =
   | "gateway_missing"
   | "duplicate"
   | "pending";
+
+export type EvidenceSourceType = "orders" | "gateway" | "settlements";
+
+export type SourceEvidence = {
+  sourceType: EvidenceSourceType;
+  rowNumber: number;
+  normalizedValues: Record<string, string | number | null>;
+  sourceValues: Record<string, string | number | null>;
+  integrityHash: string;
+};
 
 export type ReconciliationItem = {
   orderId: string;
@@ -108,9 +220,19 @@ export type ReconciliationItem = {
   expectedNet: number | null;
   variance: number;
   status: ReconciliationStatus;
+  settlementStatus: SettlementTimingStatus;
+  transactionAt: string | null;
+  transactionTimestampSource: SettlementTimestampSource | null;
+  settlementRecordedAt: string | null;
+  settlementCycle: SettlementCycle | null;
+  expectedSettlementAt: string | null;
+  settlementPolicyVersion: string | null;
+  settlementCalendarVersion: string | null;
+  settlementTimingEvidence: SettlementTimingEvidence | null;
   severity: "low" | "medium" | "high";
   summary: string;
   evidence: string[];
+  sourceEvidence: SourceEvidence[];
 };
 
 export type ReconciliationResult = {
@@ -141,25 +263,47 @@ export type OperationsCase = {
   id: string;
   runId: string;
   runName: string;
+  providerId: ProviderId;
   orderId: string;
   gatewayReference: string;
   paymentMode: string;
   orderAmount: number;
   variance: number;
   reconciliationStatus: ReconciliationStatus;
+  caseOrigin: OperationsCaseOrigin;
+  settlementStatus: SettlementTimingStatus;
+  transactionAt: string | null;
+  transactionTimestampSource: SettlementTimestampSource | null;
+  settlementRecordedAt: string | null;
+  settlementCycle: SettlementCycle | null;
+  expectedSettlementAt: string | null;
+  settlementDaysOverdue: number | null;
+  settlementTimingEvidence: SettlementTimingEvidence | null;
   summary: string;
   evidence: string[];
+  sourceEvidence: SourceEvidence[];
   priority: "low" | "medium" | "high";
   status: CaseStatus;
   owner: string | null;
   notes: string;
   dueAt: string;
   resolvedAt: string | null;
+  resolutionReason: string | null;
+  resolutionEvidenceConfirmed: boolean;
+  resolvedByName: string | null;
   slaStatus: SlaStatus;
   createdAt: string;
   updatedAt: string;
   latestInvestigation: AIInvestigation | null;
   providerEvents?: NormalizedProviderEvent[];
+};
+
+export type OperationsCaseComment = {
+  id: string;
+  caseId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
 };
 
 export type InvestigationConfidence = "low" | "medium" | "high";
@@ -191,8 +335,200 @@ export type RunSummary = ReconciliationResult["summary"] & {
   id: string;
   name: string;
   sourceType: string;
+  providerId: ProviderId;
   status: string;
   createdAt: string;
+};
+
+export type ReconciliationCloseStatus =
+  | "open"
+  | "submitted"
+  | "approved"
+  | "reopened";
+
+export type ReconciliationCloseReadiness = {
+  businessDate: string;
+  providerId: ProviderId;
+  paymentMode: string;
+  runCount: number;
+  itemCount: number;
+  processedValue: number;
+  matchedValue: number;
+  actionableExceptionCount: number;
+  unresolvedCaseCount: number;
+  unresolvedExposure: number;
+  blockingCaseCount: number;
+  unresolvedCountThreshold: number;
+  unresolvedAmountThreshold: number;
+  ready: boolean;
+  blockers: string[];
+  unresolvedCases: Array<{
+    id: string;
+    orderId: string;
+    reconciliationStatus: ReconciliationStatus;
+    priority: "low" | "medium" | "high";
+    exposure: number;
+    owner: string | null;
+  }>;
+};
+
+export type ReconciliationCloseVersion = {
+  id: string;
+  versionNumber: number;
+  snapshotHash: string;
+  snapshot: ReconciliationCloseReadiness;
+  preparedByName: string;
+  preparedAt: string;
+  approvedByName: string | null;
+  approvedAt: string | null;
+  dispositions: Array<{
+    caseId: string;
+    reason: string;
+    evidenceConfirmed: boolean;
+  }>;
+};
+
+export type ReconciliationClosePeriod = {
+  id: string | null;
+  businessDate: string;
+  providerId: ProviderId;
+  paymentMode: string;
+  status: ReconciliationCloseStatus;
+  unresolvedCountThreshold: number;
+  unresolvedAmountThreshold: number;
+  reopenedByName: string | null;
+  reopenedReason: string | null;
+  reopenedAt: string | null;
+  activeVersion: ReconciliationCloseVersion | null;
+  readiness: ReconciliationCloseReadiness;
+};
+
+export type ReconciliationCloseWorkspace = {
+  selected: ReconciliationClosePeriod;
+  options: {
+    providers: ProviderId[];
+    paymentModes: string[];
+    businessDates: string[];
+    scopes: Array<{
+      businessDate: string;
+      providerId: ProviderId;
+      paymentMode: string;
+    }>;
+  };
+  history: ReconciliationClosePeriod[];
+};
+
+export type InsightsRange = "7d" | "30d" | "90d";
+
+export type InsightsFilters = {
+  range: InsightsRange;
+  provider: ProviderId | "all";
+  paymentMode: string | "all";
+  priority: OperationsCase["priority"] | "all";
+};
+
+export type OperationsFilters = {
+  status: "all" | CaseStatus;
+  sla: "all" | "at_risk" | "overdue";
+  exception: "all" | ReconciliationStatus;
+  provider: "all" | ProviderId;
+  paymentMode: "all" | string;
+  priority: "all" | OperationsCase["priority"];
+  owner: "all" | "assigned" | "unassigned";
+  age: "all" | "under_4h" | "4h_24h" | "1d_3d" | "over_3d";
+  settlementStatus: "all" | SettlementTimingStatus;
+  settlementCycle: "all" | SettlementCycle;
+  expectedDate:
+    | "all"
+    | "today"
+    | "next_business_day"
+    | "next_3_business_days"
+    | "past_due";
+  daysOverdue:
+    | "all"
+    | "under_1d"
+    | "1d_2d"
+    | "3d_7d"
+    | "over_7d";
+  query: string;
+  caseId: string | null;
+};
+
+export type InsightsMetric = {
+  value: number | null;
+  previousValue: number | null;
+  changePercent: number | null;
+};
+
+export type InsightsDashboard = {
+  filters: InsightsFilters;
+  options: {
+    providers: ProviderId[];
+    paymentModes: string[];
+  };
+  period: {
+    startAt: string;
+    endAt: string;
+    previousStartAt: string;
+    previousEndAt: string;
+  };
+  hasData: boolean;
+  kpis: {
+    processedValue: InsightsMetric;
+    matchRate: InsightsMetric;
+    actionableExceptions: InsightsMetric;
+    medianResolutionHours: InsightsMetric;
+  };
+  currentQueue: {
+    active: number;
+    atRisk: number;
+    overdue: number;
+    unassigned: number;
+  };
+  periodOutcomes: {
+    resolvedCases: number;
+    slaBreachRate: number | null;
+  };
+  dailyTrend: Array<{
+    date: string;
+    orders: number;
+    exceptions: number;
+    resolved: number;
+  }>;
+  exceptionMix: Array<{
+    status: ReconciliationStatus;
+    count: number;
+    amount: number;
+  }>;
+  aging: Array<{
+    bucket: "under_4h" | "4h_24h" | "1d_3d" | "over_3d";
+    count: number;
+  }>;
+  providerPerformance: Array<{
+    providerId: ProviderId;
+    totalOrders: number;
+    matchRate: number | null;
+    exceptionCount: number;
+    processedValue: number;
+    timingEligibleSettled: number;
+    onTimeSettlements: number;
+    lateSettlements: number;
+    onTimeSettlementRate: number | null;
+    overdueUnsettled: number;
+    medianLateDelayHours: number | null;
+  }>;
+  aiGovernance: {
+    investigations: number;
+    approvalRate: number | null;
+    helpfulnessRate: number | null;
+    reviewerDisagreementRate: number | null;
+    criticalSafetyFailures: number;
+  };
+  inboundEvidence: Array<{
+    providerId: Exclude<ProviderId, "generic">;
+    deliveries: number;
+    matchedEvents: number;
+  }>;
 };
 
 export type AuditEvent = {
@@ -245,6 +581,39 @@ export type EvaluationReviewScores = {
   completeness: number | null;
 };
 
+export type EvaluationReviewerAssignment = {
+  slot: 1 | 2;
+  reviewerUserId: string;
+  reviewerName: string;
+  assignedAt: string;
+};
+
+export type EvaluationCaseReview = {
+  id: string;
+  reviewerUserId: string;
+  reviewerName: string;
+  reviewerSlot: 1 | 2;
+  scores: EvaluationReviewScores;
+  notes: string;
+  totalScore: number;
+  reviewedAt: string;
+};
+
+export type EvaluationCaseAdjudication = {
+  scores: EvaluationReviewScores;
+  notes: string;
+  totalScore: number;
+  adjudicatedByName: string;
+  adjudicatedAt: string;
+};
+
+export type EvaluationReviewStatus =
+  | "unreviewed"
+  | "single_review"
+  | "agreed"
+  | "disputed"
+  | "adjudicated";
+
 export type EvaluationCaseResult = {
   id: string;
   caseKey: string;
@@ -263,10 +632,23 @@ export type EvaluationCaseResult = {
   reviewerNotes: string;
   reviewedByName: string | null;
   reviewedAt: string | null;
+  reviews: EvaluationCaseReview[];
+  adjudication: EvaluationCaseAdjudication | null;
+  reviewStatus: EvaluationReviewStatus;
+  averageHumanScore: number | null;
 };
 
 export type EvaluationRunDetail = EvaluationRun & {
   cases: EvaluationCaseResult[];
+  reviewerAssignments: EvaluationReviewerAssignment[];
+  humanSummary: {
+    assignedReviewers: number;
+    reviewedCases: number;
+    doubleReviewedCases: number;
+    disputedCases: number;
+    adjudicatedCases: number;
+    averageScore: number | null;
+  };
 };
 
 export type PaymentWorkflowType = "refund" | "chargeback";

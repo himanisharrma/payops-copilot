@@ -43,12 +43,17 @@ actual settlements differ.
 - Exceptions include missing gateway rows, duplicate captures, missing
   settlements, and amount mismatches.
 - Every finding shows evidence from the source records.
+- New reconciliation runs persist the contributing source-row number, selected
+  normalized values, original source values, and an integrity hash without
+  retaining the complete uploaded file.
 - Reconciliation runs and findings persist in PostgreSQL.
 - Actionable exceptions automatically create operations cases.
 - Analysts can assign an owner, change status and priority, and save notes.
 - Priority automatically sets a case SLA: high in 4 hours, medium in 24
   hours, and low in 72 hours.
 - Operators can filter at-risk and overdue cases and see an in-app SLA alert.
+- A case cannot move to resolved until an analyst supplies a resolution reason
+  and confirms review of its durable source evidence; the resolver is recorded.
 - Analysts can generate a structured investigation grounded in case evidence.
 - AI suggestions require explicit approval or rejection before operational use.
 - Analyst usefulness ratings persist as input for governed evaluation-set
@@ -57,12 +62,55 @@ actual settlements differ.
   explicitly request a guarded OpenAI evaluation.
 - Reviewers can inspect case-level evaluation evidence and save six rubric
   scores with notes and attribution.
+- Two distinct reviewers can claim run-level slots, review independently, see
+  disagreement, and leave an administrator to record the adjudicated score.
 - Refund and chargeback workflows track owner, deadline, evidence, stage, notes,
   timeline events, and audit history without moving money.
 - Chargeback evidence cannot advance to submitted until the checklist is
   complete.
 - Synthetic provider webhook payloads normalize into case and workflow
   timelines that state what each event proves and does not prove.
+- A synthetic-only inbound boundary verifies an HMAC signature over the
+  organization, external event ID, and exact body; duplicate deliveries are
+  idempotent and raw payloads are not stored.
+- Fictional provider-specific signature policies support active and previous
+  keys, explicit key IDs, a bounded timestamp window where required, and
+  precise rejection evidence without persisting request bodies or secrets.
+- Administrators can inspect organization-scoped accepted, duplicate, rejected,
+  conflict, failed, previous-key, and processing-time evidence by provider.
+- Matched provider events and deterministic SLA risk appear as
+  organization-scoped in-app notifications. Viewers may read them; only admins
+  and analysts may update read state.
+- Operations managers can inspect deterministic 7/30/90-day metrics for
+  throughput, match rate, actionable exceptions, resolution time, SLA outcome,
+  queue health, aging, provider performance, AI governance, and signed inbound
+  evidence.
+- Insights filters are shareable in the URL, and charts drill into the
+  underlying filtered operations cases.
+- Admins and analysts can select up to 100 visible cases and assign or unassign
+  them atomically; partial cross-tenant batches are rejected.
+- Every authenticated role can read attributed internal case comments. Admins
+  and analysts can append comments; existing entries cannot be edited in place.
+- Successful payments use deterministic fictional provider and payment-mode
+  cycles to calculate expected settlement in `Asia/Kolkata`.
+- Missing settlements remain monitored while not due or due today; they become
+  actionable cases only after the persisted expected-settlement timestamp.
+- Analysts can run an audited idempotent settlement refresh to promote newly
+  overdue records without duplicating cases.
+- Settlement timing evidence records the timestamp source, cycle, cutoffs,
+  skipped synthetic closure dates, and policy/calendar versions.
+- Every authenticated role can inspect daily reconciliation close readiness by
+  IST business date, provider, and payment mode.
+- High-priority unresolved cases always block close. Lower-priority residuals
+  must stay within count and amount thresholds and receive an evidence-confirmed
+  disposition before submission.
+- Analysts and administrators may prepare a close; only a different
+  administrator may approve it.
+- Approved close versions retain an immutable deterministic snapshot and hash.
+  Administrator reopening requires a reason and permits a new version without
+  altering the prior certificate.
+- Approved synthetic close certificates are downloadable by every
+  organization-scoped role.
 - No real payment is initiated and no payment-provider credentials are
   collected.
 
@@ -71,11 +119,17 @@ actual settlements differ.
 - Moving money or initiating a provider-side refund.
 - Connecting to production payment gateways.
 - Using real provider credentials or claiming live provider compatibility.
-- Receiving live webhooks or exposing a public webhook endpoint.
+- Claiming production webhook compatibility or accepting unsigned events.
+- Treating synthetic webhook attempt outcomes as provider uptime or production
+  delivery-success telemetry.
+- Persisting raw webhook payloads or provider credentials.
 - Storing original uploaded file contents permanently.
 - AI-generated financial calculations.
 - Autonomous provider communication or case resolution.
 - Production identity, compliance certification, or operational telemetry.
+- Real provider settlement contracts or an RBI holiday calendar.
+- Treating a PayOps close certificate as a bank statement, provider
+  attestation, or regulatory sign-off.
 
 ## Product principles
 
@@ -89,6 +143,7 @@ actual settlements differ.
 
 1. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
 2. Turn approved analyst corrections into governed synthetic regression cases.
-3. Add provider webhook ingestion and settlement-cycle metadata.
-4. Add configurable business calendars and external escalation notifications.
-5. Add production identity, observability, and retention controls.
+3. Add recurring-exception root-cause programs and controlled escalation.
+4. Add configurable business calendars and outbound escalation notifications.
+5. Add production identity, managed secrets, incident response, observability,
+   and retention controls.

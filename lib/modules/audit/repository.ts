@@ -1,16 +1,18 @@
+import type { PoolClient } from "pg";
 import { query } from "@/lib/db";
 import type { AuditEvent } from "@/lib/types";
 
 export async function recordAuditEvent(input: {
   organizationId: string;
-  actorUserId: string;
+  actorUserId: string | null;
   actorName: string;
   action: string;
   entityType: string;
   entityId: string;
   details?: Record<string, unknown>;
-}) {
-  await query(
+}, client?: PoolClient) {
+  const execute = client ? client.query.bind(client) : query;
+  await execute(
     `INSERT INTO audit_events (
       organization_id, actor_user_id, actor_name, action,
       entity_type, entity_id, details

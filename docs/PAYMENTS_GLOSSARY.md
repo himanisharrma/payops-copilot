@@ -18,3 +18,20 @@
 - **UPI:** Unified Payments Interface, India's real-time bank payment system.
 - **UTR:** Unique Transaction Reference used to identify a bank transfer.
 - **Webhook:** Automated event notification sent between software systems.
+# Settlement cycle
+
+The fictional number of business days between a successful payment timestamp
+and its expected bank-settlement deadline, expressed as T+0, T+1, or T+2.
+PayOps demo policies are not live provider contracts.
+
+# Expected settlement
+
+The deterministic deadline calculated from the payment timestamp, synthetic
+provider/payment-mode policy, IST cutoff, weekends, and fictional closure
+calendar. It is distinct from the operational case SLA.
+
+# Settlement overdue
+
+A successful payment with no supplied settlement row after its persisted
+expected-settlement timestamp. Only this state promotes a missing-settlement
+record into an operations case.

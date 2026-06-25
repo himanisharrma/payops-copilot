@@ -2,38 +2,45 @@
 
 import {
   AlertTriangle,
-  ArrowRight,
   BellRing,
+  CalendarClock,
   CheckCircle2,
   CircleDot,
   Clock3,
   Copy,
   LoaderCircle,
-  Search,
+  MessageSquareText,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   ThumbsDown,
   ThumbsUp,
-  UserRound,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  CaseQueue,
+  caseSlaLabels as slaLabels,
+} from "@/components/cases/case-queue";
+import {
+  CaseResolutionControl,
+  CaseResolutionRecord,
+} from "@/components/cases/case-resolution-control";
+import { ProviderEventTimeline } from "@/components/ui/provider-event-timeline";
+import { SourceEvidenceLedger } from "@/components/ui/source-evidence-ledger";
 import { formatSlaDistance, getSlaStatus, SLA_HOURS } from "@/lib/sla";
-import type { CaseStatus, OperationsCase, SlaStatus } from "@/lib/types";
-
-const statusLabels: Record<CaseStatus, string> = {
-  open: "Open",
-  investigating: "Investigating",
-  resolved: "Resolved",
-};
-
-const slaLabels: Record<SlaStatus, string> = {
-  on_track: "On track",
-  at_risk: "At risk",
-  overdue: "Overdue",
-  met: "SLA met",
-  breached: "SLA breached",
-};
+import {
+  addBusinessDays,
+  indiaDateParts,
+  nextBusinessDay,
+} from "@/lib/settlement-calendar";
+import type {
+  CaseStatus,
+  OperationsCase,
+  OperationsCaseComment,
+  OperationsFilters,
+} from "@/lib/types";
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -58,19 +65,83 @@ const currentSlaStatus = (item: OperationsCase) =>
     priority: item.priority,
   });
 
-export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
+const settlementLabels: Record<OperationsCase["settlementStatus"], string> = {
+  not_due: "Not due",
+  due_today: "Due today",
+  overdue: "Overdue",
+  settled: "Settled",
+  timing_unavailable: "Timing unavailable",
+};
+
+const transactionSourceLabels = {
+  gateway_capture: "Gateway capture",
+  order_created: "Order creation",
+};
+
+export function OperationsInbox({
+  canEdit,
+  initialFilters,
+}: {
+  canEdit: boolean;
+  initialFilters: OperationsFilters;
+}) {
+  const router = useRouter();
   const [cases, setCases] = useState<OperationsCase[]>([]);
   const [selected, setSelected] = useState<OperationsCase | null>(null);
-  const [filter, setFilter] = useState<"all" | CaseStatus>("all");
+  const [filter, setFilter] = useState<"all" | CaseStatus>(
+    initialFilters.status,
+  );
   const [slaFilter, setSlaFilter] = useState<
     "all" | "at_risk" | "overdue"
-  >("all");
-  const [query, setQuery] = useState("");
+  >(initialFilters.sla);
+  const [query, setQuery] = useState(initialFilters.query);
+  const [exceptionFilter, setExceptionFilter] = useState(
+    initialFilters.exception,
+  );
+  const [providerFilter, setProviderFilter] = useState(
+    initialFilters.provider,
+  );
+  const [paymentModeFilter, setPaymentModeFilter] = useState(
+    initialFilters.paymentMode,
+  );
+  const [priorityFilter, setPriorityFilter] = useState(
+    initialFilters.priority,
+  );
+  const [ownerFilter, setOwnerFilter] = useState(initialFilters.owner);
+  const [ageFilter, setAgeFilter] = useState(initialFilters.age);
+  const [settlementStatusFilter, setSettlementStatusFilter] = useState(
+    initialFilters.settlementStatus,
+  );
+  const [settlementCycleFilter, setSettlementCycleFilter] = useState(
+    initialFilters.settlementCycle,
+  );
+  const [expectedDateFilter, setExpectedDateFilter] = useState(
+    initialFilters.expectedDate,
+  );
+  const [daysOverdueFilter, setDaysOverdueFilter] = useState(
+    initialFilters.daysOverdue,
+  );
+  const [filterNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [investigating, setInvestigating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pendingResolution, setPendingResolution] = useState(false);
+  const [resolutionReason, setResolutionReason] = useState("");
+  const [evidenceConfirmed, setEvidenceConfirmed] = useState(false);
   const [error, setError] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOwner, setBulkOwner] = useState("");
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [comments, setComments] = useState<OperationsCaseComment[]>([]);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
+  const [refreshingClocks, setRefreshingClocks] = useState(false);
+  const [refreshResult, setRefreshResult] = useState<{
+    scannedCount: number;
+    createdCount: number;
+  } | null>(null);
+  const selectedCaseId = selected?.id;
 
   useEffect(() => {
     let active = true;
@@ -81,7 +152,15 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
         return payload.cases as OperationsCase[];
       })
       .then((loadedCases) => {
-        if (active) setCases(loadedCases);
+        if (active) {
+          setCases(loadedCases);
+          if (initialFilters.caseId) {
+            setSelected(
+              loadedCases.find((item) => item.id === initialFilters.caseId) ??
+                null,
+            );
+          }
+        }
       })
       .catch((caught: unknown) => {
         if (active) {
@@ -96,7 +175,177 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialFilters.caseId]);
+
+  useEffect(() => {
+    if (!selectedCaseId) return;
+    let active = true;
+    fetch(`/api/cases/${selectedCaseId}/comments`)
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error);
+        return payload.comments as OperationsCaseComment[];
+      })
+      .then((nextComments) => {
+        if (active) setComments(nextComments);
+      })
+      .catch((caught: unknown) => {
+        if (active) {
+          setError(
+            caught instanceof Error ? caught.message : "Comments unavailable.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedCaseId]);
+
+  function replaceFilters(
+    patch: Partial<OperationsFilters>,
+  ) {
+    const next = {
+      status: filter,
+      sla: slaFilter,
+      exception: exceptionFilter,
+      provider: providerFilter,
+      paymentMode: paymentModeFilter,
+      priority: priorityFilter,
+      owner: ownerFilter,
+      age: ageFilter,
+      settlementStatus: settlementStatusFilter,
+      settlementCycle: settlementCycleFilter,
+      expectedDate: expectedDateFilter,
+      daysOverdue: daysOverdueFilter,
+      query,
+      caseId: selected?.id ?? initialFilters.caseId,
+      ...patch,
+    };
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(next)) {
+      if (value && value !== "all") params.set(key, value);
+    }
+    router.replace(`/operations${params.size ? `?${params}` : ""}`, {
+      scroll: false,
+    });
+  }
+
+  function clearResolutionDraft() {
+    setPendingResolution(false);
+    setResolutionReason("");
+    setEvidenceConfirmed(false);
+  }
+
+  function selectCase(paymentCase: OperationsCase | null) {
+    setSelected(paymentCase);
+    setComments([]);
+    setCommentBody("");
+    replaceFilters({ caseId: paymentCase?.id ?? null });
+    clearResolutionDraft();
+  }
+
+  function toggleSelection(caseId: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(caseId)) next.delete(caseId);
+      else next.add(caseId);
+      return next;
+    });
+  }
+
+  async function assignSelected() {
+    setBulkSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/cases/bulk", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          caseIds: [...selectedIds],
+          owner: bulkOwner || null,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setCases((current) =>
+        current.map((item) =>
+          selectedIds.has(item.id)
+            ? { ...item, owner: payload.owner, updatedAt: new Date().toISOString() }
+            : item,
+        ),
+      );
+      setSelected((current) =>
+        current && selectedIds.has(current.id)
+          ? { ...current, owner: payload.owner }
+          : current,
+      );
+      setSelectedIds(new Set());
+      setBulkOwner("");
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Assignment failed.",
+      );
+    } finally {
+      setBulkSaving(false);
+    }
+  }
+
+  async function submitComment() {
+    if (!selected || !commentBody.trim()) return;
+    setCommentSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/cases/${selected.id}/comments`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ body: commentBody }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setComments((current) => [...current, payload.comment]);
+      setCommentBody("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Comment failed.");
+    } finally {
+      setCommentSaving(false);
+    }
+  }
+
+  async function refreshSettlementClocks() {
+    setRefreshingClocks(true);
+    setRefreshResult(null);
+    setError("");
+    try {
+      const response = await fetch("/api/settlement-control/refresh", {
+        method: "POST",
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      setRefreshResult({
+        scannedCount: payload.scannedCount,
+        createdCount: payload.createdCount,
+      });
+      const casesResponse = await fetch("/api/cases");
+      const casesPayload = await casesResponse.json();
+      if (!casesResponse.ok) throw new Error(casesPayload.error);
+      setCases(casesPayload.cases);
+      if (selected) {
+        setSelected(
+          casesPayload.cases.find(
+            (item: OperationsCase) => item.id === selected.id,
+          ) ?? null,
+        );
+      }
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Settlement clocks could not be refreshed.",
+      );
+    } finally {
+      setRefreshingClocks(false);
+    }
+  }
 
   async function updateSelected(patch: Partial<OperationsCase>) {
     if (!selected) return;
@@ -113,11 +362,14 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
             ? patch.owner
             : undefined,
           notes: patch.notes,
+          resolutionReason: patch.resolutionReason,
+          resolutionEvidenceConfirmed: patch.resolutionEvidenceConfirmed,
         }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error);
       setSelected(payload.case);
+      clearResolutionDraft();
       setCases((current) =>
         current.map((item) => (item.id === payload.case.id ? payload.case : item)),
       );
@@ -203,12 +455,66 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
 
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
+    const today = indiaDateParts(new Date(filterNow)).date;
+    const nextBusiness = nextBusinessDay(today).date;
+    const thirdBusiness = addBusinessDays(nextBusiness, 2).date;
     return cases.filter(
       (item) => {
         const slaStatus = currentSlaStatus(item);
+        const ageHours =
+          (filterNow - new Date(item.createdAt).getTime()) / 3_600_000;
+        const matchesAge =
+          ageFilter === "all" ||
+          (ageFilter === "under_4h" && ageHours < 4) ||
+          (ageFilter === "4h_24h" && ageHours >= 4 && ageHours < 24) ||
+          (ageFilter === "1d_3d" && ageHours >= 24 && ageHours < 72) ||
+          (ageFilter === "over_3d" && ageHours >= 72);
+        const expectedDate = item.expectedSettlementAt
+          ? indiaDateParts(item.expectedSettlementAt).date
+          : null;
+        const matchesExpectedDate =
+          expectedDateFilter === "all" ||
+          (expectedDateFilter === "today" && expectedDate === today) ||
+          (expectedDateFilter === "next_business_day" &&
+            expectedDate === nextBusiness) ||
+          (expectedDateFilter === "next_3_business_days" &&
+            expectedDate !== null &&
+            expectedDate > today &&
+            expectedDate <= thirdBusiness) ||
+          (expectedDateFilter === "past_due" &&
+            item.settlementStatus === "overdue");
+        const overdueDays = item.settlementDaysOverdue;
+        const matchesDaysOverdue =
+          daysOverdueFilter === "all" ||
+          (overdueDays !== null &&
+            item.settlementStatus === "overdue" &&
+            ((daysOverdueFilter === "under_1d" && overdueDays < 1) ||
+              (daysOverdueFilter === "1d_2d" &&
+                overdueDays >= 1 &&
+                overdueDays < 3) ||
+              (daysOverdueFilter === "3d_7d" &&
+                overdueDays >= 3 &&
+                overdueDays <= 7) ||
+              (daysOverdueFilter === "over_7d" && overdueDays > 7)));
         return (
           (filter === "all" || item.status === filter) &&
           (slaFilter === "all" || slaStatus === slaFilter) &&
+          (exceptionFilter === "all" ||
+            item.reconciliationStatus === exceptionFilter) &&
+          (providerFilter === "all" || item.providerId === providerFilter) &&
+          (paymentModeFilter === "all" ||
+            item.paymentMode === paymentModeFilter) &&
+          (priorityFilter === "all" || item.priority === priorityFilter) &&
+          (ownerFilter === "all" ||
+            (ownerFilter === "assigned" && Boolean(item.owner)) ||
+            (ownerFilter === "unassigned" && !item.owner)) &&
+          matchesAge &&
+          (settlementStatusFilter === "all" ||
+            item.settlementStatus === settlementStatusFilter) &&
+          (settlementCycleFilter === "all" ||
+            item.settlementCycle === settlementCycleFilter) &&
+          matchesExpectedDate &&
+          matchesDaysOverdue &&
         (!normalized ||
           item.orderId.toLowerCase().includes(normalized) ||
           item.owner?.toLowerCase().includes(normalized) ||
@@ -216,7 +522,86 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
         );
       },
     );
-  }, [cases, filter, query, slaFilter]);
+  }, [
+    ageFilter,
+    cases,
+    exceptionFilter,
+    expectedDateFilter,
+    filterNow,
+    filter,
+    ownerFilter,
+    paymentModeFilter,
+    priorityFilter,
+    providerFilter,
+    query,
+    daysOverdueFilter,
+    settlementCycleFilter,
+    settlementStatusFilter,
+    slaFilter,
+  ]);
+
+  const advancedFilters = [
+    exceptionFilter !== "all"
+      ? ["exception", exceptionFilter, () => {
+          setExceptionFilter("all");
+          replaceFilters({ exception: "all" });
+        }]
+      : null,
+    providerFilter !== "all"
+      ? ["provider", providerFilter, () => {
+          setProviderFilter("all");
+          replaceFilters({ provider: "all" });
+        }]
+      : null,
+    paymentModeFilter !== "all"
+      ? ["payment mode", paymentModeFilter, () => {
+          setPaymentModeFilter("all");
+          replaceFilters({ paymentMode: "all" });
+        }]
+      : null,
+    priorityFilter !== "all"
+      ? ["priority", priorityFilter, () => {
+          setPriorityFilter("all");
+          replaceFilters({ priority: "all" });
+        }]
+      : null,
+    ownerFilter !== "all"
+      ? ["owner", ownerFilter, () => {
+          setOwnerFilter("all");
+          replaceFilters({ owner: "all" });
+        }]
+      : null,
+    ageFilter !== "all"
+      ? ["age", ageFilter.replaceAll("_", " "), () => {
+          setAgeFilter("all");
+          replaceFilters({ age: "all" });
+        }]
+      : null,
+    settlementStatusFilter !== "all"
+      ? ["settlement", settlementLabels[settlementStatusFilter], () => {
+          setSettlementStatusFilter("all");
+          replaceFilters({ settlementStatus: "all" });
+        }]
+      : null,
+    settlementCycleFilter !== "all"
+      ? ["cycle", settlementCycleFilter, () => {
+          setSettlementCycleFilter("all");
+          replaceFilters({ settlementCycle: "all" });
+        }]
+      : null,
+    expectedDateFilter !== "all"
+      ? ["expected", expectedDateFilter.replaceAll("_", " "), () => {
+          setExpectedDateFilter("all");
+          replaceFilters({ expectedDate: "all" });
+        }]
+      : null,
+    daysOverdueFilter !== "all"
+      ? ["late age", daysOverdueFilter.replaceAll("_", " "), () => {
+          setDaysOverdueFilter("all");
+          replaceFilters({ daysOverdue: "all" });
+        }]
+      : null,
+  ].filter(Boolean) as Array<[string, string, () => void]>;
 
   const slaCounts = cases.reduce(
     (counts, item) => {
@@ -284,6 +669,7 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
               onClick={() => {
                 setFilter("all");
                 setSlaFilter("overdue");
+                replaceFilters({ status: "all", sla: "overdue" });
               }}
             >
               Review overdue
@@ -292,120 +678,210 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
         </section>
       )}
 
-      <section className="operations-layout">
-        <div className="case-list-panel">
-          <div className="case-toolbar">
-            <div className="case-filter-stack">
-              <div className="filter-group">
-                {(["all", "open", "investigating", "resolved"] as const).map(
-                  (value) => (
-                    <button
-                      key={value}
-                      className={filter === value ? "active" : ""}
-                      onClick={() => setFilter(value)}
-                    >
-                      {value === "all" ? "All" : statusLabels[value]}
-                    </button>
-                  ),
-                )}
-              </div>
-              <div className="filter-group sla-filter-group">
-                {(["all", "at_risk", "overdue"] as const).map((value) => (
-                  <button
-                    key={value}
-                    className={slaFilter === value ? "active" : ""}
-                    onClick={() => setSlaFilter(value)}
-                  >
-                    {value === "all"
-                      ? "Any SLA"
-                      : value === "at_risk"
-                        ? "At risk"
-                        : "Overdue"}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <label className="search-box">
-              <Search size={16} />
-              <span className="sr-only">Search cases</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search order, owner or issue"
-              />
-            </label>
-          </div>
-
-          {error && <div className="error-banner">{error}</div>}
-          {loading ? (
-            <div className="loading-state">
-              <LoaderCircle className="spin" />
-              Loading PostgreSQL cases…
-            </div>
-          ) : visible.length ? (
-            <div className="case-list">
-              {visible.map((item) => (
-                (() => {
-                  const slaStatus = currentSlaStatus(item);
-                  return (
-                    <button
-                      key={item.id}
-                      className={`case-card ${
-                        selected?.id === item.id ? "selected" : ""
-                      }`}
-                      onClick={() => setSelected(item)}
-                    >
-                      <div className="case-card-top">
-                        <span className={`priority-chip ${item.priority}`}>
-                          {item.priority} priority
-                        </span>
-                        <span className={`case-status ${item.status}`}>
-                          {item.status === "resolved" ? (
-                            <CheckCircle2 size={13} />
-                          ) : (
-                            <CircleDot size={13} />
-                          )}
-                          {statusLabels[item.status]}
-                        </span>
-                      </div>
-                      <h2>{item.orderId}</h2>
-                      <p>{item.summary}</p>
-                      <div className={`sla-card-status ${slaStatus}`}>
-                        <Clock3 size={13} />
-                        <strong>{slaLabels[slaStatus]}</strong>
-                        <span>
-                          {item.status === "resolved"
-                            ? `Resolved ${formatDateTime(item.resolvedAt!)}`
-                            : formatSlaDistance(item.dueAt)}
-                        </span>
-                      </div>
-                      <div className="case-card-meta">
-                        <span>
-                          <UserRound size={13} />
-                          {item.owner || "Unassigned"}
-                        </span>
-                        <strong>{formatMoney(Math.abs(item.variance))}</strong>
-                        <ArrowRight size={15} />
-                      </div>
-                    </button>
-                  );
-                })()
-              ))}
-            </div>
-          ) : (
-            <div className="loading-state">
-              <CheckCircle2 />
-              No cases match this view.
-            </div>
-          )}
+      <section className="settlement-control-rail">
+        <div>
+          <CalendarClock size={19} />
+          <span>
+            <strong>SETTLEMENT CONTROL</strong>
+            Recalculate overdue candidates from persisted policy evidence.
+          </span>
         </div>
+        {refreshResult && (
+          <p role="status">
+            {refreshResult.createdCount
+              ? `${refreshResult.createdCount} case${
+                  refreshResult.createdCount === 1 ? "" : "s"
+                } promoted from ${refreshResult.scannedCount} overdue candidate${
+                  refreshResult.scannedCount === 1 ? "" : "s"
+                }.`
+              : `No new cases. ${refreshResult.scannedCount} overdue candidate${
+                  refreshResult.scannedCount === 1 ? "" : "s"
+                } already controlled.`}
+          </p>
+        )}
+        {canEdit ? (
+          <button disabled={refreshingClocks} onClick={refreshSettlementClocks}>
+            <RefreshCw
+              size={14}
+              className={refreshingClocks ? "spin" : undefined}
+            />
+            {refreshingClocks ? "Refreshing…" : "Refresh settlement clocks"}
+          </button>
+        ) : (
+          <span className="settlement-read-only">Viewer · read only</span>
+        )}
+      </section>
+
+      <section
+        className="settlement-filter-rail"
+        aria-label="Settlement filters"
+      >
+        <label>
+          SETTLEMENT STATUS
+          <select
+            value={settlementStatusFilter}
+            onChange={(event) => {
+              const value =
+                event.target.value as OperationsFilters["settlementStatus"];
+              setSettlementStatusFilter(value);
+              replaceFilters({ settlementStatus: value });
+            }}
+          >
+            <option value="all">Any status</option>
+            <option value="not_due">Not due</option>
+            <option value="due_today">Due today</option>
+            <option value="overdue">Overdue</option>
+            <option value="settled">Settled</option>
+            <option value="timing_unavailable">Timing unavailable</option>
+          </select>
+        </label>
+        <label>
+          CYCLE
+          <select
+            value={settlementCycleFilter}
+            onChange={(event) => {
+              const value =
+                event.target.value as OperationsFilters["settlementCycle"];
+              setSettlementCycleFilter(value);
+              replaceFilters({ settlementCycle: value });
+            }}
+          >
+            <option value="all">Any cycle</option>
+            <option value="T+0">T+0</option>
+            <option value="T+1">T+1</option>
+            <option value="T+2">T+2</option>
+          </select>
+        </label>
+        <label>
+          EXPECTED DATE
+          <select
+            value={expectedDateFilter}
+            onChange={(event) => {
+              const value =
+                event.target.value as OperationsFilters["expectedDate"];
+              setExpectedDateFilter(value);
+              replaceFilters({ expectedDate: value });
+            }}
+          >
+            <option value="all">Any expected date</option>
+            <option value="today">Today</option>
+            <option value="next_business_day">Next business day</option>
+            <option value="next_3_business_days">Next 3 business days</option>
+            <option value="past_due">Past due</option>
+          </select>
+        </label>
+        <label>
+          DAYS OVERDUE
+          <select
+            value={daysOverdueFilter}
+            onChange={(event) => {
+              const value =
+                event.target.value as OperationsFilters["daysOverdue"];
+              setDaysOverdueFilter(value);
+              replaceFilters({ daysOverdue: value });
+            }}
+          >
+            <option value="all">Any late age</option>
+            <option value="under_1d">Under 1 day</option>
+            <option value="1d_2d">1–2 days</option>
+            <option value="3d_7d">3–7 days</option>
+            <option value="over_7d">Over 7 days</option>
+          </select>
+        </label>
+      </section>
+
+      {advancedFilters.length > 0 && (
+        <section className="operations-filter-context">
+          <span>INSIGHTS DRILL-DOWN</span>
+          <div>
+            {advancedFilters.map(([label, value, clear]) => (
+              <button key={label} onClick={clear}>
+                {label}: <strong>{value}</strong> <X size={11} />
+              </button>
+            ))}
+            <button
+              className="clear-all"
+              onClick={() => {
+                setExceptionFilter("all");
+                setProviderFilter("all");
+                setPaymentModeFilter("all");
+                setPriorityFilter("all");
+                setOwnerFilter("all");
+                setAgeFilter("all");
+                setSettlementStatusFilter("all");
+                setSettlementCycleFilter("all");
+                setExpectedDateFilter("all");
+                setDaysOverdueFilter("all");
+                router.replace("/operations", { scroll: false });
+              }}
+            >
+              Clear all
+            </button>
+          </div>
+        </section>
+      )}
+
+      {canEdit && selectedIds.size > 0 && (
+        <section className="case-dispatch-rail" aria-label="Bulk assignment">
+          <div>
+            <span>DISPATCH SELECTION</span>
+            <strong>{selectedIds.size} cases marked</strong>
+          </div>
+          <input
+            value={bulkOwner}
+            onChange={(event) => setBulkOwner(event.target.value)}
+            placeholder="Owner name, blank to unassign"
+            maxLength={120}
+          />
+          <button disabled={bulkSaving} onClick={assignSelected}>
+            {bulkSaving ? "Assigning…" : bulkOwner ? "Assign owner" : "Unassign"}
+          </button>
+          <button
+            className="dispatch-clear"
+            onClick={() => setSelectedIds(new Set())}
+          >
+            Clear
+          </button>
+        </section>
+      )}
+
+      <section className="operations-layout">
+        <CaseQueue
+          filter={filter}
+          slaFilter={slaFilter}
+          query={query}
+          error={error}
+          loading={loading}
+          visible={visible}
+          selectedId={selected?.id ?? null}
+          selectedIds={selectedIds}
+          canEdit={canEdit}
+          onFilterChange={(value) => {
+            setFilter(value);
+            replaceFilters({ status: value });
+          }}
+          onSlaFilterChange={(value) => {
+            setSlaFilter(value);
+            replaceFilters({ sla: value });
+          }}
+          onQueryChange={(value) => {
+            setQuery(value);
+            replaceFilters({ query: value });
+          }}
+          onSelect={selectCase}
+          onToggleSelection={toggleSelection}
+          getSlaStatus={currentSlaStatus}
+          formatDateTime={formatDateTime}
+          formatSlaDistance={formatSlaDistance}
+          formatMoney={formatMoney}
+        />
 
         <aside className="case-detail-panel">
           {selected ? (
             <>
               <button
                 className="mobile-close"
-                onClick={() => setSelected(null)}
+                onClick={() => selectCase(null)}
                 aria-label="Close case"
               >
                 <X size={18} />
@@ -422,31 +898,161 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
               </div>
               <p className="case-summary">{selected.summary}</p>
 
-              <div
-                className={`sla-control ${currentSlaStatus(selected)}`}
-                aria-label="Case SLA status"
-              >
-                <div>
-                  <Clock3 size={18} />
-                  <span>SLA CONTROL</span>
+              <div className="case-clock-grid">
+                <div
+                  className={`settlement-clock ${selected.settlementStatus}`}
+                  aria-label="Settlement clock"
+                >
+                  <div>
+                    <CalendarClock size={18} />
+                    <span>SETTLEMENT CLOCK</span>
+                  </div>
+                  <strong>{settlementLabels[selected.settlementStatus]}</strong>
+                  <p>
+                    {selected.settlementStatus === "timing_unavailable"
+                      ? "No supported source timestamp was persisted. No deadline is invented."
+                      : selected.settlementStatus === "settled"
+                        ? selected.settlementRecordedAt
+                          ? `Recorded ${formatDateTime(
+                              selected.settlementRecordedAt,
+                            )}`
+                          : "Settlement record exists; timing performance is unavailable."
+                        : selected.expectedSettlementAt
+                          ? `Expected ${formatDateTime(
+                              selected.expectedSettlementAt,
+                            )}`
+                          : "Expected date unavailable"}
+                  </p>
+                  <dl>
+                    <div>
+                      <dt>Cycle</dt>
+                      <dd>{selected.settlementCycle ?? "Unavailable"}</dd>
+                    </div>
+                    <div>
+                      <dt>Settlement age</dt>
+                      <dd>
+                        {selected.settlementStatus === "overdue" &&
+                        selected.settlementDaysOverdue !== null
+                          ? `${selected.settlementDaysOverdue.toFixed(1)} days late`
+                          : "Not late"}
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
-                <strong>{slaLabels[currentSlaStatus(selected)]}</strong>
-                <p>
-                  {selected.status === "resolved"
-                    ? `Resolved ${formatDateTime(selected.resolvedAt!)}`
-                    : formatSlaDistance(selected.dueAt)}
-                </p>
-                <dl>
+                <div
+                  className={`sla-control ${currentSlaStatus(selected)}`}
+                  aria-label="Case SLA status"
+                >
                   <div>
-                    <dt>Target</dt>
-                    <dd>{SLA_HOURS[selected.priority]} hours</dd>
+                    <Clock3 size={18} />
+                    <span>CASE SLA</span>
                   </div>
-                  <div>
-                    <dt>Deadline</dt>
-                    <dd>{formatDateTime(selected.dueAt)}</dd>
-                  </div>
-                </dl>
+                  <strong>{slaLabels[currentSlaStatus(selected)]}</strong>
+                  <p>
+                    {selected.status === "resolved"
+                      ? `Resolved ${formatDateTime(selected.resolvedAt!)}`
+                      : formatSlaDistance(selected.dueAt)}
+                  </p>
+                  <dl>
+                    <div>
+                      <dt>Target</dt>
+                      <dd>{SLA_HOURS[selected.priority]} hours</dd>
+                    </div>
+                    <div>
+                      <dt>Deadline</dt>
+                      <dd>{formatDateTime(selected.dueAt)}</dd>
+                    </div>
+                  </dl>
+                </div>
               </div>
+
+              <section className="settlement-evidence-ledger">
+                <header>
+                  <div>
+                    <p className="eyebrow">POLICY EVIDENCE</p>
+                    <h3>How the settlement deadline was calculated</h3>
+                  </div>
+                  <span>{selected.caseOrigin.replaceAll("_", " ")}</span>
+                </header>
+                {selected.settlementTimingEvidence ? (
+                  <>
+                    <dl>
+                      <div>
+                        <dt>Transaction basis</dt>
+                        <dd>
+                          {selected.transactionTimestampSource
+                            ? transactionSourceLabels[
+                                selected.transactionTimestampSource
+                              ]
+                            : "Unavailable"}
+                          <small>
+                            {selected.transactionAt
+                              ? formatDateTime(selected.transactionAt)
+                              : "No source timestamp"}
+                          </small>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Applied policy</dt>
+                        <dd>
+                          {selected.settlementTimingEvidence.cycle} · capture by{" "}
+                          {selected.settlementTimingEvidence.captureCutoff} IST
+                          <small>
+                            {selected.settlementTimingEvidence
+                              .afterCaptureCutoff
+                              ? "Captured after cutoff; anchor advanced"
+                              : "Captured within cutoff"}
+                          </small>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Business-day anchor</dt>
+                        <dd>
+                          {selected.settlementTimingEvidence.cycleAnchorDate}
+                          <small>
+                            {selected.settlementTimingEvidence
+                              .usedFallbackPolicy
+                              ? "Fictional T+2 fallback policy"
+                              : "Fictional provider demo policy"}
+                          </small>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Expected settlement</dt>
+                        <dd>
+                          {formatDateTime(
+                            selected.settlementTimingEvidence
+                              .expectedSettlementAt,
+                          )}
+                          <small>
+                            {selected.settlementTimingEvidence.policyVersion} ·{" "}
+                            {selected.settlementTimingEvidence.calendarVersion}
+                          </small>
+                        </dd>
+                      </div>
+                    </dl>
+                    <div className="settlement-skipped-dates">
+                      <span>SKIPPED NON-BUSINESS DATES</span>
+                      <p>
+                        {selected.settlementTimingEvidence
+                          .skippedNonBusinessDates.length
+                          ? selected.settlementTimingEvidence.skippedNonBusinessDates.join(
+                              " · ",
+                            )
+                          : "None"}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="settlement-timing-empty">
+                    <CalendarClock size={20} />
+                    <p>
+                      Timing unavailable. Historical or incomplete source
+                      evidence is preserved without fabricating a deadline.
+                    </p>
+                  </div>
+                )}
+              </section>
 
               <div className="case-form">
                 <label>
@@ -454,11 +1060,14 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
                   <select
                     value={selected.status}
                     disabled={saving || !canEdit}
-                    onChange={(event) =>
-                      updateSelected({
-                        status: event.target.value as CaseStatus,
-                      })
-                    }
+                    onChange={(event) => {
+                      const status = event.target.value as CaseStatus;
+                      if (status === "resolved") {
+                        setPendingResolution(true);
+                        return;
+                      }
+                      updateSelected({ status });
+                    }}
                   >
                     <option value="open">Open</option>
                     <option value="investigating">Investigating</option>
@@ -508,6 +1117,33 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
                 </label>
               </div>
 
+              {pendingResolution && selected.status !== "resolved" && (
+                <CaseResolutionControl
+                  saving={saving}
+                  reason={resolutionReason}
+                  evidenceConfirmed={evidenceConfirmed}
+                  onReasonChange={setResolutionReason}
+                  onEvidenceConfirmedChange={setEvidenceConfirmed}
+                  onCancel={() => setPendingResolution(false)}
+                  onResolve={() =>
+                    updateSelected({
+                      status: "resolved",
+                      resolutionReason,
+                      resolutionEvidenceConfirmed: evidenceConfirmed,
+                    })
+                  }
+                />
+              )}
+
+              {selected.status === "resolved" && (
+                <CaseResolutionRecord
+                  reason={selected.resolutionReason}
+                  resolvedByName={selected.resolvedByName}
+                  resolvedAt={selected.resolvedAt!}
+                  formatDateTime={formatDateTime}
+                />
+              )}
+
               <div className="case-evidence">
                 <p>EVIDENCE</p>
                 {selected.evidence.map((line) => (
@@ -518,38 +1154,58 @@ export function OperationsInbox({ canEdit }: { canEdit: boolean }) {
                 ))}
               </div>
 
-              <section className="provider-event-panel">
-                <div className="timeline-heading">
-                  <span>SYNTHETIC PROVIDER EVENTS</span>
-                  <small>{selected.providerEvents?.length ?? 0} events</small>
+              <SourceEvidenceLedger
+                evidence={selected.sourceEvidence}
+                emptyMessage="Historical case created before source-row persistence."
+              />
+
+              <ProviderEventTimeline
+                events={selected.providerEvents}
+                emptyMessage="No synthetic provider event matched this case."
+                formatDateTime={formatDateTime}
+              />
+
+              <section className="case-comment-ledger">
+                <header>
+                  <div>
+                    <p className="eyebrow">INTERNAL HANDOFF LOG</p>
+                    <h3>Operational comments</h3>
+                  </div>
+                  <span>{comments.length} entries</span>
+                </header>
+                <div className="case-comment-list">
+                  {comments.length ? (
+                    comments.map((comment) => (
+                      <article key={comment.id}>
+                        <div>
+                          <strong>{comment.authorName}</strong>
+                          <time>{formatDateTime(comment.createdAt)}</time>
+                        </div>
+                        <p>{comment.body}</p>
+                      </article>
+                    ))
+                  ) : (
+                    <p className="case-comment-empty">
+                      No handoff notes yet. Comments are attributed and
+                      append-only.
+                    </p>
+                  )}
                 </div>
-                {selected.providerEvents?.length ? (
-                  selected.providerEvents.map((event) => (
-                    <article key={event.id}>
-                      <i />
-                      <div>
-                        <strong>{event.title}</strong>
-                        <p>
-                          {event.paymentReference ?? event.externalReference} ·{" "}
-                          {formatDateTime(event.occurredAt)}
-                        </p>
-                        <dl>
-                          <div>
-                            <dt>Proves</dt>
-                            <dd>{event.proves}</dd>
-                          </div>
-                          <div>
-                            <dt>Does not prove</dt>
-                            <dd>{event.doesNotProve}</dd>
-                          </div>
-                        </dl>
-                      </div>
-                    </article>
-                  ))
-                ) : (
-                  <div className="provider-event-empty">
-                    <AlertTriangle size={15} />
-                    No synthetic provider event matched this case.
+                {canEdit && (
+                  <div className="case-comment-compose">
+                    <MessageSquareText size={17} />
+                    <textarea
+                      value={commentBody}
+                      onChange={(event) => setCommentBody(event.target.value)}
+                      placeholder="Add a concise operational handoff…"
+                      maxLength={2000}
+                    />
+                    <button
+                      disabled={commentSaving || !commentBody.trim()}
+                      onClick={submitComment}
+                    >
+                      {commentSaving ? "Adding…" : "Add comment"}
+                    </button>
                   </div>
                 )}
               </section>

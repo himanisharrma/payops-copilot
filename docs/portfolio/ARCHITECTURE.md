@@ -14,7 +14,10 @@ flowchart TB
       Ops[Operations inbox]
       Lifecycles[Refund and chargeback queues]
       ProviderEvents[Provider event timelines]
+      WebhookTrust[Webhook trust ledger]
+      DailyClose[Daily close control book]
       Quality[Quality Lab]
+      Insights[Operations Intelligence]
       History[Run history]
       AuditUI[Audit ledger]
     end
@@ -24,7 +27,8 @@ flowchart TB
       Routes[Route handlers]
       Engine[Deterministic reconciliation]
       ProviderPolicy[Provider mapping policies]
-      WebhookPolicy[Synthetic webhook normalizer]
+      WebhookPolicy[Signed synthetic webhook boundary]
+      Notifications[Operational notification service]
       Investigator[AI investigation adapter]
       Access[Role and organization guard]
       Modules[Domain backend modules]
@@ -38,6 +42,11 @@ flowchart TB
       Workflows[Payment workflows and timelines]
       Identity[Organizations and users]
       Events[Audit events]
+      ProviderStore[Webhook hashes and normalized events]
+      AttemptStore[Hash-only webhook attempt evidence]
+      CloseStore[Immutable close versions and dispositions]
+      SignalStore[Operational notifications]
+      Metrics[Deterministic aggregate queries]
     end
 
     Upload --> Routes
@@ -47,6 +56,13 @@ flowchart TB
     Routes --> Engine
     Routes --> ProviderPolicy
     Routes --> WebhookPolicy
+    WebhookPolicy --> Modules
+    Routes --> Notifications
+    Routes --> Metrics
+    WebhookPolicy --> ProviderStore
+    WebhookPolicy --> AttemptStore
+    Routes --> CloseStore
+    Notifications --> SignalStore
     Engine --> Modules
     Ops --> Routes
     Lifecycles --> Routes
@@ -59,8 +75,11 @@ flowchart TB
     Data --> Ops
     Data --> Lifecycles
     Data --> Quality
+    Data --> Insights
     Data --> History
     Data --> AuditUI
+    Data --> WebhookTrust
+    Data --> DailyClose
 ```
 
 ## 1. Deterministic reconciliation
@@ -78,7 +97,9 @@ It:
 - matches settlement rows by order ID or gateway reference;
 - calculates expected net as gateway amount minus fee and tax;
 - rounds financial outputs to two decimals;
-- emits a typed result and source-derived evidence.
+- emits a typed result, explanatory evidence, and minimal source-row snapshots;
+- hashes each snapshot with SHA-256 over its source type, original row number,
+  normalized values, and retained source values.
 
 AI is not imported into this module. The same inputs produce the same outputs.
 
@@ -95,7 +116,7 @@ These adapters are mapping policies, not live integrations. They do not use
 provider credentials, call provider APIs, or claim compatibility with production
 exports.
 
-## 2. Synthetic provider event timelines
+## 2. Signed synthetic provider event timelines
 
 `lib/provider-webhooks.ts` contains fictional webhook fixtures and a
 deterministic normalizer for Razorpay-style, Cashfree-style, and PayU-style
@@ -110,16 +131,42 @@ The normalizer converts provider-specific shapes into one internal event model:
 - chargeback received;
 - chargeback evidence due.
 
-Cases and payment workflows attach matching normalized events in their read
-models. The UI explains both what an event proves and what it does not prove.
-There is no public webhook endpoint, no signature verification, no provider
-secret, and no live provider call in this portfolio slice.
+The route `/api/provider-webhooks/:providerId` accepts only the three demo
+providers. The legacy contract verifies HMAC-SHA256 over the organization
+slug, external event ID, and exact request body. The fictional `provider-v2`
+contract uses provider-specific canonical strings, explicit key IDs, active
+and previous environment-managed keys, and a five-minute timestamp window for
+the Cashfree-style demo. The database enforces idempotency per organization,
+provider, and event ID.
+
+Only a SHA-256 body hash and the normalized event are persisted. Raw payloads
+are discarded. Deterministic identifier matching attaches persisted events to
+tenant-owned cases and payment workflows, where the UI states both what an
+event proves and what it does not prove.
+
+Known-organization attempts also persist signature version, non-secret key ID,
+key state, outcome, HTTP status, failure code, match count, and processing
+time. The administrator-only `/webhook-operations` read model is scoped by
+organization. It is an evidence ledger for this synthetic boundary, not a
+provider uptime or delivery-success claim. Unknown organizations receive a
+generic signature rejection and are not persisted.
+
+This is an executable integration boundary, not a production-provider claim.
+It has no provider credentials, outbound provider call, money-moving action,
+or provider-specific production signature contract.
 
 ## 3. Transactional persistence
 
 `lib/modules/reconciliation/repository.ts` writes a reconciliation run, its
-row-level items, and its operations cases inside one database transaction. If
-persistence fails, the workflow does not leave a partially written run.
+row-level items, source-evidence snapshots, and operations cases inside one
+database transaction. The reconciliation audit event is committed in that same
+transaction. If any write fails, the workflow does not leave a partial run or
+an unaudited successful result.
+
+Case updates and their audit events also share one transaction. Resolution
+requires durable source evidence, a reason of at least ten characters, explicit
+evidence confirmation, and resolver attribution. Composite foreign keys ensure
+that each run, item, case, and source snapshot belongs to the same organization.
 
 The migration chain is append-only:
 
@@ -134,6 +181,14 @@ The migration chain is append-only:
 | `007_evaluation_case_reviews.sql` | Case outputs and attributable human rubric reviews |
 | `008_model_evaluation_metrics.sql` | Run and case latency plus token usage |
 | `009_refunds_and_disputes.sql` | Refund/chargeback lifecycles and decision timelines |
+| `010_evidence_integrity.sql` | Tenant-linked source-row ledger, hashes, and controlled case resolution |
+| `011_two_reviewer_evaluations.sql` | Reviewer slots, independent case reviews, disagreement, and adjudication |
+| `012_provider_event_ingestion_notifications.sql` | Idempotent signed deliveries, normalized events, and in-app operational notifications |
+| `013_operations_intelligence.sql` | Provider-aware runs and aggregate-query indexes |
+| `014_case_collaboration.sql` | Tenant-linked append-only comments and assignment indexes |
+| `015_settlement_control.sql` | Persisted settlement clocks, policy evidence, and case origin |
+| `016_webhook_trust_operations.sql` | Signature metadata, key-rotation evidence, and hash-only inbound attempt observability |
+| `017_reconciliation_close_control.sql` | Daily close periods, immutable versions, residual dispositions, maker-checker approval, and reopen evidence |
 
 ## 4. Identity, organization, and roles
 
@@ -161,16 +216,50 @@ route handler -> domain policy/service -> domain repository -> lib/db.ts
 ```
 
 Current modules are reconciliation, cases, investigations, evaluations,
-payment workflows, audit, and system health. This preserves one deployment
+payment workflows, provider events, notifications, insights, settlement
+control, close control, audit, and system health.
+This preserves one deployment
 while removing the central repository as a coupling point.
 
-Reconciliation, payment workflows, cases, evaluations, and investigations have
-service layers. Services validate state transitions, review payloads, and
+Reconciliation, payment workflows, cases, evaluations, investigations,
+provider events, notifications, and insights have service layers. Services validate
+state transitions, signed payloads, review payloads, and
 reconciliation requests; coordinate persistence, deterministic execution, and
 AI execution; and write audit evidence. Their API routes handle authentication,
 JSON parsing, and HTTP responses. `lib/api-errors.ts` centralizes access,
 domain-error, and generic service-error translation so each route uses the same
 transport behavior.
+
+Case collaboration stays inside the cases module. Bulk assignment updates a
+bounded ID set in one transaction and verifies that every requested case
+belongs to the actor organization before commit. Internal comments use a
+separate append-only table with an organization/case composite foreign key;
+viewers may read the ledger, while admin/analyst routes create entries and audit
+events atomically.
+
+Settlement Control is a deterministic domain downstream of provider
+normalization. `lib/settlement-policy.ts` selects a fictional provider/mode
+cycle, while `lib/settlement-calendar.ts` applies IST cutoffs, weekends, and
+versioned synthetic closures. Reconciliation persists the timestamp source,
+expected deadline, policy snapshot, and calculation evidence but derives the
+time-sensitive status at read time.
+
+Missing-settlement records create no case while not due, due today, or missing
+timing evidence. The settlement-control service acquires an
+organization-scoped advisory lock and promotes newly overdue records in one
+transaction. Provider events remain contextual evidence and never populate
+financial settlement timestamps.
+
+Reconciliation Close Control is a deterministic control layer over persisted
+runs, items, cases, and evidence. A period is scoped by organization, IST
+business date, provider, and payment mode. Readiness blocks high-priority open
+cases and enforces both case-count and monetary materiality. Every permitted
+residual case requires an evidence-confirmed disposition.
+
+Submission creates a new immutable JSON snapshot and SHA-256 hash. The
+preparer may be an analyst or administrator; approval requires a different
+administrator. Reopening records an attributed reason on the period but does
+not edit the approved version. A later submission creates the next version.
 
 ## 6. SLA as policy
 
@@ -186,6 +275,10 @@ frontend derives live labels from those timestamps.
 
 Changing priority recalculates the deadline from the original case creation
 time. The update is included in the audit details.
+
+The notification service applies the same 25% warning window when a signed-in
+user requests their inbox. It inserts deduplicated at-risk and overdue signals;
+it does not require a scheduler or send an external message.
 
 ## 7. Bounded AI investigation
 
@@ -255,7 +348,25 @@ Current audited actions include reconciliation creation, case updates,
 investigation generation and review, evaluation completion and case review, and
 payment-workflow updates. The administrator ledger is organization-scoped.
 
-## 10. Frontend structure
+## 10. Operations intelligence
+
+`lib/modules/insights/` calculates organization-scoped operational aggregates
+directly from persisted reconciliation, case, investigation, evaluation, and
+provider-event records. The language model is not involved.
+
+- Period KPIs compare 7, 30, or 90 days with the immediately preceding window.
+- Current queue health intentionally includes all active matching cases,
+  regardless of when they were created.
+- Match rate and financial values come from deterministic reconciliation rows.
+- Median resolution uses PostgreSQL percentile calculation.
+- Missing AI review denominators render as unavailable rather than zero.
+- Filters are URL-backed, and chart links open the existing operations queue
+  with validated provider, exception, payment-mode, priority, owner, age, SLA,
+  and case filters.
+- A tagged, idempotent synthetic-history seed makes the portfolio view useful
+  on a clean install without modifying user-created records.
+
+## 11. Frontend structure
 
 - `components/payops-workspace.tsx`: upload, demo data, reconciliation results.
   It also displays provider selection, mapped fields, row counts, and
@@ -265,14 +376,30 @@ payment-workflow updates. The administrator ledger is organization-scoped.
 - `components/payment-lifecycle.tsx`: refund and chargeback queues, evidence,
   stages, synthetic provider events, and timelines.
 - `components/quality-lab.tsx`: evaluation execution, history, case evidence,
-  and human scoring.
+  independent human scoring, disagreement comparison, and adjudication.
 - `components/run-history.tsx`: historical quality and value metrics.
 - `components/audit-log.tsx`: admin audit ledger.
 - `components/app-header.tsx`: role-aware product navigation.
+- `components/operations-insights.tsx`: manager KPIs, SVG trend plot,
+  drill-down distributions, provider comparison, and governance evidence.
+- `components/notification-center.tsx`: responsive provider-event and SLA
+  evidence inbox with role-aware read controls.
+- `components/webhook-trust-dashboard.tsx`: administrator-only boundary,
+  key-rotation, provider, rejection, and attempt evidence.
+- `components/reconciliation-close-control.tsx`: daily readiness, materiality,
+  residual-risk register, maker-checker chain, certificate, reopen, and history.
+- `components/ui/`: shared search, evidence-ledger, and provider-event
+  presentation primitives.
+- `components/cases/`: case queue and controlled-resolution components.
+- `components/reconciliation/`: reconciliation-owned evidence drawer.
 
 The visual language intentionally resembles an operations console: dense
 evidence, compact labels, visible control states, and restrained color for
 urgency.
+
+The reusable visual contract is documented in
+[Design System](DESIGN-SYSTEM.md). Domain components own data and mutations;
+shared UI components own repeated presentation and accessibility behavior.
 
 ## Failure behavior
 
@@ -286,6 +413,31 @@ urgency.
 | OpenAI key absent | Deterministic fallback |
 | OpenAI evaluation key absent | Paid model action is disabled and API returns `409` |
 | Model output fails schema | Investigation request fails instead of storing malformed output |
+
+## Verification architecture
+
+`npm run verify` is the local and CI contract. It runs lint, unit/policy tests,
+PostgreSQL-backed integration tests, the production build, and a whitespace
+diff check.
+
+The integration suite creates isolated organizations and verifies:
+
+- organization-scoped case and audit reads;
+- rejected cross-organization updates;
+- composite foreign-key enforcement across runs, items, and cases;
+- rollback of a case mutation and its audit event in one transaction.
+- atomic bulk assignment, comment attribution, and cross-tenant isolation.
+- settlement case gating, idempotent overdue promotion, and timing-metric
+  denominators.
+- active/previous webhook keys, precise signature rejection outcomes, and
+  organization-scoped attempt observability.
+- close readiness, materiality, disposition completeness, maker-checker
+  separation, immutable hashes, controlled reopen, and cross-tenant denial.
+
+Role tests independently verify administrator-only audit access,
+administrator/analyst mutation access, viewer read-only behavior, and
+unauthenticated rejection. GitHub Actions applies every migration to a clean
+PostgreSQL 17 service before running the same verification command.
 
 ## Production evolution
 

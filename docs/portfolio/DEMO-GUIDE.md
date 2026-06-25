@@ -25,6 +25,11 @@ PayOpsDemo123!
 The demo works without an OpenAI key. In that mode, investigations are clearly
 labeled `Evidence rules - demo mode`.
 
+Set `SYNTHETIC_WEBHOOK_SECRET` to a fictional local value if demonstrating the
+legacy signed event endpoint. To demonstrate rotation evidence, copy the safe
+fictional `SYNTHETIC_WEBHOOK_KEYRING` shape from `.env.example`. Never reuse a
+real provider secret.
+
 ## Five-minute script
 
 ### 0:00-0:40 - Frame the problem
@@ -50,7 +55,8 @@ On the reconciliation page, point out:
 3. Select **Run reconciliation**.
 4. Point out match rate, processed value, value to investigate, and control
    status.
-5. Open one exception and read its evidence.
+5. Open one exception and show its order, gateway, and settlement source-row
+   snapshots and integrity hashes.
 
 Explain that header normalization and financial calculations happen in code,
 not in the AI assistant.
@@ -66,9 +72,21 @@ Show:
 - status and SLA filters;
 - owner, priority, notes, and evidence;
 - the deadline and target in the SLA control.
+- the controlled resolution flow, which requires a reason and evidence-review
+  confirmation before recording the resolver and audit event.
+- selection checkboxes and the dispatch rail for assigning multiple cases
+  without opening each record.
+- the attributed internal handoff log; add a concise comment, reload, and show
+  that viewers can read it without receiving write controls.
 
 Use one case to explain the transition from a report finding to an owned piece
 of work.
+
+Show a missing settlement that is still inside its fictional T+1 or T+2 cycle.
+Point out that PayOps persists the expected date and policy evidence but does
+not create a case yet. Then use **Refresh settlement clocks** and open an
+overdue settlement-origin case. Compare the settlement clock with the separate
+4/24/72-hour case SLA.
 
 ### 2:40-3:40 - Explain the AI boundary
 
@@ -98,6 +116,20 @@ moves money.
 
 ### 4:05-4:30 - Show quality and accountability
 
+Open **Insights** first. Show the 30-day KPI ledger, current queue, daily
+activity signal, exception mix, aging, and provider comparison. Change the
+range to seven days, then open one exception bar to demonstrate that management
+metrics drill into the actual filtered case queue.
+In the provider comparison, explain that on-time settlement rates include only
+records with both expected and actual timestamps; incomplete evidence is not
+treated as zero performance.
+
+Open **Daily close**. Start with an open scope and show how count and amount
+materiality interact with the residual-risk register. Then open the seeded
+submitted period: the analyst is the maker and a different administrator is
+the checker. Approve it, download the JSON certificate, and explain that its
+snapshot hash remains unchanged even if the period is later reopened.
+
 Open **Quality** and show the versioned 30-case baseline, persisted run history,
 case-level evidence, and six-score human rubric. Do not claim OpenAI model
 quality: no paid model run completed in this repository snapshot.
@@ -107,6 +139,17 @@ Open **Audit**.
 Show that reconciliation and case activity records the actor, entity, action,
 and timestamp. Explain that audit access is admin-only and records are scoped
 to the organization.
+
+Open the bell in the header and show the evidence inbox. Explain that SLA
+signals are derived from the deterministic deadline policy and provider
+signals come only from signed synthetic deliveries. Marking a signal read is
+an audited admin/analyst action.
+
+Open **Webhook trust** as the administrator. Show the provider rotation spine,
+one accepted previous-key attempt, and rejected stale-signature evidence.
+Explain that only hashes, key identifiers, outcomes, and processing metadata
+are retained. The panel is evidence about local synthetic requests, not a
+provider uptime dashboard.
 
 ### 4:30-5:00 - Demonstrate role boundaries
 
@@ -135,8 +178,11 @@ Close with:
 | Operations and SLA | `http://127.0.0.1:4317/operations` |
 | Refunds and disputes | `http://127.0.0.1:4317/refunds-disputes` |
 | AI Quality Lab | `http://127.0.0.1:4317/quality` |
+| Operations Intelligence | `http://127.0.0.1:4317/insights` |
 | Historical runs | `http://127.0.0.1:4317/runs` |
 | Administrator audit | `http://127.0.0.1:4317/audit` |
+| Webhook Trust Operations | `http://127.0.0.1:4317/webhook-operations` |
+| Daily Reconciliation Close | `http://127.0.0.1:4317/close-control` |
 | Product summary | `http://127.0.0.1:4317/product-brief` |
 | Database health | `http://127.0.0.1:4317/api/health` |
 
@@ -146,6 +192,12 @@ Close with:
 - Do not describe AI output as a confirmed root cause.
 - Do not describe the deterministic evaluation baseline as OpenAI model proof.
 - Do not describe local credentials as production authentication.
+- Do not describe the signed synthetic endpoint as a live provider connection
+  or production signature implementation.
+- Do not describe webhook attempt outcomes as provider uptime or a production
+  delivery-success rate.
+- Do not describe the close certificate as a bank statement, provider
+  attestation, accounting sign-off, or regulatory evidence.
 - Do not claim measured analyst savings or AI accuracy.
 - Do not upload private company reports to the public portfolio instance.
 
