@@ -7,6 +7,7 @@ import {
   History,
   ListChecks,
   LogOut,
+  Route,
   RotateCcw,
   Scale,
   ShieldCheck,
@@ -25,6 +26,7 @@ export async function AppHeader({
     | "runs"
     | "insights"
     | "root-causes"
+    | "demo"
     | "quality"
     | "close"
     | "webhooks"
@@ -91,6 +93,13 @@ export async function AppHeader({
         >
           <Waypoints size={15} />
           Root causes
+        </Link>
+        <Link
+          href="/demo-control-room"
+          className={`product-nav-link ${active === "demo" ? "active" : ""}`}
+        >
+          <Route size={15} />
+          Demo
         </Link>
         <Link
           href="/close-control"

@@ -24,7 +24,7 @@
 | PostgreSQL migrations | 18 | `db/migrations/` |
 | Automated test cases | 88 | 72 unit/policy plus 16 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
-| Product pages | 11 | Adds role-aware `/close-control` |
+| Product pages | 12 | Adds reviewer-focused `/demo-control-room` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
 | Baseline automated checks | 180 | 30 cases x 6 evaluation dimensions |
 | Persisted scenario rows per run | 7 | one summary for each evaluation scenario |
@@ -75,6 +75,7 @@
 | Close approval policy | preparer and administrator approver must be different users |
 | Recurrence threshold | 3 matching actionable cases in the trailing 30 days |
 | Verification policy | administrator confirmation after 2 qualifying clean runs |
+| Reviewer demo surface | `/demo-control-room` links six existing control workspaces |
 
 ## Quality evidence
 

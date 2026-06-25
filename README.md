@@ -10,7 +10,7 @@
 > payment teams. Deterministic code calculates the money; AI helps investigate
 > exceptions; humans retain decision authority.
 
-![PayOps operations inbox with SLA tracking](docs/portfolio/assets/operations-inbox.png)
+![PayOps root-cause control board](docs/portfolio/assets/root-cause-control-board.png)
 
 ## The headline
 
@@ -49,6 +49,10 @@ to production gateways or move money.
   <tr>
     <td width="50%"><img src="docs/portfolio/assets/case-investigation.png" alt="Evidence-grounded AI investigation"/><br/><sub><b>Investigate</b> - generate a bounded draft that requires human review</sub></td>
     <td width="50%"><img src="docs/portfolio/assets/audit-ledger.png" alt="Administrator audit ledger"/><br/><sub><b>Audit</b> - record who performed important operational actions</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/portfolio/assets/settlement-evidence-workflow.png" alt="Settlement evidence and operations workflow"/><br/><sub><b>Control</b> - explain exactly which cycle and calendar rule produced the settlement deadline</sub></td>
+    <td width="50%"><img src="docs/portfolio/assets/root-cause-control-board.png" alt="Recurring exception control board"/><br/><sub><b>Improve</b> - turn recurring exceptions into governed remediation programs with two clean-run verification</sub></td>
   </tr>
 </table>
 
@@ -106,6 +110,8 @@ to production gateways or move money.
 27. Detects recurring exception fingerprints from deterministic records,
     promotes them into owned remediation programs, automatically links future
     matching cases, and lets an administrator verify two subsequent clean runs.
+28. Adds a reviewer-focused Control Room Demo Mode that links the core
+    PayOps evidence journey into a 90-second synthetic portfolio walkthrough.
 
 ## The product judgment
 

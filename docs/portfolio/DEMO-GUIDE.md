@@ -30,6 +30,32 @@ legacy signed event endpoint. To demonstrate rotation evidence, copy the safe
 fictional `SYNTHETIC_WEBHOOK_KEYRING` shape from `.env.example`. Never reuse a
 real provider secret.
 
+## 90-second reviewer path
+
+Open **Control Room Demo Mode** at
+`http://127.0.0.1:4317/demo-control-room`.
+
+Use it as the portfolio landing path when the reviewer has little time:
+
+1. **Reconciliation run** - show that three synthetic reports become one
+   deterministic ledger.
+2. **Exception case** - show that actionable differences become owned work with
+   source evidence and SLA context.
+3. **Settlement deadline evidence** - show that expected dates come from a
+   fictional settlement-cycle policy and India demo calendar.
+4. **Signed webhook evidence** - as an administrator, show accepted and rejected
+   synthetic provider attempts without raw payload retention.
+5. **Insights dashboard** - show manager KPIs and drill-through into the
+   operations queue.
+6. **Root-cause program verification** - show deterministic recurrence grouping
+   and two clean-run verification.
+
+Recommended screenshots for portfolio review:
+
+- `docs/portfolio/assets/root-cause-control-board.png`
+- `docs/portfolio/assets/settlement-evidence-workflow.png`
+- `docs/portfolio/assets/payops-architecture-proof.png`
+
 ## Five-minute script
 
 ### 0:00-0:40 - Frame the problem
@@ -190,6 +216,7 @@ Close with:
 | Webhook Trust Operations | `http://127.0.0.1:4317/webhook-operations` |
 | Daily Reconciliation Close | `http://127.0.0.1:4317/close-control` |
 | Recurrence Control Board | `http://127.0.0.1:4317/root-causes` |
+| Control Room Demo Mode | `http://127.0.0.1:4317/demo-control-room` |
 | Product summary | `http://127.0.0.1:4317/product-brief` |
 | Database health | `http://127.0.0.1:4317/api/health` |
 
