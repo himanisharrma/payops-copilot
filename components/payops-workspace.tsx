@@ -318,6 +318,10 @@ export function PayOpsWorkspace({
           SYNTHETIC DATA · SAFE MODE
         </div>
         <nav className="top-actions" aria-label="Workspace utilities">
+          <a href="/demo-control-room" className="text-link nav-link primary-nav-link">
+            <Sparkles size={15} />
+            Start demo
+          </a>
           <a href="/operations" className="text-link nav-link">
             <ListChecks size={15} />
             Operations
@@ -353,6 +357,16 @@ export function PayOpsWorkspace({
             Compare internal orders, gateway captures, and bank settlements.
             Every exception comes with evidence you can act on.
           </p>
+          <div className="hero-actions" aria-label="Recommended reviewer actions">
+            <a className="primary-button hero-primary" href="/demo-control-room">
+              <Sparkles size={18} />
+              Start the 90-second tour
+              <ArrowRight size={17} />
+            </a>
+            <a className="demo-button hero-secondary" href="/insights">
+              View manager dashboard
+            </a>
+          </div>
         </div>
         <div className="hero-aside">
           <div className="trust-stamp">
@@ -367,6 +381,38 @@ export function PayOpsWorkspace({
             PostgreSQL workspace.
           </p>
         </div>
+      </section>
+
+      <section className="reviewer-route" aria-labelledby="reviewer-route-heading">
+        <div>
+          <p className="eyebrow">NEW HERE?</p>
+          <h2 id="reviewer-route-heading">Follow the control-room path.</h2>
+          <p>
+            If you are reviewing the portfolio project, start with the guided
+            demo. It explains the product story before you touch the CSV
+            workspace below.
+          </p>
+        </div>
+        <ol>
+          <li>
+            <span>01</span>
+            <strong>Tour the system</strong>
+            <p>Open the Control Room for the reconciliation → case → evidence → root-cause journey.</p>
+            <a href="/demo-control-room">Go to demo</a>
+          </li>
+          <li>
+            <span>02</span>
+            <strong>Inspect live operations</strong>
+            <p>Use Operations to see exception ownership, SLA risk, settlement evidence, and linked programs.</p>
+            <a href="/operations">Open queue</a>
+          </li>
+          <li>
+            <span>03</span>
+            <strong>Try reconciliation</strong>
+            <p>Return here, load demo data, and run the deterministic three-file match yourself.</p>
+            <a href="#upload-heading">Use workspace</a>
+          </li>
+        </ol>
       </section>
 
       <section className="flow-section" aria-labelledby="upload-heading">
