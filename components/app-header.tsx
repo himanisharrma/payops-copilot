@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   BookCheck,
+  Banknote,
   FileClock,
   FlaskConical,
   ChartNoAxesCombined,
@@ -22,6 +23,7 @@ export async function AppHeader({
 }: {
   active:
     | "operations"
+    | "settlements"
     | "payments"
     | "runs"
     | "insights"
@@ -58,6 +60,13 @@ export async function AppHeader({
         <Link href="/" className="product-nav-link">
           <Scale size={15} />
           Reconcile
+        </Link>
+        <Link
+          href="/settlements"
+          className={`product-nav-link ${active === "settlements" ? "active" : ""}`}
+        >
+          <Banknote size={15} />
+          Settlements
         </Link>
         <Link
           href="/operations"
