@@ -666,6 +666,15 @@ export type InsightsDashboard = {
     forwardDeductions: number;
     utrMatchRate: number | null;
   };
+  settlementImports: {
+    imports: number;
+    importedRows: number;
+    exceptions: number;
+    openExceptions: number;
+    proposedAdjustments: number;
+    approvedAdjustments: number;
+    exposureAmount: number;
+  };
 };
 
 export type AuditEvent = {
