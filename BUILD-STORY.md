@@ -475,11 +475,11 @@ absence across two qualifying runs, not proof of a permanent external fix.
 
 ### From reconciliation control to merchant settlement trust
 
-The next product direction is Merchant Settlement Statements, not split
-settlement. The important distinction is that settlement explains the merchant
-payable path - gross collection, deductions, net amount, UTR, bank credit, and
-evidence - while reconciliation proves whether records agree across systems
-that update at different times.
+Merchant Settlement Statements are now the shipped settlement-trust layer, not a
+future split-settlement shortcut. The important distinction is that settlement
+explains the merchant payable path - gross collection, deductions, net amount,
+UTR, bank credit, and evidence - while reconciliation proves whether records
+agree across systems that update at different times.
 
 The first slice adds synthetic, idempotent seed evidence under
 `merchant-settlements-v1`: credited with UTR, pending/scheduled, held, failed,
@@ -489,6 +489,12 @@ line-level cases.
 
 This is proof data for a portfolio MVP. It does not connect to live providers,
 move money, certify a bank credit, or claim settlement success rates.
+
+The next product direction is Statement Import + Settlement Exception Desk:
+provider-style statement CSVs land in staging, normalize deterministically,
+compare against the settlement ledger, create settlement-specific exceptions,
+and route adjustment proposals through maker/checker approval. Split settlement
+waits until that normal statement-import workflow is solid.
 
 This is a portfolio MVP, not a production payment system. It has synthetic
 data, local credentials, a simple SLA calendar, and a focused test suite. It

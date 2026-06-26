@@ -361,7 +361,7 @@ sign-off.
 **Boundary:** verified means observed absence in two qualifying runs, not a
 permanent provider-side correction.
 
-### In progress: merchant settlement statements
+### Shipped: merchant settlement statements
 
 - The normal merchant settlement statement layer comes before split
   settlement.
@@ -379,15 +379,25 @@ permanent provider-side correction.
 prove live provider outcomes, bank-side events, payout success, or money
 movement.
 
+### Next: Statement Import + Settlement Exception Desk
+
+- Import provider-style merchant settlement statement CSVs into a staging
+  workspace without overwriting the existing settlement ledger.
+- Normalize imported rows and compare them against settlement batches,
+  deductions, UTRs, and bank credits.
+- Create settlement-specific exceptions for missing UTR, duplicate UTR,
+  amount mismatch, failed payout, held settlement, delayed credit, deduction
+  mismatch, unexplained hold, and forward refund/chargeback mismatch.
+- Add an Adjustment Desk for admin/analyst proposals with reason, evidence,
+  maker/checker approval, audit history, and no money movement.
+- Export reviewer-safe settlement evidence packets.
+
+**Boundary:** imported statement rows remain synthetic in the portfolio demo.
+This does not add live provider, bank, payout, or money-moving behavior.
+
 ### After that: deepen payment operations
 
 - Add a controlled escalation outbox for approved evidence packs.
-- Feed merchant settlement totals into Insights and Close Control: gross
-  payments, deductions, merchant payable, payouts sent, held amount, failed
-  settlements, and outstanding payable.
-- Add report-style proof surfaces for settlement summary, settlement detail,
-  order detail, transaction detail, refund/deduction reports, and bank-credit
-  mapping.
 - Add configurable business calendars and outbound escalation notifications.
 
 ### Then: production controls

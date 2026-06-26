@@ -348,9 +348,11 @@ constraints, and completion conditions; encode durable repository guidance in
 - Feed approved analyst corrections into new anonymized evaluation cases.
 - Add configurable business calendars and outbound escalation channels.
 - Add provider-specific investigation tools with scoped permissions.
-- Expand Merchant Settlement Statements before attempting split settlements:
-  deeper report exports, transaction/deduction drill-downs, and Insights/Close
-  Control rollups should come before platform/vendor split-payout logic.
+- Build Statement Import + Settlement Exception Desk before attempting split
+  settlements: import provider-style statement CSVs into staging, normalize
+  rows without overwriting the ledger, compare deductions/UTRs/bank credits,
+  raise settlement-specific exceptions, and add maker/checker adjustment
+  controls.
 - Add managed secrets, provider-certified signatures, tamper-evident audit
   retention, incident response, and production observability.
 
