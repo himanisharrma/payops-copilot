@@ -2,27 +2,31 @@
 
 ## Product statement
 
-PayOps Copilot helps payment operations teams reconcile internal orders,
-gateway transactions, and bank settlements without manually comparing
-spreadsheets row by row.
+PayOps Copilot helps Indian mid-market merchant finance and payment-operations
+teams prove whether payment providers settled the right amount, explain
+deductions, map UTRs to bank credits, and close payment books with evidence.
 
 ## Primary user
 
-A payment operations analyst at an Indian merchant or payment aggregator.
+A payment operations analyst or finance manager at an Indian merchant. Payment
+aggregator escrow/nodal reconciliation and marketplace split settlement are
+future expansion tracks, not the first ICP.
 
 ## Core problem
 
-The analyst receives reports with different column names and needs to identify
-missing settlements, duplicate payments, amount mismatches, and incomplete
-gateway records. Existing work is slow, repetitive, and difficult to audit.
+The analyst receives provider exports, settlement statements, bank statements,
+refund reports, chargeback reports, and fee/tax schedules at different times
+and in different shapes. Existing work is slow, repetitive, difficult to audit,
+and brittle when files arrive late, malformed, duplicated, partial, or revised.
 
 ## Current product outcome
 
-A user can upload three CSV files and receive a transparent reconciliation
-report with provider mapping diagnostics, matched transactions, prioritized
-exceptions, row-level evidence, durable cases, SLA controls, bounded AI
-assistance, evaluation evidence, separate refund and chargeback queues, and
-synthetic merchant settlement statement proof data.
+A user can upload synthetic files and inspect a transparent reconciliation and
+settlement-control workspace with provider mapping diagnostics, matched
+transactions, prioritized exceptions, row-level evidence, durable cases, SLA
+controls, bounded AI assistance, separate refund and chargeback queues,
+merchant settlement statements, statement imports, maker/checker adjustment
+records, and synthetic evidence packets.
 
 ## User story
 
@@ -190,14 +194,22 @@ the distinction between settlement and reconciliation is explicit.
 - Evidence packet export is reviewer-safe JSON with synthetic-only boundary
   language and no secrets.
 
-## Next releases
+## Reality gap and next releases
 
-1. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
-2. Turn approved analyst corrections into governed synthetic regression cases.
-3. Add controlled evidence-pack escalation for remediation programs and
-   settlement exceptions.
-4. Add configurable business calendars and outbound escalation notifications.
-5. Add production identity, managed secrets, incident response, observability,
-   and retention controls.
-6. Build split settlement only after imported statements and exception
-   workflows are solid.
+The product is still a synthetic portfolio MVP. The next releases should reduce
+the gap between a demo workspace and a credible merchant recon product:
+
+1. **Source Ingestion Control Plane:** expected-file registry, arrival SLA,
+   file versioning, schema profiling, control totals, quarantine, and daily
+   readiness for gateway, settlement, bank, refund, chargeback, and fee/tax
+   files.
+2. **Matching Engine v2:** layered matching across order IDs, gateway
+   transaction IDs, bank references, UPI RRN/ARN, UTRs, amount/date windows,
+   many-to-one payouts, partial captures/refunds, duplicates, reversals, and
+   confidence reasons.
+3. **Ledger Backbone v1:** immutable merchant payable, provider/acquirer
+   receivable, bank cash, fee receivable, GST liability, refund recovery,
+   chargeback recovery, hold/release, and adjustment/write-off entries.
+4. Controlled evidence-pack escalation, configurable calendars, production
+   identity, managed secrets, observability, and incident response.
+5. Split settlement only after ingestion, matching, and ledger truth are solid.

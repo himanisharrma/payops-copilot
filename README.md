@@ -6,9 +6,10 @@
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
 
-> An evidence-first payment reconciliation and operations workspace for Indian
-> payment teams. Deterministic code calculates the money; AI helps investigate
-> exceptions; humans retain decision authority.
+> An evidence-first reconciliation and settlement-control workspace for Indian
+> mid-market merchant finance and payment-operations teams. Deterministic code
+> calculates the money; AI helps investigate exceptions; humans retain decision
+> authority.
 
 ![PayOps root-cause control board](docs/portfolio/assets/root-cause-control-board.png)
 
@@ -32,8 +33,8 @@ a managed PostgreSQL `DATABASE_URL`, then run `npm run db:migrate` and
 
 | | |
 | --- | --- |
-| **Problem** | Operations teams compare internal orders, gateway exports, and bank settlements across inconsistent spreadsheets |
-| **Product** | A full-stack workspace that profiles provider files, reconciles reports, creates cases, tracks SLAs, and records an audit trail |
+| **Problem** | Merchant finance teams need to prove whether providers settled the right amount, explain deductions, and map UTRs to bank credits |
+| **Product** | A full-stack workspace that profiles provider files, reconciles reports, creates cases, tracks SLAs, models merchant settlement evidence, and records an audit trail |
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
@@ -54,6 +55,12 @@ product problem begins after a mismatch is found:
 PayOps Copilot turns that sequence into one auditable workflow. It is a
 portfolio project built from fictional Indian payment data; it does not connect
 to production gateways or move money.
+
+The intended first buyer/user is a merchant finance or payment-operations team,
+not a generic aggregator, marketplace, or support platform. The product is
+therefore optimized around merchant questions: "Did I receive what my provider
+owes me?", "Which UTR maps to which orders?", "Why is this settlement short?",
+and "Can I close books today with evidence?"
 
 ## See the journey
 
@@ -131,6 +138,22 @@ to production gateways or move money.
 29. Seeds merchant settlement statement proof data for credited, scheduled,
     held, failed, partial, delayed, missing-UTR, duplicate-UTR, mismatch,
     forward refund, forward chargeback, and hold/release scenarios.
+30. Imports synthetic provider-style settlement statement CSVs into staging,
+    compares them against settlement batches, deductions, UTRs, and bank
+    credits, creates settlement-specific exceptions, supports maker/checker
+    adjustment records, and exports reviewer-safe evidence packets.
+
+## Reality gap acknowledged
+
+The current product is a synthetic portfolio MVP. Its biggest product gap is
+not another dashboard; it is real-world source ingestion and matching depth.
+Real merchant finance teams deal with late provider files, revised settlement
+statements, malformed bank exports, duplicated UTRs, partial captures, partial
+refunds, chargebacks weeks later, changing fee schedules, and one bank credit
+mapping to thousands of transactions.
+
+The roadmap now treats those as the next foundation instead of jumping straight
+to more governance surfaces.
 
 ## The product judgment
 
@@ -343,20 +366,22 @@ constraints, and completion conditions; encode durable repository guidance in
 
 ## Roadmap
 
-- Configure an API key, run the guarded OpenAI evaluation, and complete a
-  representative two-reviewer sample before making a model-quality claim.
-- Feed approved analyst corrections into new anonymized evaluation cases.
-- Add configurable business calendars and outbound escalation channels.
-- Add provider-specific investigation tools with scoped permissions.
-- Statement Import + Settlement Exception Desk is now implemented as the next
-  settlement control layer: provider-style CSVs land in staging, normalize without
-  overwriting the merchant settlement ledger, compare deductions/UTRs/bank
-  credits, raise settlement-specific exceptions, and govern maker/checker
-  adjustment records.
-- Defer split settlement until imported statement evidence and settlement
-  exception workflows are solid.
-- Add managed secrets, provider-certified signatures, tamper-evident audit
-  retention, incident response, and production observability.
+- **Next: Source Ingestion Control Plane.** Add an expected-file registry,
+  arrival SLA, file versioning, schema profiling, control totals, quarantine,
+  and a daily readiness board for gateway, settlement, bank, refund,
+  chargeback, and fee/tax files.
+- **Then: Matching Engine v2.** Add layered matching by order ID, gateway
+  transaction ID, bank reference, UPI RRN/ARN, UTR, amount/date windows,
+  many-to-one payouts, partial captures/refunds, duplicates, reversals, and
+  confidence reasons.
+- **Then: Ledger Backbone v1.** Add immutable merchant payable, provider
+  receivable, bank cash, fee/GST, refund, chargeback, hold/release, and
+  adjustment ledger entries that explain opening balance to closing payable.
+- After those foundations, return to evidence escalation, configurable
+  calendars, provider-specific investigation tools, production controls, and
+  eventually split settlement.
+- Do not claim live-provider accuracy, payout success, bank attestation, or AI
+  model quality without production-grade source data and measured evidence.
 
 ---
 

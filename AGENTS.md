@@ -5,10 +5,12 @@ Treat it as an operating contract, not as product documentation.
 
 ## Product intent
 
-PayOps Copilot helps Indian payment-operations teams reconcile internal orders,
-gateway transactions, and bank settlements. It turns exceptions into
-organization-scoped cases with ownership, SLAs, evidence, AI-assisted
-investigations, human review, and audit history.
+PayOps Copilot is currently focused on Indian mid-market merchant finance and
+payment-operations teams. It helps them prove whether payment providers
+settled the right amount, explain deductions, map UTRs to bank credits, and
+close payment books with evidence. It turns exceptions into organization-scoped
+cases with ownership, SLAs, evidence, AI-assisted investigations, human review,
+and audit history.
 
 The product is a portfolio MVP. All demo data is synthetic. It must never imply
 that it connects to live payment providers or can move money.
@@ -54,9 +56,12 @@ begin at `/demo-control-room`, then inspect `/operations`, `/insights`, and
 
 ## Product direction
 
-The next strategic direction is to deepen PayOps into a merchant settlement
-trust engine, not just an exception-management tool. The important product
-distinction is:
+The product direction is to deepen PayOps into a merchant settlement trust
+engine, not a generic aggregator/marketplace recon platform. The selected ICP
+is merchant finance/payment operations first. Aggregator escrow/nodal
+reconciliation and marketplace split settlement remain future expansion tracks.
+
+The important product distinction is:
 
 - **Settlement** moves or represents money owed to merchants, net of fees,
   taxes, refunds, chargebacks, recoveries, holds, and adjustments.
@@ -95,13 +100,52 @@ This module sits above Merchant Settlement Statements:
    deductions, net payable, UTR, bank credit, linked cases, and adjustment
    decisions.
 
-Recommended next release: **Evidence Escalation Outbox** for reviewer-safe
-evidence packets and remediation/settlement exception follow-up.
+Recommended next release: **Source Ingestion Control Plane**.
 
-Build split settlement only after statement import, exception handling, and
-adjustment governance are solid. Split settlement should eventually support
-platform/vendor shares, fee/tax splits, refund splits, and vendor settlement
-files, but it should not be the next foundation.
+Build this before more governance layers. The next credibility jump is proving
+that PayOps can receive, profile, version, quarantine, and readiness-check the
+messy daily files that real merchant finance teams depend on:
+
+1. Expected-file registry for gateway transaction reports, provider settlement
+   statements, bank statements, refund reports, chargeback/dispute reports, and
+   fee/tax schedules.
+2. Arrival SLA and source health states: expected, received, late, missing,
+   duplicate, revised, partial, malformed, quarantined, and accepted.
+3. Source versioning with hash, row count, amount totals, detected adapter,
+   schema profile, parse diagnostics, superseded file link, and audit event.
+4. Quarantine workflow so malformed or partial files do not enter
+   reconciliation until an admin/analyst accepts or rejects the mapping.
+5. Daily readiness board that answers: "Can we run recon and close books today?
+   Which source is blocking us?"
+
+After ingestion, build **Matching Engine v2** with layered exact/ambiguous
+matching across order ID, gateway transaction ID, bank reference, UPI RRN/ARN,
+UTR, amount/date windows, many-to-one payouts, partial refunds/captures,
+duplicates, reversals, and confidence reasons.
+
+After matching, build **Ledger Backbone v1** with immutable merchant payable,
+provider/acquirer receivable, bank cash, fee receivable, GST liability, refund
+recovery, chargeback recovery, hold/release, and adjustment/write-off entries.
+It should produce an explainable balance:
+
+```text
+opening balance
++ collections
+- fees
+- GST
+- refunds
+- chargebacks
+- holds
++ releases
+- payouts
+= closing payable / exposure
+```
+
+Only after ingestion, matching depth, and ledger truth are credible should the
+roadmap return to Evidence Escalation Outbox, outbound escalation, or split
+settlement. Split settlement should eventually support platform/vendor shares,
+fee/tax splits, refund splits, and vendor settlement files, but it should not be
+the next foundation.
 
 ## Non-negotiable boundaries
 

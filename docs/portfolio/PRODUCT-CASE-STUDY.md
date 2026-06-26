@@ -2,18 +2,18 @@
 
 ## One-line product
 
-PayOps Copilot is an evidence-first reconciliation and case-management
-workspace for payment operations teams that compare merchant orders, gateway
-transactions, and bank settlements.
+PayOps Copilot is an evidence-first reconciliation and settlement-control
+workspace for Indian merchant finance teams that need to prove provider
+settlements, UTRs, deductions, and bank credits.
 
 ## User and job to be done
 
-**Primary user:** a payment operations analyst at an Indian merchant or payment
-aggregator.
+**Primary user:** a payment operations analyst or finance manager at an Indian
+mid-market merchant.
 
-**Job to be done:** when expected and received payment records differ, help me
-find the affected transaction, understand the evidence, assign ownership, and
-move it toward resolution before the operational deadline.
+**Job to be done:** when provider settlement evidence and bank credits do not
+line up, help me identify the affected orders, explain every deduction, map the
+UTR, assign ownership, and decide whether I can close payment books today.
 
 Secondary users:
 
@@ -23,6 +23,11 @@ Secondary users:
 | Risk or control reviewer | Reconstruct what happened | Evidence, human review, audit ledger |
 | Read-only stakeholder | Monitor without changing data | Viewer role with disabled mutations |
 | Product or engineering team | Improve recurring investigation quality | Structured feedback and persisted investigations |
+
+Non-primary future users include aggregator risk operations, marketplace
+finance, and platform split-settlement teams. Those users need escrow/nodal,
+vendor, and split-ledger controls that are intentionally deferred until the
+merchant settlement foundation is more credible.
 
 ## Problem
 
@@ -189,6 +194,14 @@ For an AI Product Manager role, the artifact demonstrates:
 ## Current limits
 
 - No production payment-provider connection.
+- No automated daily source-ingestion control plane for late, missing,
+  malformed, partial, duplicated, or revised provider/bank files.
+- Matching is still MVP-level compared with real layered payment matching
+  across order, payment, attempt, payout, UTR, bank, ledger, and split
+  identifiers.
+- No immutable accounting ledger that can explain opening balance to closing
+  merchant payable across collections, fees, GST, refunds, chargebacks, holds,
+  releases, payouts, and write-offs.
 - No live provider credentials or production export compatibility claim.
 - No production provider webhook compatibility, certified signature contract,
   managed secrets system, or provider reliability telemetry.
