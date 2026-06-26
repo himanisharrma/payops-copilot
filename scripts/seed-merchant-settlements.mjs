@@ -7,6 +7,7 @@ const databaseUrl =
 const client = new pg.Client({ connectionString: databaseUrl });
 
 const marker = "merchant-settlements-v1";
+const settlementImportMarker = "settlement-import-desk-v1";
 const policyVersion = "merchant-statement-demo-policy-v1";
 const calendarVersion = "india-demo-calendar-v1";
 
@@ -537,12 +538,82 @@ try {
   const hasMerchantSettlementTables = await tableExists(
     "merchant_settlement_batches",
   );
+  const hasSettlementImportTables = await tableExists("settlement_import_batches");
 
   await client.query(
     `DELETE FROM audit_events
      WHERE organization_id = $1 AND details->>'seedMarker' = $2`,
     [organizationId, marker],
   );
+  if (hasSettlementImportTables) {
+    await client.query(
+      `DELETE FROM settlement_evidence_packets packet
+       USING settlement_import_batches batch
+       WHERE packet.organization_id = $1
+         AND packet.import_batch_id = batch.id
+         AND batch.organization_id = packet.organization_id
+         AND batch.seed_marker = $2`,
+      [organizationId, settlementImportMarker],
+    );
+    await client.query(
+      `DELETE FROM settlement_adjustment_events event
+       USING settlement_adjustment_proposals proposal,
+             settlement_import_exceptions exception,
+             settlement_import_batches batch
+       WHERE event.organization_id = $1
+         AND event.adjustment_id = proposal.id
+         AND proposal.organization_id = event.organization_id
+         AND proposal.exception_id = exception.id
+         AND exception.organization_id = proposal.organization_id
+         AND exception.import_batch_id = batch.id
+         AND batch.organization_id = exception.organization_id
+         AND batch.seed_marker = $2`,
+      [organizationId, settlementImportMarker],
+    );
+    await client.query(
+      `DELETE FROM settlement_adjustment_proposals proposal
+       USING settlement_import_exceptions exception,
+             settlement_import_batches batch
+       WHERE proposal.organization_id = $1
+         AND proposal.exception_id = exception.id
+         AND exception.organization_id = proposal.organization_id
+         AND exception.import_batch_id = batch.id
+         AND batch.organization_id = exception.organization_id
+         AND batch.seed_marker = $2`,
+      [organizationId, settlementImportMarker],
+    );
+    await client.query(
+      `DELETE FROM settlement_import_exceptions exception
+       USING settlement_import_batches batch
+       WHERE exception.organization_id = $1
+         AND exception.import_batch_id = batch.id
+         AND batch.organization_id = exception.organization_id
+         AND batch.seed_marker = $2`,
+      [organizationId, settlementImportMarker],
+    );
+    await client.query(
+      `DELETE FROM settlement_import_comparisons comparison
+       USING settlement_import_batches batch
+       WHERE comparison.organization_id = $1
+         AND comparison.import_batch_id = batch.id
+         AND batch.organization_id = comparison.organization_id
+         AND batch.seed_marker = $2`,
+      [organizationId, settlementImportMarker],
+    );
+    await client.query(
+      `DELETE FROM settlement_import_rows row
+       USING settlement_import_batches batch
+       WHERE row.organization_id = $1
+         AND row.import_batch_id = batch.id
+         AND batch.organization_id = row.organization_id
+         AND batch.seed_marker = $2`,
+      [organizationId, settlementImportMarker],
+    );
+    await client.query(
+      "DELETE FROM settlement_import_batches WHERE organization_id = $1 AND seed_marker = $2",
+      [organizationId, settlementImportMarker],
+    );
+  }
   if (hasMerchantSettlementTables) {
     await client.query(
       `DELETE FROM merchant_settlement_events
