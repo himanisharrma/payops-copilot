@@ -278,7 +278,7 @@ preparer may be an analyst or administrator; approval requires a different
 administrator. Reopening records an attributed reason on the period but does
 not edit the approved version. A later submission creates the next version.
 
-Merchant Settlement Statements are the next settlement-trust layer above
+Merchant Settlement Statements are the implemented settlement-trust layer above
 three-file reconciliation. The ledger models synthetic merchant accounts,
 settlement batches, line items, deductions, bank credits, UTR classifications,
 case links, and statement events. Seed marker `merchant-settlements-v1` creates
@@ -295,6 +295,12 @@ This layer separates settlement from reconciliation:
 
 The data remains fictional. It is not provider-side confirmation, a bank
 statement, split-settlement execution, or money movement.
+
+The next planned module is Statement Import + Settlement Exception Desk:
+provider-style statement CSVs should land in a staging workspace, normalize into
+deterministic imported rows, compare against the settlement ledger, create
+settlement-specific exceptions, and route adjustment proposals through
+maker/checker approval without moving money.
 
 ## 6. SLA as policy
 
