@@ -18,6 +18,7 @@ API route (transport and request validation)
 | `evaluations` | Yes | Yes | Runs, case results, reviewer scoring, and audit |
 | `payment-workflows` | Yes | Yes | Refunds, chargebacks, evidence gates, timelines, and audit |
 | `provider-events` | Yes | Yes | Versioned synthetic signature verification, key rotation, idempotency, hash-only attempt evidence, normalization, matching, and trust observability |
+| `source-ingestion` | Yes | Yes | Expected-file registry, synthetic arrival SLA, CSV profiling, duplicate/revision/quarantine classification, readiness, and audit |
 | `notifications` | Yes | Yes | SLA/provider signals, organization inbox, read policy, and audit |
 | `insights` | Yes | Yes | Deterministic period metrics, current queue health, provider comparison, and drill-down contracts |
 | `settlement-control` | Yes | Yes | Idempotent overdue promotion, organization locking, and audit |

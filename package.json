@@ -14,9 +14,10 @@
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:migrate": "node scripts/migrate.mjs",
-    "db:seed": "node scripts/seed-users.mjs && node scripts/seed-insights.mjs && node scripts/seed-merchant-settlements.mjs && node scripts/seed-settlement-imports.mjs",
+    "db:seed": "node scripts/seed-users.mjs && node scripts/seed-insights.mjs && node scripts/seed-merchant-settlements.mjs && node scripts/seed-source-ingestion.mjs && node scripts/seed-settlement-imports.mjs",
     "db:seed:insights": "node scripts/seed-insights.mjs",
     "db:seed:merchant-settlements": "node scripts/seed-merchant-settlements.mjs",
+    "db:seed:source-ingestion": "node scripts/seed-source-ingestion.mjs",
     "db:seed:settlement-imports": "node scripts/seed-settlement-imports.mjs",
     "settlements:refresh": "node scripts/refresh-settlements.mjs"
   },

@@ -395,14 +395,14 @@ movement.
 **Boundary:** imported statement rows remain synthetic in the portfolio demo.
 This does not add live provider, bank, payout, or money-moving behavior.
 
-### Next: Source Ingestion Control Plane
+### In progress: Source Ingestion Control Plane
 
 The biggest remaining product gap is upstream of matching. Real merchant
 finance teams do not receive perfectly shaped files; provider, bank, refund,
 chargeback, and fee/tax files arrive late, duplicated, partial, malformed, or
 revised.
 
-The next release should add:
+This release adds the first control-plane slice:
 
 - expected-file registry by provider, source type, merchant, and business day;
 - arrival SLA states: expected, received, late, missing, duplicate, revised,
@@ -411,8 +411,10 @@ The next release should add:
   schema profile, parse diagnostics, superseded-file link, and audit event;
 - quarantine review so bad files do not enter reconciliation until accepted;
 - daily readiness board answering whether recon and close can run today.
+- synthetic manual CSV intake only; no live provider, bank, email, SFTP, or API
+  pull is claimed.
 
-### Then: Matching Engine v2
+### Next: Matching Engine v2
 
 - Layer exact and ambiguous matching across order ID, gateway transaction ID,
   bank reference, UPI RRN/ARN, UTR, amount/date windows, payout IDs, partial

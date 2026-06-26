@@ -366,11 +366,12 @@ constraints, and completion conditions; encode durable repository guidance in
 
 ## Roadmap
 
-- **Next: Source Ingestion Control Plane.** Add an expected-file registry,
-  arrival SLA, file versioning, schema profiling, control totals, quarantine,
-  and a daily readiness board for gateway, settlement, bank, refund,
-  chargeback, and fee/tax files.
-- **Then: Matching Engine v2.** Add layered matching by order ID, gateway
+- **In progress: Source Ingestion Control Plane.** Add `/source-ingestion`
+  with an expected-file registry, arrival SLA, file versioning, schema
+  profiling, control totals, quarantine, and a daily readiness board for
+  gateway, settlement, bank, refund, chargeback, and fee/tax files. V1 remains
+  synthetic manual intake, not live provider/email/SFTP/API ingestion.
+- **Next: Matching Engine v2.** Add layered matching by order ID, gateway
   transaction ID, bank reference, UPI RRN/ARN, UTR, amount/date windows,
   many-to-one payouts, partial captures/refunds, duplicates, reversals, and
   confidence reasons.
