@@ -3,6 +3,7 @@ import {
   BookCheck,
   Banknote,
   FileClock,
+  FileText,
   FlaskConical,
   ChartNoAxesCombined,
   History,
@@ -24,6 +25,7 @@ export async function AppHeader({
   active:
     | "operations"
     | "settlements"
+    | "imports"
     | "payments"
     | "runs"
     | "insights"
@@ -67,6 +69,13 @@ export async function AppHeader({
         >
           <Banknote size={15} />
           Settlements
+        </Link>
+        <Link
+          href="/settlement-imports"
+          className={`product-nav-link ${active === "imports" ? "active" : ""}`}
+        >
+          <FileText size={15} />
+          Imports
         </Link>
         <Link
           href="/operations"

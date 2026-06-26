@@ -9,6 +9,7 @@ import {
   CircleGauge,
   DatabaseZap,
   Banknote,
+  FileText,
   GitBranch,
   ShieldCheck,
 } from "lucide-react";
@@ -500,6 +501,49 @@ export function OperationsInsights({
               </p>
               <Link className="root-cause-insights-link" href="/settlements">
                 Open settlement statements <ArrowRight size={14} />
+              </Link>
+            </article>
+
+            <article className="insights-panel settlement-insights-panel">
+              <header>
+                <div>
+                  <span>STATEMENT IMPORTS</span>
+                  <h2>Imported statement exceptions</h2>
+                </div>
+                <FileText size={20} />
+              </header>
+              <div className="root-cause-insights-ledger">
+                <div>
+                  <span>Imports</span>
+                  <strong>{dashboard.settlementImports.imports}</strong>
+                </div>
+                <div>
+                  <span>Rows staged</span>
+                  <strong>{dashboard.settlementImports.importedRows}</strong>
+                </div>
+                <div>
+                  <span>Open exceptions</span>
+                  <strong>{dashboard.settlementImports.openExceptions}</strong>
+                </div>
+                <div>
+                  <span>Exposure</span>
+                  <strong>{money(dashboard.settlementImports.exposureAmount)}</strong>
+                </div>
+                <div>
+                  <span>Proposed adjustments</span>
+                  <strong>{dashboard.settlementImports.proposedAdjustments}</strong>
+                </div>
+                <div>
+                  <span>Approved adjustments</span>
+                  <strong>{dashboard.settlementImports.approvedAdjustments}</strong>
+                </div>
+              </div>
+              <p className="settlement-insights-note">
+                Import metrics come from synthetic staged statements and do not
+                claim provider or bank delivery success.
+              </p>
+              <Link className="root-cause-insights-link" href="/settlement-imports">
+                Open import desk <ArrowRight size={14} />
               </Link>
             </article>
 

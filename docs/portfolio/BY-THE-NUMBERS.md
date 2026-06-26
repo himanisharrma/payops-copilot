@@ -1,7 +1,7 @@
 # By the Numbers
 
-> Every implemented-project figure below was measured from the Operations
-> Merchant Settlement Statements working snapshot prepared on June 25, 2026. It
+> Every implemented-project figure below was measured from the Statement Import
+> + Settlement Exception Desk working snapshot prepared on June 26, 2026. It
 > is repository evidence, not a production-performance claim.
 
 ## Delivery
@@ -9,22 +9,22 @@
 | Metric | Value | Evidence |
 | --- | --- | --- |
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
-| Product milestones | 21 vertical slices | `BUILD-STORY.md` |
+| Product milestones | 22 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Merchant Settlement Statements seed evidence | seed marker `merchant-settlements-v1` |
-| Latest architecture milestone | Merchant settlement ledger foundation | migration `019` |
+| Latest product milestone | Statement Import + Settlement Exception Desk | seed marker `settlement-import-desk-v1` |
+| Latest architecture milestone | Settlement import staging and adjustment governance | migration `020` |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 200 | `git ls-files --cached --others --exclude-standard` |
-| TypeScript and TSX lines | 23,635 | repository source file list piped to `wc -l` |
-| Next.js API route files | 30 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 19 | `db/migrations/` |
-| Automated test cases | 96 | 78 unit/policy plus 18 PostgreSQL integration tests |
+| Repository files | 216 | `git ls-files --cached --others --exclude-standard` |
+| TypeScript and TSX lines | 26,646 | repository source file list piped to `wc -l` |
+| Next.js API route files | 36 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 20 | `db/migrations/` |
+| Automated test cases | 104 | 84 unit/policy plus 20 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
-| Product pages | 14 | Includes reviewer-focused `/demo-control-room` and merchant `/settlements` |
+| Product pages | 15 | Includes reviewer-focused `/demo-control-room`, merchant `/settlements`, and `/settlement-imports` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
 | Baseline automated checks | 180 | 30 cases x 6 evaluation dimensions |
 | Persisted scenario rows per run | 7 | one summary for each evaluation scenario |
@@ -42,6 +42,10 @@
 | Seeded merchant settlement lines | 12 | `merchant-settlements-v1` idempotent seed scenarios |
 | Seeded merchant settlement batches | 12 | one synthetic batch per statement scenario when migration `019` is present |
 | Seeded merchant settlement line-level cases | 8 | UTR, amount, held, failed, delayed, and hold-release review links |
+| Seeded statement import batches | 2 | clean statement and exception-heavy statement from `settlement-import-desk-v1` |
+| Seeded imported statement rows | 15 | staged rows spanning clean, UTR, amount, payout, hold, deduction, and forward-deduction cases |
+| Seeded settlement import exceptions | 13 | all v1 exception classes represented with synthetic evidence |
+| Seeded adjustment proposals | 3 | proposed, approved, and rejected maker/checker scenarios |
 | Source snapshots in the standard 10-order demo | 27 | 10 order, 10 gateway, and 7 settlement rows |
 
 ## Product surface
@@ -53,8 +57,8 @@
 | Normalized provider event types | 6 typed event states in `lib/types.ts` |
 | Application roles | 3 roles in `lib/access.ts` and the user schema |
 | SLA targets | 4, 24, and 72 hours in `lib/sla.ts` |
-| Backend domain modules | 14 repositories under `lib/modules/` |
-| Domain service layers | 12, including merchant settlements, close control, and remediation programs |
+| Backend domain modules | 15 repositories under `lib/modules/` |
+| Domain service layers | 13, including merchant settlements, settlement imports, close control, and remediation programs |
 | Organization-scoped repositories | organization predicates in each domain module |
 | AI output fields | 6 structured fields in `InvestigationSchema` |
 | Human AI review states | pending, approved, rejected |
@@ -77,11 +81,14 @@
 | Merchant settlement seed marker | `merchant-settlements-v1` | deletes/recreates only seed-owned records |
 | Merchant statement UTR scenarios | 8 | matched, missing, not found/delayed, duplicate, mismatch, failed, held, not due |
 | Forward deduction scenarios | 2 | forward refund and forward chargeback |
+| Settlement import seed marker | `settlement-import-desk-v1` | deletes/recreates only import-desk seed-owned records |
+| Settlement import exception classes | 11 | missing UTR, UTR not found, duplicate, mismatch, failed, held, delayed, retry, deduction, hold, forward deduction |
+| Adjustment approval policy | different administrator required for approval | approved adjustments are decision records only |
 | Close-control states | open, submitted, approved, and reopened |
 | Close approval policy | preparer and administrator approver must be different users |
 | Recurrence threshold | 3 matching actionable cases in the trailing 30 days |
 | Verification policy | administrator confirmation after 2 qualifying clean runs |
-| Reviewer demo surface | `/demo-control-room` links six existing control workspaces |
+| Reviewer demo surface | `/demo-control-room` links nine existing control workspaces |
 
 ## Quality evidence
 
@@ -89,8 +96,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 15 test files, 78 tests passing
-npm run test:integration -> 9 test files, 18 tests passing
+npm test       -> 16 test files, 84 tests passing
+npm run test:integration -> 10 test files, 20 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```
@@ -145,6 +152,9 @@ Browser verification also exercised:
 - recurring suggestion promotion, program management, Operations drill-through,
   administrator verification, viewer read-only behavior, and the 390px
   recurrence control board.
+- statement import CSV parsing, staged-row comparison, idempotent repeated
+  import, tenant-scoped detail reads, adjustment maker/checker enforcement, and
+  seed idempotency for `settlement-import-desk-v1`.
 
 ## What is not measured
 
