@@ -174,9 +174,10 @@ the distinction between settlement and reconciliation is explicit.
 
 ## Next releases
 
-1. Complete Merchant Settlement Statements before split settlement: richer
-   statement exports, order/transaction/deduction detail proof surfaces,
-   Insights totals, Close Control rollups, and UTR-specific operations views.
+1. Build Statement Import + Settlement Exception Desk before split settlement:
+   import provider-style statement CSVs into staging, normalize rows without
+   overwriting the ledger, compare deductions/UTRs/bank credits, raise
+   settlement-specific exceptions, and add maker/checker adjustment controls.
 2. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
 3. Turn approved analyst corrections into governed synthetic regression cases.
 4. Add controlled evidence-pack escalation for remediation programs.
