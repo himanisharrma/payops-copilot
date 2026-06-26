@@ -10,6 +10,7 @@ import {
   ListChecks,
   LogOut,
   Route,
+  RadioTower,
   RotateCcw,
   Scale,
   ShieldCheck,
@@ -24,6 +25,7 @@ export async function AppHeader({
 }: {
   active:
     | "operations"
+    | "sources"
     | "settlements"
     | "imports"
     | "payments"
@@ -62,6 +64,13 @@ export async function AppHeader({
         <Link href="/" className="product-nav-link">
           <Scale size={15} />
           Reconcile
+        </Link>
+        <Link
+          href="/source-ingestion"
+          className={`product-nav-link ${active === "sources" ? "active" : ""}`}
+        >
+          <RadioTower size={15} />
+          Sources
         </Link>
         <Link
           href="/settlements"
