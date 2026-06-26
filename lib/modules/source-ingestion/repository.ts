@@ -39,7 +39,7 @@ function mapArrival(row: ArrivalRow): SourceIngestionArrival {
     sourceRowCount: row.source_row_count,
     acceptedRowCount: row.accepted_row_count,
     rejectedRowCount: row.rejected_row_count,
-    receivedAt: row.received_at.toISOString(),
+    receivedAt: toIsoTimestamp(row.received_at),
     supersedesArrivalId: row.supersedes_arrival_id,
     classification: row.classification,
     validationStatus: row.validation_status,
@@ -60,8 +60,8 @@ function mapExpectation(row: ExpectationRow): SourceIngestionExpectation {
     sourceKind: row.source_kind,
     transportType: row.transport_type,
     ownerTeam: row.owner_team,
-    businessDate: row.business_date.toISOString().slice(0, 10),
-    expectedArrivalAt: row.expected_arrival_at.toISOString(),
+    businessDate: toDateString(row.business_date),
+    expectedArrivalAt: toIsoTimestamp(row.expected_arrival_at),
     graceMinutes: row.grace_minutes,
     requiredForClose: row.required_for_close,
     expectedFilenamePattern: row.expected_filename_pattern,
@@ -171,7 +171,7 @@ export async function listSourceIngestionWorkspace(
       actorName: row.actor_name,
       eventType: row.event_type,
       details: row.details ?? {},
-      createdAt: row.created_at.toISOString(),
+      createdAt: toIsoTimestamp(row.created_at),
     })) satisfies SourceIngestionEvent[],
   };
 }
@@ -487,6 +487,14 @@ type SourceRow = {
   evidence: Record<string, unknown>;
 };
 
+function toIsoTimestamp(value: Date | string) {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function toDateString(value: Date | string) {
+  return value instanceof Date ? value.toISOString().slice(0, 10) : value.slice(0, 10);
+}
+
 type ArrivalRow = {
   id: string;
   expectation_id: string;
@@ -496,7 +504,7 @@ type ArrivalRow = {
   source_row_count: number;
   accepted_row_count: number;
   rejected_row_count: number;
-  received_at: Date;
+  received_at: Date | string;
   supersedes_arrival_id: string | null;
   classification: SourceArrivalClassification;
   validation_status: SourceValidationStatus;
@@ -509,8 +517,8 @@ type ArrivalRow = {
 type ExpectationRow = {
   id: string;
   source_id: string;
-  business_date: Date;
-  expected_arrival_at: Date;
+  business_date: Date | string;
+  expected_arrival_at: Date | string;
   grace_minutes: number;
   required_for_close: boolean;
   expected_filename_pattern: string;
@@ -527,7 +535,7 @@ type ExpectationRow = {
   source_row_count?: number | null;
   accepted_row_count?: number | null;
   rejected_row_count?: number | null;
-  received_at?: Date | null;
+  received_at?: Date | string | null;
   supersedes_arrival_id?: string | null;
   classification?: SourceArrivalClassification | null;
   validation_status?: SourceValidationStatus | null;
@@ -545,5 +553,5 @@ type EventRow = {
   actor_name: string;
   event_type: SourceIngestionEvent["eventType"];
   details: Record<string, unknown>;
-  created_at: Date;
+  created_at: Date | string;
 };
