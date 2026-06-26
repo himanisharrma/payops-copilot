@@ -76,11 +76,9 @@ Order → Transaction → Gross amount
 → Evidence / Exception
 ```
 
-Implemented release: **Merchant Settlement Statements**.
+Implemented release: **Statement Import + Settlement Exception Desk**.
 
-Recommended next release: **Statement Import + Settlement Exception Desk**.
-
-Build this module before split settlements:
+This module sits above Merchant Settlement Statements:
 
 1. Import provider-style merchant settlement statement CSVs into a staging
    workspace without overwriting the existing settlement ledger.
@@ -97,10 +95,13 @@ Build this module before split settlements:
    deductions, net payable, UTR, bank credit, linked cases, and adjustment
    decisions.
 
-Build split settlement only after the normal settlement statement layer is
-solid. Split settlement should eventually support platform/vendor shares,
-fee/tax splits, refund splits, and vendor settlement files, but it should not be
-the next foundation.
+Recommended next release: **Evidence Escalation Outbox** for reviewer-safe
+evidence packets and remediation/settlement exception follow-up.
+
+Build split settlement only after statement import, exception handling, and
+adjustment governance are solid. Split settlement should eventually support
+platform/vendor shares, fee/tax splits, refund splits, and vendor settlement
+files, but it should not be the next foundation.
 
 ## Non-negotiable boundaries
 

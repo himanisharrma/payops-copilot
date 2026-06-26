@@ -8,6 +8,7 @@ import {
   ReceiptText,
   Route,
   ShieldCheck,
+  FileText,
   Waypoints,
 } from "lucide-react";
 import { auth } from "@/auth";
@@ -36,6 +37,16 @@ const journey = [
   },
   {
     number: "03",
+    title: "Statement import desk",
+    control: "Provider-style statements are staged before becoming evidence.",
+    lookFor:
+      "CSV staging, deterministic row comparison, settlement exceptions, adjustment proposals, and evidence packet export.",
+    href: "/settlement-imports",
+    cta: "Open imports",
+    icon: FileText,
+  },
+  {
+    number: "04",
     title: "Exception case",
     control: "Actionable differences become owned operational work.",
     lookFor:
@@ -45,7 +56,7 @@ const journey = [
     icon: FileSearch,
   },
   {
-    number: "04",
+    number: "05",
     title: "Settlement deadline evidence",
     control: "Aging is measured from the expected settlement time.",
     lookFor:
@@ -55,7 +66,7 @@ const journey = [
     icon: Gauge,
   },
   {
-    number: "05",
+    number: "06",
     title: "Signed webhook evidence",
     control: "Synthetic provider events are accepted only through the trust boundary.",
     lookFor:
@@ -66,7 +77,7 @@ const journey = [
     adminOnly: true,
   },
   {
-    number: "06",
+    number: "07",
     title: "Insights dashboard",
     control: "Managers see deterministic metrics, not analytics theatre.",
     lookFor:
@@ -76,7 +87,7 @@ const journey = [
     icon: BellRing,
   },
   {
-    number: "07",
+    number: "08",
     title: "Root-cause program verification",
     control: "Recurring exceptions become governed remediation programs.",
     lookFor:

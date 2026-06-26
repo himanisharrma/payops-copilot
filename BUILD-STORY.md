@@ -56,6 +56,7 @@ The dates and commits below come directly from the repository history.
 | June 22, 2026 | `4e30df9`, `47ba6f4` | Added deterministic settlement clocks and overdue promotion |
 | June 22, 2026 | `4bdb6eb` + current release | Added provider-specific key rotation and webhook trust evidence |
 | June 22, 2026 | `e1302a1` + current release | Added deterministic daily reconciliation close and maker-checker control |
+| June 25, 2026 | current release | Added merchant settlement statements and the Statement Import + Settlement Exception Desk |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -490,11 +491,12 @@ line-level cases.
 This is proof data for a portfolio MVP. It does not connect to live providers,
 move money, certify a bank credit, or claim settlement success rates.
 
-The next product direction is Statement Import + Settlement Exception Desk:
-provider-style statement CSVs land in staging, normalize deterministically,
-compare against the settlement ledger, create settlement-specific exceptions,
-and route adjustment proposals through maker/checker approval. Split settlement
-waits until that normal statement-import workflow is solid.
+Statement Import + Settlement Exception Desk is now implemented: provider-style
+statement CSVs land in staging, normalize deterministically, compare against
+the settlement ledger, create settlement-specific exceptions, export
+reviewer-safe evidence packets, and route adjustment proposals through
+maker/checker approval. Split settlement still waits until the normal
+statement-import workflow is solid.
 
 This is a portfolio MVP, not a production payment system. It has synthetic
 data, local credentials, a simple SLA calendar, and a focused test suite. It

@@ -168,6 +168,17 @@ export default async function SettlementsPage({
           },
         }}
       />
+      <section className="settlement-import-crosslink">
+        <div>
+          <span>NEXT CONTROL</span>
+          <h2>Compare provider statements before they become truth.</h2>
+          <p>
+            Open the Statement Import desk to inspect staged CSV rows, UTR and
+            deduction exceptions, linked cases, and adjustment proposals.
+          </p>
+        </div>
+        <a href="/settlement-imports">Open statement imports</a>
+      </section>
     </main>
   );
 }

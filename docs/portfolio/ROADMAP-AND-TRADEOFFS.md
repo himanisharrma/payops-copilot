@@ -379,7 +379,7 @@ permanent provider-side correction.
 prove live provider outcomes, bank-side events, payout success, or money
 movement.
 
-### Next: Statement Import + Settlement Exception Desk
+### Shipped: Statement Import + Settlement Exception Desk
 
 - Import provider-style merchant settlement statement CSVs into a staging
   workspace without overwriting the existing settlement ledger.
@@ -399,6 +399,8 @@ This does not add live provider, bank, payout, or money-moving behavior.
 
 - Add a controlled escalation outbox for approved evidence packs.
 - Add configurable business calendars and outbound escalation notifications.
+- Add split settlement only after statement import, exception handling, and
+  adjustment governance are stable.
 
 ### Then: production controls
 

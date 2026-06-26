@@ -12,6 +12,15 @@
   collections, deductions, net payable, UTRs, bank-credit mapping, evidence,
   and exceptions for a settlement batch. In PayOps this is synthetic proof data
   only and does not move money.
+- **Settlement statement import:** A provider-style CSV staged as evidence for
+  comparison against the merchant settlement ledger. Imported rows are not
+  authoritative and never overwrite ledger records.
+- **Settlement Exception Desk:** Workspace for imported-statement exceptions
+  such as missing UTR, duplicate UTR, amount mismatch, failed payout, held
+  settlement, deduction mismatch, and forward deduction mismatch.
+- **Adjustment Desk:** Maker/checker governance record for proposed settlement
+  adjustments. Approval records a decision only; it does not issue payouts,
+  mutate bank credits, or move money.
 - **Net settlement:** Amount transferred after fees, taxes, refunds, and adjustments.
 - **Payment aggregator:** Entity that provides merchants access to payment methods and settlement services.
 - **Refund:** Return of a captured payment amount to a customer. This project tracks the operational lifecycle but does not initiate the transfer.
