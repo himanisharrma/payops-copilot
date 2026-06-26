@@ -9103,3 +9103,352 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+.source-plane {
+  padding: 0 30px 60px;
+}
+
+.source-plane-hero {
+  border-bottom: 1px solid var(--ink);
+}
+
+.source-readiness {
+  min-width: 280px;
+  border: 1px solid var(--ink);
+  padding: 18px;
+  background: #fffaf0;
+  box-shadow: 8px 8px 0 var(--ink);
+  display: grid;
+  gap: 8px;
+}
+
+.source-readiness.ready {
+  background: #eaf7ed;
+}
+
+.source-readiness.blocked {
+  background: #fff1e8;
+}
+
+.source-readiness span,
+.source-plane-toolbar label,
+.source-kpi-ledger span,
+.source-arrival-board header span,
+.source-proof-rail header span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.source-readiness strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  line-height: 0.95;
+}
+
+.source-plane-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: end;
+  margin: 26px 0;
+}
+
+.source-plane-toolbar label {
+  display: grid;
+  gap: 8px;
+}
+
+.source-plane-toolbar input {
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  padding: 13px;
+  font: inherit;
+  font-weight: 800;
+}
+
+.source-plane-toolbar p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 780px;
+}
+
+.source-kpi-ledger {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  margin-bottom: 24px;
+}
+
+.source-kpi-ledger article {
+  padding: 18px;
+  border-right: 1px solid var(--ink);
+  display: grid;
+  gap: 8px;
+}
+
+.source-kpi-ledger article:last-child {
+  border-right: 0;
+}
+
+.source-kpi-ledger strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 4vw, 3rem);
+  line-height: 0.85;
+}
+
+.source-plane-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+.source-arrival-board,
+.source-proof-rail {
+  border: 1px solid var(--ink);
+  background: #fffdf6;
+}
+
+.source-arrival-board > header,
+.source-proof-rail > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.source-arrival-board h2,
+.source-proof-rail h2 {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+}
+
+.source-arrival-strip {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) 190px;
+  gap: 18px;
+  align-items: stretch;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.source-arrival-strip:last-child {
+  border-bottom: 0;
+}
+
+.source-strip-time {
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  padding: 12px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+.source-strip-time span {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+
+.source-strip-main {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.source-strip-main strong {
+  font-size: 1.1rem;
+}
+
+.source-strip-main small,
+.source-strip-time small,
+.source-proof-rail small {
+  color: var(--muted);
+}
+
+.source-strip-main dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.source-strip-main dl div {
+  background: #f7f1e4;
+  padding: 10px;
+  min-width: 0;
+}
+
+.source-strip-main dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.source-strip-main dd {
+  margin: 4px 0 0;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.source-strip-action {
+  display: grid;
+  gap: 10px;
+  align-content: center;
+}
+
+.source-status-pill {
+  border: 1px solid var(--ink);
+  padding: 8px 10px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.source-status-pill.ok {
+  background: #dff4df;
+}
+
+.source-status-pill.warn {
+  background: #fff1b8;
+}
+
+.source-status-pill.bad {
+  background: #ffd8ca;
+}
+
+.source-strip-action button,
+.source-next-link a {
+  border: 1px solid var(--ink);
+  background: var(--accent);
+  color: var(--ink);
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 900;
+  text-decoration: none;
+  display: inline-flex;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.source-blocker-copy,
+.source-empty-state p,
+.source-next-link p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.source-empty-state {
+  padding: 24px;
+}
+
+.source-proof-rail {
+  position: sticky;
+  top: 90px;
+}
+
+.source-proof-rail ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.source-proof-rail li {
+  display: grid;
+  gap: 5px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.source-proof-rail li span {
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.source-next-link {
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 980px) {
+  .source-kpi-ledger {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .source-kpi-ledger article:nth-child(3) {
+    border-right: 0;
+  }
+
+  .source-kpi-ledger article:nth-child(-n + 3) {
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .source-plane-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .source-proof-rail {
+    position: static;
+  }
+}
+
+@media (max-width: 650px) {
+  .source-plane {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .source-readiness {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .source-plane-toolbar,
+  .source-kpi-ledger,
+  .source-arrival-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .source-kpi-ledger article,
+  .source-kpi-ledger article:nth-child(3) {
+    border-right: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .source-kpi-ledger article:last-child {
+    border-bottom: 0;
+  }
+
+  .source-strip-main dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 390px) {
+  .source-strip-main dl {
+    grid-template-columns: 1fr;
+  }
+
+  .source-arrival-board > header,
+  .source-proof-rail > header {
+    align-items: start;
+  }
+}

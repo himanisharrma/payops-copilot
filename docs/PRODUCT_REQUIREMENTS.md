@@ -199,11 +199,12 @@ the distinction between settlement and reconciliation is explicit.
 The product is still a synthetic portfolio MVP. The next releases should reduce
 the gap between a demo workspace and a credible merchant recon product:
 
-1. **Source Ingestion Control Plane:** expected-file registry, arrival SLA,
+1. **Source Ingestion Control Plane:** `/source-ingestion` expected-file registry, arrival SLA,
    file versioning, schema profiling, control totals, quarantine, and daily
    readiness for gateway, settlement, bank, refund, chargeback, and fee/tax
-   files.
-2. **Matching Engine v2:** layered matching across order IDs, gateway
+   files. V1 is synthetic manual CSV intake only; live email, SFTP, API, bank,
+   or provider pulling remains out of scope.
+2. **Next after ingestion: Matching Engine v2:** layered matching across order IDs, gateway
    transaction IDs, bank references, UPI RRN/ARN, UTRs, amount/date windows,
    many-to-one payouts, partial captures/refunds, duplicates, reversals, and
    confidence reasons.

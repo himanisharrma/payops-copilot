@@ -100,7 +100,7 @@ This module sits above Merchant Settlement Statements:
    deductions, net payable, UTR, bank credit, linked cases, and adjustment
    decisions.
 
-Recommended next release: **Source Ingestion Control Plane**.
+Current release in progress: **Source Ingestion Control Plane**.
 
 Build this before more governance layers. The next credibility jump is proving
 that PayOps can receive, profile, version, quarantine, and readiness-check the
@@ -118,7 +118,7 @@ messy daily files that real merchant finance teams depend on:
 5. Daily readiness board that answers: "Can we run recon and close books today?
    Which source is blocking us?"
 
-After ingestion, build **Matching Engine v2** with layered exact/ambiguous
+After Source Ingestion ships, build **Matching Engine v2** with layered exact/ambiguous
 matching across order ID, gateway transaction ID, bank reference, UPI RRN/ARN,
 UTR, amount/date windows, many-to-one payouts, partial refunds/captures,
 duplicates, reversals, and confidence reasons.

@@ -9,6 +9,7 @@ import {
   Route,
   ShieldCheck,
   FileText,
+  RadioTower,
   Waypoints,
 } from "lucide-react";
 import { auth } from "@/auth";
@@ -17,6 +18,16 @@ import { AppHeader } from "@/components/app-header";
 const journey = [
   {
     number: "01",
+    title: "Source readiness",
+    control: "Expected merchant files are tracked before any recon run starts.",
+    lookFor:
+      "Daily expected-file registry, arrival SLA, hashes, CSV profiles, quarantines, duplicates, revisions, and close blockers.",
+    href: "/source-ingestion",
+    cta: "Open sources",
+    icon: RadioTower,
+  },
+  {
+    number: "02",
     title: "Reconciliation run",
     control: "Three source reports become one deterministic ledger.",
     lookFor:
@@ -26,7 +37,7 @@ const journey = [
     icon: Landmark,
   },
   {
-    number: "02",
+    number: "03",
     title: "Merchant settlement statement",
     control: "Gross collections become merchant payable after deductions.",
     lookFor:
@@ -36,7 +47,7 @@ const journey = [
     icon: ReceiptText,
   },
   {
-    number: "03",
+    number: "04",
     title: "Statement import desk",
     control: "Provider-style statements are staged before becoming evidence.",
     lookFor:
@@ -46,7 +57,7 @@ const journey = [
     icon: FileText,
   },
   {
-    number: "04",
+    number: "05",
     title: "Exception case",
     control: "Actionable differences become owned operational work.",
     lookFor:
@@ -56,7 +67,7 @@ const journey = [
     icon: FileSearch,
   },
   {
-    number: "05",
+    number: "06",
     title: "Settlement deadline evidence",
     control: "Aging is measured from the expected settlement time.",
     lookFor:
@@ -66,7 +77,7 @@ const journey = [
     icon: Gauge,
   },
   {
-    number: "06",
+    number: "07",
     title: "Signed webhook evidence",
     control: "Synthetic provider events are accepted only through the trust boundary.",
     lookFor:
@@ -77,7 +88,7 @@ const journey = [
     adminOnly: true,
   },
   {
-    number: "07",
+    number: "08",
     title: "Insights dashboard",
     control: "Managers see deterministic metrics, not analytics theatre.",
     lookFor:
@@ -87,7 +98,7 @@ const journey = [
     icon: BellRing,
   },
   {
-    number: "08",
+    number: "09",
     title: "Root-cause program verification",
     control: "Recurring exceptions become governed remediation programs.",
     lookFor:
