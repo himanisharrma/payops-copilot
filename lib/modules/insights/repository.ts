@@ -101,6 +101,7 @@ export async function getInsightsDashboard(
     rootCauseSummary,
     recurrenceTrend,
     merchantSettlements,
+    settlementImports,
     paymentModes,
   ] = await Promise.all([
     query<MetricRow>(
@@ -633,6 +634,44 @@ export async function getInsightsDashboard(
         filters.priority,
       ],
     ),
+    query<{
+      imports: string;
+      imported_rows: string;
+      exceptions: string;
+      open_exceptions: string;
+      proposed_adjustments: string;
+      approved_adjustments: string;
+      exposure_amount: string;
+    }>(
+      `SELECT
+         COUNT(DISTINCT import.id)::text AS imports,
+         COUNT(DISTINCT row.id)::text AS imported_rows,
+         COUNT(DISTINCT exception.id)::text AS exceptions,
+         COUNT(DISTINCT exception.id) FILTER (
+           WHERE exception.status <> 'resolved'
+         )::text AS open_exceptions,
+         COUNT(DISTINCT adjustment.id) FILTER (
+           WHERE adjustment.status = 'proposed'
+         )::text AS proposed_adjustments,
+         COUNT(DISTINCT adjustment.id) FILTER (
+           WHERE adjustment.status = 'approved'
+         )::text AS approved_adjustments,
+         COALESCE(SUM(DISTINCT exception.exposure_amount), 0)::text AS exposure_amount
+       FROM settlement_import_batches import
+       LEFT JOIN settlement_import_rows row
+         ON row.import_batch_id = import.id
+        AND row.organization_id = import.organization_id
+       LEFT JOIN settlement_import_exceptions exception
+         ON exception.import_batch_id = import.id
+        AND exception.organization_id = import.organization_id
+       LEFT JOIN settlement_adjustment_proposals adjustment
+         ON adjustment.exception_id = exception.id
+        AND adjustment.organization_id = exception.organization_id
+       WHERE import.organization_id = $1
+         AND import.imported_at >= $2 AND import.imported_at < $3
+         AND ($4::text = 'all' OR import.provider_id = $4)`,
+      [organizationId, startAt, endAt, filters.provider],
+    ),
     query<{ payment_mode: string }>(
       `SELECT DISTINCT item.payment_mode
        FROM reconciliation_items item
@@ -791,6 +830,19 @@ export async function getInsightsDashboard(
             ).toFixed(1),
           )
         : null,
+    },
+    settlementImports: {
+      imports: Number(settlementImports.rows[0].imports),
+      importedRows: Number(settlementImports.rows[0].imported_rows),
+      exceptions: Number(settlementImports.rows[0].exceptions),
+      openExceptions: Number(settlementImports.rows[0].open_exceptions),
+      proposedAdjustments: Number(
+        settlementImports.rows[0].proposed_adjustments,
+      ),
+      approvedAdjustments: Number(
+        settlementImports.rows[0].approved_adjustments,
+      ),
+      exposureAmount: Number(settlementImports.rows[0].exposure_amount),
     },
   };
 }

@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-88%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-104%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -38,7 +38,7 @@ a managed PostgreSQL `DATABASE_URL`, then run `npm run db:migrate` and
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
 | **Backend shape** | Modular monolith with thin routes, domain services, fourteen domain modules, and shared PostgreSQL infrastructure |
-| **Build evidence** | 21 product milestones, 30 API routes, 19 migrations, and 96 unit/integration tests at the Merchant Settlement Statements snapshot |
+| **Build evidence** | 22 product milestones, 36 API routes, 20 migrations, and 104 unit/integration tests at the Statement Import snapshot |
 
 ## Why this exists
 
@@ -348,11 +348,13 @@ constraints, and completion conditions; encode durable repository guidance in
 - Feed approved analyst corrections into new anonymized evaluation cases.
 - Add configurable business calendars and outbound escalation channels.
 - Add provider-specific investigation tools with scoped permissions.
-- Build Statement Import + Settlement Exception Desk before attempting split
-  settlements: import provider-style statement CSVs into staging, normalize
-  rows without overwriting the ledger, compare deductions/UTRs/bank credits,
-  raise settlement-specific exceptions, and add maker/checker adjustment
-  controls.
+- Statement Import + Settlement Exception Desk is now implemented as the next
+  settlement control layer: provider-style CSVs land in staging, normalize without
+  overwriting the merchant settlement ledger, compare deductions/UTRs/bank
+  credits, raise settlement-specific exceptions, and govern maker/checker
+  adjustment records.
+- Defer split settlement until imported statement evidence and settlement
+  exception workflows are solid.
 - Add managed secrets, provider-certified signatures, tamper-evident audit
   retention, incident response, and production observability.
 

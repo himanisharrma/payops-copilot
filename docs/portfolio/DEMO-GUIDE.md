@@ -39,19 +39,22 @@ Use it as the portfolio landing path when the reviewer has little time:
 
 1. **Reconciliation run** - show that three synthetic reports become one
    deterministic ledger.
-2. **Exception case** - show that actionable differences become owned work with
+2. **Merchant settlement statements** - show gross collected, deductions, net
+   payable, UTR, bank-credit evidence, and linked line-level cases.
+3. **Statement import desk** - show staged provider-style CSV rows, comparison
+   exceptions, maker/checker adjustment records, and evidence packet export.
+4. **Exception case** - show that actionable differences become owned work with
    source evidence and SLA context.
-3. **Settlement deadline evidence** - show that expected dates come from a
+5. **Settlement deadline evidence** - show that expected dates come from a
    fictional settlement-cycle policy and India demo calendar.
-4. **Signed webhook evidence** - as an administrator, show accepted and rejected
+6. **Signed webhook evidence** - as an administrator, show accepted and rejected
    synthetic provider attempts without raw payload retention.
-5. **Insights dashboard** - show manager KPIs and drill-through into the
+7. **Insights dashboard** - show manager KPIs and drill-through into the
    operations queue.
-6. **Root-cause program verification** - show deterministic recurrence grouping
+8. **Root-cause program verification** - show deterministic recurrence grouping
    and two clean-run verification.
-7. **Merchant settlement statements** - if the `/settlements` surface is in the
-   build, show gross-to-net deductions, UTR state, bank-credit mapping, and
-   linked line-level cases as synthetic evidence only.
+9. **Close Control** - show maker/checker close readiness, residual exposure,
+   and settlement payable impact.
 
 Recommended screenshots for portfolio review:
 
@@ -150,6 +153,12 @@ whether records from different systems agree. Show a credited statement, a
 missing-UTR or duplicate-UTR case link, and a forward refund/chargeback
 deduction. Say clearly that all records are fictional and no payout is
 executed.
+
+Open **Statement Imports**. Upload or inspect the seeded synthetic provider
+statement CSV. Show that rows enter a staging area, comparison does not
+overwrite the settlement ledger, exceptions are settlement-specific, and
+adjustments require maker/checker governance. Export the evidence packet and
+call out that it contains reviewer-safe synthetic evidence only.
 
 ### 4:05-4:30 - Show quality and accountability
 

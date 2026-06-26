@@ -172,15 +172,32 @@ the distinction between settlement and reconciliation is explicit.
 - Require implementation summary and evidence before monitoring, then two
   subsequent qualifying clean runs before administrator verification.
 
+## Settlement import and exception desk
+
+- Admins and analysts can upload synthetic provider-style merchant statement
+  CSVs into staging; viewers can inspect read-only results.
+- Imported rows never overwrite the merchant settlement ledger.
+- Deterministic comparison links statement rows to settlement batches, lines,
+  deductions, UTRs, bank credits, and line-level Operations cases where
+  available.
+- Settlement-specific exceptions cover missing UTR, UTR not found, duplicate
+  UTR, amount mismatch, failed payout, held settlement, delayed credit, retry
+  exhausted, deduction mismatch, unexplained hold, and forward deduction
+  mismatch.
+- Adjustment proposals are governance records only. Approval requires a
+  different administrator and does not mutate payouts, bank credits, or money
+  movement state.
+- Evidence packet export is reviewer-safe JSON with synthetic-only boundary
+  language and no secrets.
+
 ## Next releases
 
-1. Build Statement Import + Settlement Exception Desk before split settlement:
-   import provider-style statement CSVs into staging, normalize rows without
-   overwriting the ledger, compare deductions/UTRs/bank credits, raise
-   settlement-specific exceptions, and add maker/checker adjustment controls.
-2. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
-3. Turn approved analyst corrections into governed synthetic regression cases.
-4. Add controlled evidence-pack escalation for remediation programs.
-5. Add configurable business calendars and outbound escalation notifications.
-6. Add production identity, managed secrets, incident response, observability,
+1. Complete representative two-reviewer scoring and a funded OpenAI evaluation.
+2. Turn approved analyst corrections into governed synthetic regression cases.
+3. Add controlled evidence-pack escalation for remediation programs and
+   settlement exceptions.
+4. Add configurable business calendars and outbound escalation notifications.
+5. Add production identity, managed secrets, incident response, observability,
    and retention controls.
+6. Build split settlement only after imported statements and exception
+   workflows are solid.

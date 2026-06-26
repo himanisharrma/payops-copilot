@@ -296,11 +296,14 @@ This layer separates settlement from reconciliation:
 The data remains fictional. It is not provider-side confirmation, a bank
 statement, split-settlement execution, or money movement.
 
-The next planned module is Statement Import + Settlement Exception Desk:
-provider-style statement CSVs should land in a staging workspace, normalize into
-deterministic imported rows, compare against the settlement ledger, create
-settlement-specific exceptions, and route adjustment proposals through
-maker/checker approval without moving money.
+Statement Import + Settlement Exception Desk is the implemented staging layer
+above merchant settlement statements. Provider-style CSVs land in
+organization-scoped import batches, normalize into deterministic imported rows,
+compare against settlement batches, deductions, UTRs, bank credits, and
+line-level case links, then create settlement-specific exceptions. Adjustment
+proposals use append-only events and maker/checker approval, but remain
+controlled decision records only; they do not mutate payouts, bank credits, or
+settlement money.
 
 ## 6. SLA as policy
 
