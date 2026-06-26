@@ -498,6 +498,15 @@ reviewer-safe evidence packets, and route adjustment proposals through
 maker/checker approval. Split settlement still waits until the normal
 statement-import workflow is solid.
 
+The sharper product lesson is that PayOps should not pretend to be a generic
+recon platform. The first credible ICP is merchant finance/payment operations:
+teams that need to prove whether providers settled correctly, explain
+deductions, map UTRs, and close payment books. The next gap is therefore not
+another governance surface. It is source ingestion, matching depth, and an
+immutable ledger backbone: receive messy daily files, decide whether they are
+fit for recon, match them across real payment identifiers and lifecycle states,
+then explain opening balance to closing payable.
+
 This is a portfolio MVP, not a production payment system. It has synthetic
 data, local credentials, a simple SLA calendar, and a focused test suite. It
 does not connect to provider APIs, claim production webhook compatibility,
