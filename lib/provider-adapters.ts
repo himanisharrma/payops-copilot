@@ -68,6 +68,11 @@ export const providerAdapters = [
       fee: ["fee", "mdr", "gateway_fee", "processing_fee"],
       tax: ["tax", "gst", "fee_tax"],
       utr: ["utr", "bank_reference", "bank_ref", "settlement_utr"],
+      statementReference: [
+        "statement_reference",
+        "settlement_batch_id",
+        "payout_reference",
+      ],
     },
   },
   {
@@ -93,6 +98,7 @@ export const providerAdapters = [
       fee: ["fee", "razorpay_fee"],
       tax: ["tax", "gst"],
       utr: ["utr", "settlement_utr", "bank_reference"],
+      statementReference: ["settlement_id", "settlement_batch_id"],
     },
   },
   {
@@ -118,6 +124,7 @@ export const providerAdapters = [
       fee: ["service_charge", "fee", "processing_fee"],
       tax: ["service_tax", "gst", "tax"],
       utr: ["utr", "bank_reference", "transfer_utr"],
+      statementReference: ["settlement_id", "settlement_batch_id"],
     },
   },
   {
@@ -143,6 +150,7 @@ export const providerAdapters = [
       fee: ["mdr", "fee", "gateway_fee"],
       tax: ["gst", "tax", "fee_tax"],
       utr: ["utr", "bank_ref_num", "bank_reference"],
+      statementReference: ["settlement_id", "settlement_batch_id"],
     },
   },
 ] as const satisfies ProviderAdapter[];

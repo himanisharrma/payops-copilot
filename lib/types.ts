@@ -77,7 +77,8 @@ export type ProviderFieldMapping =
   | "settledAmount"
   | "fee"
   | "tax"
-  | "utr";
+  | "utr"
+  | "statementReference";
 
 export type DataQualityIssue = {
   severity: "info" | "warning" | "error";
@@ -218,7 +219,8 @@ export type ReasonCode =
   | "payout_failed"
   | "chargeback_pending_recovery"
   | "refund_not_adjusted"
-  | "unmatched_other";
+  | "unmatched_other"
+  | "payout_sum_mismatch";
 
 export type EvidenceSourceType = "orders" | "gateway" | "settlements";
 
@@ -253,6 +255,7 @@ export type ReconciliationItem = {
   matchStrategy: MatchStrategy;
   matchConfidence: MatchConfidence;
   reasonCode: ReasonCode | null;
+  payoutId: string | null;
   summary: string;
   evidence: string[];
   sourceEvidence: SourceEvidence[];
