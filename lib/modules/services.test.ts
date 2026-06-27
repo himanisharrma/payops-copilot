@@ -83,6 +83,11 @@ const resolvableCase = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   latestInvestigation: null,
+  itemId: "item-1",
+  engineMatchStrategy: "exact_order_id",
+  engineMatchConfidence: "high",
+  engineReasonCode: null,
+  manualOverride: null,
 } satisfies OperationsCase;
 
 describe("modular backend services", () => {

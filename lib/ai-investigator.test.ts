@@ -28,6 +28,11 @@ const paymentCase: OperationsCase = {
   createdAt: "2026-06-12T00:00:00.000Z",
   updatedAt: "2026-06-12T00:00:00.000Z",
   latestInvestigation: null,
+  itemId: "item-1",
+  engineMatchStrategy: null,
+  engineMatchConfidence: null,
+  engineReasonCode: null,
+  manualOverride: null,
 };
 
 describe("fallbackInvestigation", () => {

@@ -395,10 +395,14 @@ constraints, and completion conditions; encode durable repository guidance in
   immutable accepted-source contracts, superseded lineage, and persisted daily
   readiness snapshots. Intake remains synthetic and manual—not a live provider,
   bank, email, SFTP, or API connection.
-- **Next: Matching Engine v2.** Add layered matching by order ID, gateway
-  transaction ID, bank reference, UPI RRN/ARN, UTR, amount/date windows,
-  many-to-one payouts, partial captures/refunds, duplicates, reversals, and
-  confidence reasons.
+- **In progress: Matching Engine v2.** Slices 1–3 shipped — layered matching
+  strategies with `match_strategy` + `match_confidence` (Slice 1), a 10-code
+  reason taxonomy with in-engine + cross-table refresh hooks (Slices 2a/2b),
+  and an analyst-facing manual match / unmatch override layer with admin
+  maker-checker on unmatches (Slice 3, this slice). Effective override state
+  is surfaced on the operations case panel via a LEFT JOIN; the deterministic
+  engine row is preserved as the source verdict. Remaining: many-to-one
+  payouts, partial captures/refunds, fuzzy amount/date windows.
 - **Then: Ledger Backbone v1.** Add immutable merchant payable, provider
   receivable, bank cash, fee/GST, refund, chargeback, hold/release, and
   adjustment ledger entries that explain opening balance to closing payable.
