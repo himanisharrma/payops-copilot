@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PayOps Copilot",
-  description: "Payment reconciliation workspace for Indian operations teams.",
+  title: "PayOps — Settlement Exception Desk",
+  description:
+    "Multi-PG settlement-exception desk for Indian merchant finance and payment-ops teams.",
 };
 
 export default function RootLayout({

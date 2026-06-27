@@ -306,12 +306,9 @@ export function PayOpsWorkspace({
   return (
     <main className="shell">
       <header className="topbar">
-        <a className="brand" href="#" aria-label="PayOps Copilot home">
+        <a className="brand" href="#" aria-label="PayOps home">
           <span className="brand-mark">P</span>
-          <span>
-            PAYOPS
-            <small>COPILOT</small>
-          </span>
+          <span>PAYOPS</span>
         </a>
         <div className="environment">
           <span className="live-dot" />
@@ -345,7 +342,7 @@ export function PayOpsWorkspace({
       <section className="hero">
         <div>
           <p className="kicker">
-            <span>RECONCILIATION WORKSPACE</span>
+            <span>SETTLEMENT EXCEPTION DESK</span>
             <span>RUN / 001</span>
           </p>
           <h1>
@@ -799,15 +796,15 @@ export function PayOpsWorkspace({
           <Landmark size={29} />
           <div>
             <p className="eyebrow">THE RESULT APPEARS HERE</p>
-            <h2>Load the demo to see PayOps Copilot in action.</h2>
+            <h2>Load the demo to see PayOps in action.</h2>
           </div>
           <ArrowRight size={22} />
         </section>
       )}
 
       <footer>
-        <span>PAYOPS COPILOT · PORTFOLIO MVP</span>
-        <span>BUILT FOR EVIDENCE-FIRST PAYMENT OPERATIONS</span>
+        <span>PAYOPS · PORTFOLIO MVP</span>
+        <span>BUILT FOR EVIDENCE-FIRST MERCHANT SETTLEMENT</span>
       </footer>
 
       {selected && (
