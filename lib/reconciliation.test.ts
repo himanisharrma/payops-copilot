@@ -35,6 +35,7 @@ describe("reconcilePayments", () => {
     expect(result.items[0].status).toBe("matched");
     expect(result.items[0].matchStrategy).toBe("exact_order_id");
     expect(result.items[0].matchConfidence).toBe("exact");
+    expect(result.items[0].reasonCode).toBeNull();
     expect(result.summary.matchRate).toBe(100);
     expect(result.items[0].sourceEvidence).toHaveLength(3);
     expect(result.items[0].sourceEvidence[0]).toMatchObject({
@@ -68,6 +69,7 @@ describe("reconcilePayments", () => {
     expect(result.items[0].status).toBe("missing_settlement");
     expect(result.items[0].matchStrategy).toBe("unmatched");
     expect(result.items[0].matchConfidence).toBe("none");
+    expect(result.items[0].reasonCode).toBe("unmatched_other");
     expect(result.items[0].expectedNet).toBe(494.1);
     expect(result.items[0].sourceEvidence.map((item) => item.sourceType)).toEqual(
       ["orders", "gateway"],
