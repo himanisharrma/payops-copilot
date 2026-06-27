@@ -1,3 +1,4 @@
+import type { PoolClient } from "pg";
 import { query, transaction } from "@/lib/db";
 import { terminalWorkflowStatuses } from "@/lib/payment-workflow";
 import {
@@ -112,8 +113,9 @@ export async function updatePaymentWorkflow(
     evidenceChecklist?: PaymentWorkflow["evidenceChecklist"];
   },
   actorName: string,
+  externalClient?: PoolClient,
 ) {
-  return transaction(async (client) => {
+  const work = async (client: PoolClient) => {
     const existing = await client.query<{
       status: PaymentWorkflowStatus;
       priority: PaymentWorkflow["priority"];
@@ -195,5 +197,6 @@ export async function updatePaymentWorkflow(
     }
 
     return id;
-  });
+  };
+  return externalClient ? work(externalClient) : transaction(work);
 }
