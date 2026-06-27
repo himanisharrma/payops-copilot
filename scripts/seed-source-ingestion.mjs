@@ -33,6 +33,19 @@ async function deleteSeedData(organizationId) {
      WHERE organization_id = $1 AND details->>'seedMarker' = $2`,
     [organizationId, marker],
   );
+  // Also delete user-created events (e.g. admin quarantine reviews) that
+  // reference seeded arrivals — otherwise the cascade ON DELETE SET NULL on
+  // (arrival_id, organization_id) nulls the NOT NULL organization_id column
+  // and the next arrivals delete fails.
+  await client.query(
+    `DELETE FROM source_ingestion_events
+     WHERE organization_id = $1
+       AND arrival_id IN (
+         SELECT id FROM source_ingestion_arrivals
+         WHERE organization_id = $1 AND seed_marker = $2
+       )`,
+    [organizationId, marker],
+  );
   await client.query(
     `DELETE FROM source_ingestion_arrivals
      WHERE organization_id = $1 AND seed_marker = $2`,
@@ -241,7 +254,7 @@ try {
     headers: ["statement_reference", "order_id", "net_amount", "utr"],
     diagnostics: [{ severity: "warning", code: "partial_file", message: "Expected more than one settlement row." }],
   });
-  await arrival(organizationId, byKey.settlement, sourceIds.settlement, {
+  const secondSettlement = await arrival(organizationId, byKey.settlement, sourceIds.settlement, {
     fileName: "settlement-v2.csv",
     content: "statement_reference,order_id,net_amount,utr\nSTM-1,ORD-1,980,UTR1\nSTM-1,ORD-2,780,UTR2",
     rows: 2,
@@ -264,6 +277,67 @@ try {
     headers: ["order_id", "amount"],
     missingHeaders: ["chargeback_amount", "dispute_reference"],
     diagnostics: [{ severity: "error", code: "missing_required_column", message: "Missing chargeback_amount and dispute_reference." }],
+  });
+
+  // Synthetic Indian bank statement: narrations embed UTRs in HDFC/ICICI/Axis-style
+  // free-text. Slice 1 (matching engine v2) will add a parser that extracts the
+  // UTR from the narration column. Today, this seed just demonstrates the format.
+  await arrival(organizationId, byKey.bank, sourceIds.bank, {
+    fileName: "bank-today.csv",
+    content:
+      "value_date,narration,debit,credit,balance,ref_no\n" +
+      "2026-06-27,NEFT/AXISP00012345/UTR1/RAZORPAY PAYOUT,0,980,182340.50,N026178001\n" +
+      "2026-06-27,IMPS/UTR2/CASHFREE-PAYOUT/SETTLEMENT,0,780,183120.50,IMP026178002\n" +
+      "2026-06-27,UPI/PAYU/UTR3-SETTLEMENT/MERCHANT/PAYOPS,0,640,183760.50,UPI026178003\n" +
+      "2026-06-27,RTGS-HDFCR52026178004 UTRDUP77 DUPLICATE TEST,0,540,184300.50,R026178004",
+    rows: 4,
+    receivedAt: isoFor(0, 8, 35),
+    classification: "on_time",
+    status: "accepted",
+    workflow: "close_control",
+    headers: ["value_date", "narration", "debit", "credit", "balance", "ref_no"],
+    amountTotals: { credit: 2940 },
+  });
+
+  // Empty-file variant: header row only, zero data rows. Exercises the
+  // `empty_file` classification path (service.ts), which the prior seed
+  // never produced and the unit test did not cover.
+  await arrival(organizationId, byKey.refunds, sourceIds.refunds, {
+    fileName: "refunds-empty.csv",
+    content: "order_id,refund_id,refund_amount,initiated_at",
+    rows: 0,
+    receivedAt: isoFor(0, 9, 5),
+    classification: "empty_file",
+    status: "needs_review",
+    workflow: "manual_review",
+    headers: ["order_id", "refund_id", "refund_amount", "initiated_at"],
+    diagnostics: [
+      {
+        severity: "error",
+        code: "empty_file",
+        message: "Refund report header was present but contained no rows.",
+      },
+    ],
+  });
+
+  // Third revision in the supersession chain. Demonstrates that the
+  // `revised` classification handles N-step chains (not just v1 -> v2),
+  // and that the latest accepted version always wins.
+  await arrival(organizationId, byKey.settlement, sourceIds.settlement, {
+    fileName: "settlement-v3.csv",
+    content:
+      "statement_reference,order_id,net_amount,utr\n" +
+      "STM-1,ORD-1,980,UTR1\n" +
+      "STM-1,ORD-2,780,UTR2\n" +
+      "STM-2,ORD-3,640,UTR3",
+    rows: 3,
+    receivedAt: isoFor(0, 10, 5),
+    classification: "revised",
+    status: "accepted",
+    workflow: "settlement_import",
+    supersedes: secondSettlement,
+    headers: ["statement_reference", "order_id", "net_amount", "utr"],
+    amountTotals: { net_amount: 2400 },
   });
 
   await client.query(

@@ -21,7 +21,7 @@ describe("source ingestion control plane", () => {
     });
   });
 
-  it("classifies duplicate, malformed, partial, revised, late, and on-time arrivals", () => {
+  it("classifies duplicate, empty, malformed, partial, revised, late, and on-time arrivals", () => {
     const base = {
       duplicateArrivalId: null,
       latestAcceptedHash: null,
@@ -33,6 +33,7 @@ describe("source ingestion control plane", () => {
     };
 
     expect(classifyArrival({ ...base, duplicateArrivalId: "same" })).toBe("duplicate");
+    expect(classifyArrival({ ...base, sourceRowCount: 0 })).toBe("empty_file");
     expect(classifyArrival({ ...base, missingHeaders: ["utr"] })).toBe("schema_failed");
     expect(classifyArrival({ ...base, sourceRowCount: 1 })).toBe("partial");
     expect(classifyArrival({ ...base, latestAcceptedHash: "old" })).toBe("revised");
