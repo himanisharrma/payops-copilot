@@ -130,6 +130,7 @@ export function reconcilePayments(
     utr: text(readProviderField(row, provider, "utr")),
     status: text(readProviderField(row, provider, "status")),
     settlementAt: text(readProviderField(row, provider, "settlementAt")),
+    statementReference: text(readProviderField(row, provider, "statementReference")),
   }));
 
   const orderCounts = new Map<string, number>();
@@ -296,6 +297,8 @@ export function reconcilePayments(
       settlementTimingEvidence: timing.evidence,
     };
 
+    const payoutId = settlementRow?.statementReference || null;
+
     if (!gatewayRow) {
       return {
         orderId,
@@ -310,6 +313,7 @@ export function reconcilePayments(
         ...timingFields,
         ...matchFields,
         reasonCode: reasonCodeFor("gateway_missing", orderAmount),
+        payoutId: null,
         severity: "high",
         summary: "Order exists internally but is missing from the gateway report.",
         evidence: [`Order file: ₹${orderAmount.toFixed(2)}`, "Gateway file: no matching row"],
@@ -331,6 +335,7 @@ export function reconcilePayments(
         ...timingFields,
         ...matchFields,
         reasonCode: reasonCodeFor("duplicate", gatewayRow.amount),
+        payoutId,
         severity: "high",
         summary: "Multiple gateway rows use the same merchant order ID.",
         evidence: [
@@ -355,6 +360,7 @@ export function reconcilePayments(
         ...timingFields,
         ...matchFields,
         reasonCode: reasonCodeFor("pending", 0),
+        payoutId: null,
         severity: "low",
         summary: `Gateway status is ${gatewayRow.status || "not final"}.`,
         evidence: [`Gateway status: ${gatewayRow.status || "blank"}`],
@@ -378,6 +384,7 @@ export function reconcilePayments(
         ...timingFields,
         ...matchFields,
         reasonCode: reasonCodeFor("missing_settlement", expectedNet),
+        payoutId: null,
         severity: settlementStatus === "overdue" ? "high" : "low",
         summary:
           settlementStatus === "overdue"
@@ -410,6 +417,7 @@ export function reconcilePayments(
         ...timingFields,
         ...matchFields,
         reasonCode: reasonCodeFor("amount_mismatch", variance),
+        payoutId,
         severity: Math.abs(variance) > 100 ? "high" : "medium",
         summary: "Bank settlement does not match gateway amount less fees and tax.",
         evidence: [
@@ -434,6 +442,7 @@ export function reconcilePayments(
       ...timingFields,
       ...matchFields,
       reasonCode: reasonCodeFor("matched", 0),
+      payoutId,
       severity: "low",
       summary: "Order, gateway capture, fees, and bank settlement agree.",
       evidence: [

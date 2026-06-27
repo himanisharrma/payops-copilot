@@ -8,6 +8,7 @@ import {
   listMerchantSettlements,
   lockMerchantSettlementRefresh,
   replaceSettlementChildren,
+  buildStatementReference,
   upsertSettlementBatch,
   type MerchantSettlementRefreshClock,
 } from "@/lib/modules/merchant-settlements/repository";
@@ -17,7 +18,10 @@ import type {
   MerchantSettlementUtrStatus,
 } from "@/lib/modules/merchant-settlements/types";
 import { providerIds } from "@/lib/provider-adapters";
-import { refreshReasonCodesForOrders } from "@/lib/modules/reconciliation/reason-codes";
+import {
+  refreshPayoutSumChecks,
+  refreshReasonCodesForOrders,
+} from "@/lib/modules/reconciliation/reason-codes";
 import type { ProviderId } from "@/lib/types";
 
 const settlementStatuses: Array<MerchantSettlementStatus | "all"> = [
@@ -315,6 +319,24 @@ export async function refreshMerchantSettlements(
         actor.organizationId,
         Array.from(affectedOrderIds),
         "merchant_settlement_status_changed",
+        { id: actor.id, name: actor.name },
+      );
+    }
+
+    // Slice 4: after per-item reason codes refresh, run the group-level
+    // payout sum check. Ordering matters — sum-check runs last so it wins
+    // the precedence guard (see refreshReasonCodesForOrders' IS DISTINCT
+    // FROM 'payout_sum_mismatch' clause).
+    const affectedPayoutIds = new Set<string>();
+    for (const candidate of candidates) {
+      affectedPayoutIds.add(buildStatementReference(candidate));
+    }
+    if (affectedPayoutIds.size > 0) {
+      await refreshPayoutSumChecks(
+        client,
+        actor.organizationId,
+        Array.from(affectedPayoutIds),
+        "merchant_settlement_refresh",
         { id: actor.id, name: actor.name },
       );
     }

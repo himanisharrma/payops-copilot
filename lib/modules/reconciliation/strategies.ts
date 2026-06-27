@@ -26,6 +26,7 @@ export type NormalizedSettlementRow = {
   utr: string;
   status: string;
   settlementAt: string;
+  statementReference: string;
 };
 
 export type MatchOutcome = {

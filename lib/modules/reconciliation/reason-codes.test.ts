@@ -23,6 +23,7 @@ const ALL_CODES: ReasonCode[] = [
   "chargeback_pending_recovery",
   "refund_not_adjusted",
   "unmatched_other",
+  "payout_sum_mismatch",
 ];
 
 function gateway(overrides: Partial<NormalizedGatewayRow> = {}): NormalizedGatewayRow {
@@ -51,6 +52,7 @@ function settlement(overrides: Partial<NormalizedSettlementRow> = {}): Normalize
     utr: "UTR-1",
     status: "credited",
     settlementAt: "2026-06-26T18:00:00.000Z",
+    statementReference: "",
     ...overrides,
   };
 }
@@ -238,6 +240,68 @@ describe("REASON_CODE_POLICY", () => {
       expect(REASON_CODE_POLICY[code]).toBeDefined();
       expect(REASON_CODE_POLICY[code].slaHours).toBeGreaterThan(0);
       expect(REASON_CODE_POLICY[code].allowedActions.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("classifies payout_sum_mismatch as high-severity treasury escalation", () => {
+    const policy = REASON_CODE_POLICY.payout_sum_mismatch;
+    expect(policy.exposureTier).toBe("high");
+    expect(policy.ownerDefault).toBe("treasury");
+    expect(policy.autoCloseWhen).toBeNull();
+    expect(policy.allowedActions).toEqual(
+      expect.arrayContaining(["raise_to_provider", "raise_to_bank"]),
+    );
+  });
+});
+
+describe("classifyInEngine never returns the group-level code", () => {
+  it("payout_sum_mismatch is only assigned by refreshPayoutSumChecks", () => {
+    const candidates = [
+      classifyInEngine({
+        status: "matched",
+        settlementStatus: "settled",
+        gateway: gateway(),
+        settlement: settlement(),
+        variance: 0,
+      }),
+      classifyInEngine({
+        status: "amount_mismatch",
+        settlementStatus: "settled",
+        gateway: gateway({ fee: 50 }),
+        settlement: settlement({ settledAmount: 940 }),
+        variance: 50,
+      }),
+      classifyInEngine({
+        status: "missing_settlement",
+        settlementStatus: "overdue",
+        gateway: gateway(),
+        settlement: null,
+        variance: 988.2,
+      }),
+      classifyInEngine({
+        status: "gateway_missing",
+        settlementStatus: "timing_unavailable",
+        gateway: null,
+        settlement: null,
+        variance: 1000,
+      }),
+      classifyInEngine({
+        status: "duplicate",
+        settlementStatus: "settled",
+        gateway: gateway(),
+        settlement: settlement(),
+        variance: 1000,
+      }),
+      classifyInEngine({
+        status: "pending",
+        settlementStatus: "timing_unavailable",
+        gateway: gateway({ status: "pending" }),
+        settlement: null,
+        variance: 0,
+      }),
+    ];
+    for (const code of candidates) {
+      expect(code).not.toBe("payout_sum_mismatch");
     }
   });
 });
