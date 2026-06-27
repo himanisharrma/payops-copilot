@@ -1,23 +1,20 @@
 import Link from "next/link";
 import {
-  BookCheck,
   Banknote,
-  FileClock,
   FileText,
-  FlaskConical,
-  ChartNoAxesCombined,
   History,
   ListChecks,
   LogOut,
-  Route,
   RadioTower,
   RotateCcw,
   Scale,
-  ShieldCheck,
-  Waypoints,
 } from "lucide-react";
 import { auth, signOut } from "@/auth";
 import { NotificationCenter } from "@/components/notification-center";
+import {
+  SecondaryNavMenu,
+  type SecondaryNavLink,
+} from "@/components/secondary-nav-menu";
 import { getOperationalNotifications } from "@/lib/modules/notifications/service";
 
 export async function AppHeader({
@@ -51,6 +48,24 @@ export async function AppHeader({
   const notifications = actor
     ? await getOperationalNotifications(actor)
     : [];
+  const isAdmin = session?.user.role === "admin";
+  const secondaryLinks: SecondaryNavLink[] = [
+    { href: "/insights", label: "Insights", key: "insights" },
+    { href: "/root-causes", label: "Root causes", key: "root-causes" },
+    { href: "/close-control", label: "Daily close", key: "close" },
+    { href: "/quality", label: "AI quality", key: "quality" },
+    { href: "/demo-control-room", label: "Demo", key: "demo" },
+    ...(isAdmin
+      ? ([
+          {
+            href: "/webhook-operations",
+            label: "Webhook trust",
+            key: "webhooks",
+          },
+          { href: "/audit", label: "Audit", key: "audit" },
+        ] satisfies SecondaryNavLink[])
+      : []),
+  ];
   return (
     <header className="topbar app-page-header">
       <Link className="brand" href="/" aria-label="PayOps home">
@@ -104,59 +119,7 @@ export async function AppHeader({
           <History size={15} />
           Run history
         </Link>
-        <Link
-          href="/insights"
-          className={`product-nav-link secondary ${active === "insights" ? "active" : ""}`}
-        >
-          <ChartNoAxesCombined size={15} />
-          Insights
-        </Link>
-        <Link
-          href="/root-causes"
-          className={`product-nav-link secondary ${active === "root-causes" ? "active" : ""}`}
-        >
-          <Waypoints size={15} />
-          Root causes
-        </Link>
-        <Link
-          href="/close-control"
-          className={`product-nav-link secondary ${active === "close" ? "active" : ""}`}
-        >
-          <BookCheck size={15} />
-          Daily close
-        </Link>
-        <Link
-          href="/quality"
-          className={`product-nav-link secondary ${active === "quality" ? "active" : ""}`}
-        >
-          <FlaskConical size={15} />
-          AI quality
-        </Link>
-        <Link
-          href="/demo-control-room"
-          className={`product-nav-link secondary ${active === "demo" ? "active" : ""}`}
-        >
-          <Route size={15} />
-          Demo
-        </Link>
-        {session?.user.role === "admin" && (
-          <Link
-            href="/webhook-operations"
-            className={`product-nav-link secondary ${active === "webhooks" ? "active" : ""}`}
-          >
-            <ShieldCheck size={15} />
-            Webhook trust
-          </Link>
-        )}
-        {session?.user.role === "admin" && (
-          <Link
-            href="/audit"
-            className={`product-nav-link secondary ${active === "audit" ? "active" : ""}`}
-          >
-            <FileClock size={15} />
-            Audit
-          </Link>
-        )}
+        <SecondaryNavMenu links={secondaryLinks} activeKey={active} />
       </nav>
       <div className="session-identity">
         <NotificationCenter
