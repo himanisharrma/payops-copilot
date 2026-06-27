@@ -17,6 +17,7 @@ import type {
   MerchantSettlementUtrStatus,
 } from "@/lib/modules/merchant-settlements/types";
 import { providerIds } from "@/lib/provider-adapters";
+import { refreshReasonCodesForOrders } from "@/lib/modules/reconciliation/reason-codes";
 import type { ProviderId } from "@/lib/types";
 
 const settlementStatuses: Array<MerchantSettlementStatus | "all"> = [
@@ -300,6 +301,22 @@ export async function refreshMerchantSettlements(
         utrMatchStatus: classification.status,
         classificationEvidence: classification.evidence,
       });
+    }
+
+    const affectedOrderIds = new Set<string>();
+    for (const candidate of candidates) {
+      for (const line of candidate.lines) {
+        if (line.orderId) affectedOrderIds.add(line.orderId);
+      }
+    }
+    if (affectedOrderIds.size > 0) {
+      await refreshReasonCodesForOrders(
+        client,
+        actor.organizationId,
+        Array.from(affectedOrderIds),
+        "merchant_settlement_status_changed",
+        { id: actor.id, name: actor.name },
+      );
     }
 
     const result = {

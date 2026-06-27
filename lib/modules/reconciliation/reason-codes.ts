@@ -1,3 +1,4 @@
+import type { PoolClient } from "pg";
 import type {
   ReasonCode,
   ReconciliationItem,
@@ -8,6 +9,7 @@ import type {
   NormalizedGatewayRow,
   NormalizedSettlementRow,
 } from "./strategies";
+import { recordAuditEvent } from "@/lib/modules/audit/repository";
 
 // Tolerance for fee_mismatch / gst_mismatch detection: variance must align with
 // the gateway-reported fee or tax within ±1 rupee to assign the code.
@@ -272,3 +274,126 @@ export const REASON_CODE_POLICY: Record<ReasonCode, ReasonCodePolicy> = {
     escalationPath: "manual_review",
   },
 };
+
+// Service-layer hook: re-runs classifyWithContext against current
+// merchant_settlement_batches and payment_workflows for the given order_ids
+// and UPDATEs reason_code on any reconciliation_items whose code would change.
+// Caller passes its own transaction client so the refresh is atomic with the
+// originating mutation. Emits a single audit event summarizing the recompute.
+//
+// SQL queries here MUST keep classifyWithContext's tier order in lockstep —
+// the scripts/backfill-reason-codes.mjs SQL is the same logic in raw form.
+export type ReasonCodeRefreshTrigger =
+  | "merchant_settlement_status_changed"
+  | "payment_workflow_status_changed";
+
+export async function refreshReasonCodesForOrders(
+  client: PoolClient,
+  organizationId: string,
+  orderIds: string[],
+  trigger: ReasonCodeRefreshTrigger,
+  actor: { id: string | null; name: string },
+): Promise<{ changed: number }> {
+  if (orderIds.length === 0) return { changed: 0 };
+  const uniqueOrderIds = Array.from(new Set(orderIds));
+
+  const items = await client.query<{
+    id: string;
+    order_id: string;
+    reconciliation_status: ReconciliationStatus;
+    reason_code: ReasonCode | null;
+  }>(
+    `SELECT id, order_id, reconciliation_status, reason_code
+       FROM reconciliation_items
+      WHERE organization_id = $1 AND order_id = ANY($2::text[])`,
+    [organizationId, uniqueOrderIds],
+  );
+  if (items.rowCount === 0) return { changed: 0 };
+
+  const batches = await client.query<{
+    order_id: string;
+    utr: string | null;
+    status: string;
+  }>(
+    `SELECT l.order_id, b.utr, b.status
+       FROM merchant_settlement_lines l
+       JOIN merchant_settlement_batches b ON b.id = l.batch_id
+      WHERE l.organization_id = $1 AND l.order_id = ANY($2::text[])`,
+    [organizationId, uniqueOrderIds],
+  );
+
+  const workflows = await client.query<{
+    order_id: string;
+    workflow_type: "refund" | "chargeback";
+    status: string;
+  }>(
+    `SELECT order_id, workflow_type, status
+       FROM payment_workflows
+      WHERE organization_id = $1 AND order_id = ANY($2::text[])`,
+    [organizationId, uniqueOrderIds],
+  );
+
+  // duplicate_utr is org-wide: any UTR that appears on more than one batch
+  // (not just within the touched order_ids) is flagged.
+  const utrCounts = await client.query<{ utr: string; count: string }>(
+    `SELECT utr, COUNT(*)::text AS count FROM merchant_settlement_batches
+      WHERE organization_id = $1 AND utr IS NOT NULL
+      GROUP BY utr HAVING COUNT(*) > 1`,
+    [organizationId],
+  );
+  const duplicateUtrFlags = new Set(utrCounts.rows.map((r) => r.utr));
+
+  const batchesByOrder = new Map<string, Array<{ utr: string | null; status: string }>>();
+  for (const row of batches.rows) {
+    const arr = batchesByOrder.get(row.order_id) ?? [];
+    arr.push({ utr: row.utr, status: row.status });
+    batchesByOrder.set(row.order_id, arr);
+  }
+  const workflowsByOrder = new Map<
+    string,
+    Array<{ type: "refund" | "chargeback"; status: string }>
+  >();
+  for (const row of workflows.rows) {
+    const arr = workflowsByOrder.get(row.order_id) ?? [];
+    arr.push({ type: row.workflow_type, status: row.status });
+    workflowsByOrder.set(row.order_id, arr);
+  }
+
+  let changed = 0;
+  for (const item of items.rows) {
+    const ctx: ReasonCodeContext = {
+      merchantSettlementBatches: batchesByOrder.get(item.order_id) ?? [],
+      duplicateUtrFlags,
+      paymentWorkflows: workflowsByOrder.get(item.order_id) ?? [],
+    };
+    const next = classifyWithContext(item.reconciliation_status, ctx);
+    if (next && next !== item.reason_code) {
+      await client.query(
+        `UPDATE reconciliation_items SET reason_code = $1
+          WHERE id = $2 AND organization_id = $3`,
+        [next, item.id, organizationId],
+      );
+      changed += 1;
+    }
+  }
+
+  await recordAuditEvent(
+    {
+      organizationId,
+      actorUserId: actor.id,
+      actorName: actor.name,
+      action: "reason_code.recomputed",
+      entityType: "organization",
+      entityId: organizationId,
+      details: {
+        trigger,
+        orderIds: uniqueOrderIds,
+        itemsExamined: items.rowCount,
+        changed,
+      },
+    },
+    client,
+  );
+
+  return { changed };
+}

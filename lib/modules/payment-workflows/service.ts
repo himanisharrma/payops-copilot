@@ -1,10 +1,12 @@
 import type { Actor } from "@/lib/access";
+import { transaction } from "@/lib/db";
 import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import { DomainError } from "@/lib/modules/errors";
 import {
   listPaymentWorkflows,
   updatePaymentWorkflow,
 } from "@/lib/modules/payment-workflows/repository";
+import { refreshReasonCodesForOrders } from "@/lib/modules/reconciliation/reason-codes";
 import {
   canSubmitChargebackEvidence,
   canTransitionWorkflow,
@@ -92,30 +94,46 @@ export async function changePaymentWorkflow(
   }
 
   validatePaymentWorkflowPatch(existing, patch);
-  const updatedId = await updatePaymentWorkflow(
-    id,
-    actor.organizationId,
-    patch,
-    actor.name,
-  );
-  if (!updatedId) {
-    throw new DomainError("Payment workflow not found.", 404);
-  }
+  await transaction(async (client) => {
+    const updatedId = await updatePaymentWorkflow(
+      id,
+      actor.organizationId,
+      patch,
+      actor.name,
+      client,
+    );
+    if (!updatedId) {
+      throw new DomainError("Payment workflow not found.", 404);
+    }
 
-  await recordAuditEvent({
-    organizationId: actor.organizationId,
-    actorUserId: actor.id,
-    actorName: actor.name,
-    action: "payment_workflow.updated",
-    entityType: existing.type,
-    entityId: id,
-    details: {
-      externalReference: existing.externalReference,
-      status: patch.status,
-      priority: patch.priority,
-      owner: patch.owner,
-      evidenceUpdated: Boolean(patch.evidenceChecklist),
-    },
+    await recordAuditEvent(
+      {
+        organizationId: actor.organizationId,
+        actorUserId: actor.id,
+        actorName: actor.name,
+        action: "payment_workflow.updated",
+        entityType: existing.type,
+        entityId: id,
+        details: {
+          externalReference: existing.externalReference,
+          status: patch.status,
+          priority: patch.priority,
+          owner: patch.owner,
+          evidenceUpdated: Boolean(patch.evidenceChecklist),
+        },
+      },
+      client,
+    );
+
+    if (existing.orderId) {
+      await refreshReasonCodesForOrders(
+        client,
+        actor.organizationId,
+        [existing.orderId],
+        "payment_workflow_status_changed",
+        { id: actor.id, name: actor.name },
+      );
+    }
   });
 
   return (await listPaymentWorkflows(actor.organizationId)).find(
