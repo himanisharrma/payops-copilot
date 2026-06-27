@@ -594,7 +594,7 @@ function mapSettlementRow(row: SettlementRow): MerchantSettlementListItem {
   };
 }
 
-function buildStatementReference(candidate: RefreshCandidate) {
+export function buildStatementReference(candidate: RefreshCandidate) {
   const date = candidate.expectedSettlementAt.toISOString().slice(0, 10);
   return [
     "MSS",

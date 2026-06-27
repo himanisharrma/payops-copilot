@@ -724,6 +724,12 @@ try {
 
     for (let index = 0; index < providerLines.length; index += 1) {
       const line = providerLines[index];
+      // Slice 4: stamp payout_id so Slice-2b/Slice-4 refresh hooks can group
+      // items by payout. The seed is 1:1 (one batch per scenario), so the
+      // sum check is a no-op by construction — every group has a single
+      // item whose settled_amount equals its bank credit. Many-to-one
+      // behavior is covered by integration tests, not the seed.
+      const payoutId = `MSS-${line.slug}`;
       const insertedItem = await client.query(
         `INSERT INTO reconciliation_items (
            organization_id, run_id, order_id, gateway_reference, payment_mode,
@@ -732,10 +738,10 @@ try {
            transaction_at, transaction_timestamp_source,
            settlement_recorded_at, settlement_cycle, expected_settlement_at,
            settlement_policy_version, settlement_calendar_version,
-           settlement_timing_evidence, created_at
+           settlement_timing_evidence, payout_id, created_at
          ) VALUES (
            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
-           $15,'gateway_capture',$16,$17,$18,$19,$20,$21,NOW()
+           $15,'gateway_capture',$16,$17,$18,$19,$20,$21,$22,NOW()
          ) RETURNING id`,
         [
           organizationId,
@@ -759,6 +765,7 @@ try {
           policyVersion,
           calendarVersion,
           JSON.stringify(line.timingEvidence),
+          payoutId,
         ],
       );
       const itemId = insertedItem.rows[0].id;

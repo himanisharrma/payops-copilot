@@ -395,14 +395,16 @@ constraints, and completion conditions; encode durable repository guidance in
   immutable accepted-source contracts, superseded lineage, and persisted daily
   readiness snapshots. Intake remains synthetic and manual—not a live provider,
   bank, email, SFTP, or API connection.
-- **In progress: Matching Engine v2.** Slices 1–3 shipped — layered matching
-  strategies with `match_strategy` + `match_confidence` (Slice 1), a 10-code
+- **In progress: Matching Engine v2.** Slices 1–4 shipped — layered matching
+  strategies with `match_strategy` + `match_confidence` (Slice 1), an 11-code
   reason taxonomy with in-engine + cross-table refresh hooks (Slices 2a/2b),
-  and an analyst-facing manual match / unmatch override layer with admin
-  maker-checker on unmatches (Slice 3, this slice). Effective override state
-  is surfaced on the operations case panel via a LEFT JOIN; the deterministic
-  engine row is preserved as the source verdict. Remaining: many-to-one
-  payouts, partial captures/refunds, fuzzy amount/date windows.
+  an analyst-facing manual match / unmatch override layer with admin
+  maker-checker on unmatches (Slice 3), and many-to-one payout sum checks
+  (Slice 4, this slice) that stamp `payout_id` on each item, verify
+  `sum(items.settled_amount) ≈ bank_credit.amount` for every payout group,
+  and flag `payout_sum_mismatch` with sibling-context summary text when the
+  bank under/over-paid relative to the provider's claim. Remaining: partial
+  captures/refunds, fuzzy amount/date windows.
 - **Then: Ledger Backbone v1.** Add immutable merchant payable, provider
   receivable, bank cash, fee/GST, refund, chargeback, hold/release, and
   adjustment ledger entries that explain opening balance to closing payable.
