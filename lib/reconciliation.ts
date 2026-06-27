@@ -22,6 +22,7 @@ import {
   parseExplicitOffsetTimestamp,
 } from "./settlement-policy";
 import { selectMatchOutcome } from "./modules/reconciliation/strategies";
+import { classifyInEngine } from "./modules/reconciliation/reason-codes";
 
 function text(value: unknown) {
   return String(value ?? "").trim();
@@ -153,6 +154,20 @@ export function reconcilePayments(
     const matchFields = {
       matchStrategy: matchOutcome.strategy,
       matchConfidence: matchOutcome.confidence,
+    };
+    const reasonCodeFor = (
+      status: ReconciliationItem["status"],
+      variance: number,
+    ): ReconciliationItem["reasonCode"] => {
+      // settlementStatus is computed below in `timing`; the helper is captured
+      // for use inside each return path, where settlementStatus is in scope.
+      return classifyInEngine({
+        status,
+        settlementStatus,
+        gateway: gatewayRow ?? null,
+        settlement: settlementRow ?? null,
+        variance,
+      });
     };
     const orderEvidence = evidenceSnapshot({
       sourceType: "orders",
@@ -294,6 +309,7 @@ export function reconcilePayments(
         status: "gateway_missing",
         ...timingFields,
         ...matchFields,
+        reasonCode: reasonCodeFor("gateway_missing", orderAmount),
         severity: "high",
         summary: "Order exists internally but is missing from the gateway report.",
         evidence: [`Order file: ₹${orderAmount.toFixed(2)}`, "Gateway file: no matching row"],
@@ -314,6 +330,7 @@ export function reconcilePayments(
         status: "duplicate",
         ...timingFields,
         ...matchFields,
+        reasonCode: reasonCodeFor("duplicate", gatewayRow.amount),
         severity: "high",
         summary: "Multiple gateway rows use the same merchant order ID.",
         evidence: [
@@ -337,6 +354,7 @@ export function reconcilePayments(
         status: "pending",
         ...timingFields,
         ...matchFields,
+        reasonCode: reasonCodeFor("pending", 0),
         severity: "low",
         summary: `Gateway status is ${gatewayRow.status || "not final"}.`,
         evidence: [`Gateway status: ${gatewayRow.status || "blank"}`],
@@ -359,6 +377,7 @@ export function reconcilePayments(
         status: "missing_settlement",
         ...timingFields,
         ...matchFields,
+        reasonCode: reasonCodeFor("missing_settlement", expectedNet),
         severity: settlementStatus === "overdue" ? "high" : "low",
         summary:
           settlementStatus === "overdue"
@@ -390,6 +409,7 @@ export function reconcilePayments(
         status: "amount_mismatch",
         ...timingFields,
         ...matchFields,
+        reasonCode: reasonCodeFor("amount_mismatch", variance),
         severity: Math.abs(variance) > 100 ? "high" : "medium",
         summary: "Bank settlement does not match gateway amount less fees and tax.",
         evidence: [
@@ -413,6 +433,7 @@ export function reconcilePayments(
       status: "matched",
       ...timingFields,
       ...matchFields,
+      reasonCode: reasonCodeFor("matched", 0),
       severity: "low",
       summary: "Order, gateway capture, fees, and bank settlement agree.",
       evidence: [

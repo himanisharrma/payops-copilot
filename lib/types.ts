@@ -208,6 +208,18 @@ export type MatchStrategy =
 
 export type MatchConfidence = "exact" | "high" | "medium" | "low" | "none";
 
+export type ReasonCode =
+  | "timing_not_due"
+  | "utr_missing"
+  | "utr_duplicate"
+  | "fee_mismatch"
+  | "gst_mismatch"
+  | "hold_unexplained"
+  | "payout_failed"
+  | "chargeback_pending_recovery"
+  | "refund_not_adjusted"
+  | "unmatched_other";
+
 export type EvidenceSourceType = "orders" | "gateway" | "settlements";
 
 export type SourceEvidence = {
@@ -240,6 +252,7 @@ export type ReconciliationItem = {
   severity: "low" | "medium" | "high";
   matchStrategy: MatchStrategy;
   matchConfidence: MatchConfidence;
+  reasonCode: ReasonCode | null;
   summary: string;
   evidence: string[];
   sourceEvidence: SourceEvidence[];
