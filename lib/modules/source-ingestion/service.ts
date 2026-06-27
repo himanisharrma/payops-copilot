@@ -6,12 +6,17 @@ import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import { DomainError } from "@/lib/modules/errors";
 import {
   findArrivalByHash,
-  findLatestAcceptedArrival,
+  findLatestArrival,
+  getArrivalForReview,
+  getSourceIngestionVersion,
   getExpectationForUpload,
   insertArrival,
   insertSourceIngestionEvent,
+  insertReadinessSnapshot,
+  listReadinessSnapshots,
   listSourceIngestionWorkspace,
   lockSourceIngestion,
+  reviewArrival,
   updateExpectationStatus,
   upsertExpectation,
   upsertSource,
@@ -77,6 +82,127 @@ export async function loadSourceIngestionControlPlane(
     ...workspace,
     summary: buildReadinessSummary(businessDate, workspace.expectations),
   };
+}
+
+export async function loadSourceIngestionVersion(
+  arrivalId: string,
+  organizationId: string,
+) {
+  return getSourceIngestionVersion(organizationId, arrivalId);
+}
+
+export async function decideSourceIngestionVersion(input: {
+  actor: Actor;
+  arrivalId: string;
+  action: "accept" | "reject";
+  reason: string;
+}) {
+  if (input.actor.role === "viewer") {
+    throw new DomainError("Viewers cannot review source versions.", 403);
+  }
+  if (input.action !== "accept" && input.action !== "reject") {
+    throw new DomainError("Action must be accept or reject.", 400);
+  }
+  const reason = clean(input.reason);
+  if (reason.length < 3 || reason.length > 1000) {
+    throw new DomainError("Review reason must be between 3 and 1000 characters.", 400);
+  }
+  return transaction(async (client) => {
+    await lockSourceIngestion(client, input.actor.organizationId);
+    const current = await getArrivalForReview(
+      client, input.actor.organizationId, input.arrivalId,
+    );
+    if (!current) throw new DomainError("Source version not found.", 404);
+    if (current.validationStatus === "accepted") {
+      throw new DomainError("Accepted source versions are immutable.", 409);
+    }
+    if (current.validationStatus !== "needs_review") {
+      throw new DomainError("This source version is no longer awaiting review.", 409);
+    }
+    const status = input.action === "accept" ? "accepted" : "rejected";
+    const arrival = await reviewArrival(client, {
+      organizationId: input.actor.organizationId,
+      arrivalId: input.arrivalId,
+      status,
+      actorUserId: input.actor.id,
+      actorName: input.actor.name,
+      reason,
+    });
+    if (!arrival) throw new DomainError("Source version review conflicted.", 409);
+    await insertSourceIngestionEvent(client, {
+      organizationId: input.actor.organizationId,
+      sourceId: arrival.sourceId,
+      expectationId: arrival.expectationId,
+      arrivalId: arrival.id,
+      actorUserId: input.actor.id,
+      actorName: input.actor.name,
+      eventType: input.action === "accept" ? "file_accepted" : "file_rejected",
+      details: { previousStatus: current.validationStatus, validationStatus: status, reason },
+    });
+    await recordAuditEvent({
+      organizationId: input.actor.organizationId,
+      actorUserId: input.actor.id,
+      actorName: input.actor.name,
+      action: `source_ingestion.file_${status}`,
+      entityType: "source_ingestion_arrival",
+      entityId: arrival.id,
+      details: { previousStatus: current.validationStatus, reason },
+    }, client);
+    return arrival;
+  });
+}
+
+export async function persistSourceReadinessSnapshot(input: {
+  actor: Actor;
+  businessDate: string;
+}) {
+  if (input.actor.role === "viewer") {
+    throw new DomainError("Viewers cannot persist readiness snapshots.", 403);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.businessDate)) {
+    throw new DomainError("Business date must be YYYY-MM-DD.", 400);
+  }
+  return transaction(async (client) => {
+    await lockSourceIngestion(client, input.actor.organizationId);
+    const workspace = await listSourceIngestionWorkspace(
+      input.actor.organizationId, input.businessDate,
+    );
+    const summary = buildReadinessSummary(input.businessDate, workspace.expectations);
+    const blockingExpectationIds = workspace.expectations
+      .filter((item) => item.requiredForClose && item.status !== "waived"
+        && !item.arrivals.some((arrival) => arrival.validationStatus === "accepted"))
+      .map((item) => item.id);
+    const snapshot = await insertReadinessSnapshot(client, {
+      organizationId: input.actor.organizationId,
+      summary,
+      blockingExpectationIds,
+      actorUserId: input.actor.id,
+      actorName: input.actor.name,
+    });
+    await insertSourceIngestionEvent(client, {
+      organizationId: input.actor.organizationId,
+      actorUserId: input.actor.id,
+      actorName: input.actor.name,
+      eventType: "readiness_snapshotted",
+      details: { snapshotId: snapshot.id, businessDate: input.businessDate, verdict: snapshot.verdict },
+    });
+    await recordAuditEvent({
+      organizationId: input.actor.organizationId,
+      actorUserId: input.actor.id,
+      actorName: input.actor.name,
+      action: "source_ingestion.readiness_snapshotted",
+      entityType: "source_ingestion_readiness_snapshot",
+      entityId: snapshot.id,
+      details: { businessDate: input.businessDate, verdict: snapshot.verdict, blockingExpectationIds },
+    }, client);
+    return snapshot;
+  });
+}
+
+export async function loadSourceReadinessSnapshots(
+  organizationId: string, params: URLSearchParams,
+) {
+  return listReadinessSnapshots(organizationId, parseSourceBusinessDate(params));
 }
 
 export async function registerSourceExpectation(input: {
@@ -176,14 +302,14 @@ export async function uploadSourceFile(input: {
       expectation.sourceId,
       fileHash,
     );
-    const latestAccepted = await findLatestAcceptedArrival(
+    const latestArrival = await findLatestArrival(
       client,
       input.actor.organizationId,
       expectation.id,
     );
     const classification = classifyArrival({
       duplicateArrivalId,
-      latestAcceptedHash: latestAccepted?.file_hash ?? null,
+      latestAcceptedHash: latestArrival?.file_hash ?? null,
       sourceRowCount: profile.rowCount,
       missingHeaders: profile.missingHeaders,
       receivedAt,
@@ -203,7 +329,7 @@ export async function uploadSourceFile(input: {
       rejectedRowCount: profile.rowCount - acceptedRows,
       receivedAt,
       supersedesArrivalId:
-        classification === "revised" ? latestAccepted?.id ?? null : null,
+        classification === "revised" ? latestArrival?.id ?? null : null,
       classification,
       validationStatus,
       downstreamWorkflow: workflowFor(expectation.sourceKind, validationStatus),
@@ -331,8 +457,11 @@ export function buildReadinessSummary(
   businessDate: string,
   expectations: SourceIngestionWorkspace["expectations"],
 ): SourceReadinessSummary {
+  const hasAcceptedVersion = (item: SourceIngestionWorkspace["expectations"][number]) =>
+    (item.arrivals ?? (item.latestArrival ? [item.latestArrival] : []))
+      .some((arrival) => arrival.validationStatus === "accepted");
   const acceptedFiles = expectations.filter(
-    (item) => item.latestArrival?.validationStatus === "accepted",
+    hasAcceptedVersion,
   ).length;
   const missingFiles = expectations.filter((item) => !item.latestArrival).length;
   const lateFiles = expectations.filter(
@@ -345,7 +474,7 @@ export function buildReadinessSummary(
     (item) =>
       item.requiredForClose &&
       item.status !== "waived" &&
-      item.latestArrival?.validationStatus !== "accepted",
+      !hasAcceptedVersion(item),
   ).length;
   return {
     businessDate,
@@ -357,7 +486,8 @@ export function buildReadinessSummary(
     quarantinedFiles,
     blockingFiles,
     optionalWarnings: expectations.filter(
-      (item) => !item.requiredForClose && item.latestArrival?.validationStatus !== "accepted",
+      (item) => !item.requiredForClose &&
+        !hasAcceptedVersion(item),
     ).length,
   };
 }

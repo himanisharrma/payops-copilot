@@ -12,6 +12,8 @@ import type {
   SourceValidationStatus,
   DownstreamWorkflow,
   ExpectedFrequency,
+  SourceIngestionVersionDetail,
+  SourceReadinessSnapshot,
 } from "@/lib/modules/source-ingestion/types";
 
 function mapSource(row: SourceRow): SourceIngestionSource {
@@ -32,6 +34,7 @@ function mapSource(row: SourceRow): SourceIngestionSource {
 function mapArrival(row: ArrivalRow): SourceIngestionArrival {
   return {
     id: row.id,
+    versionNumber: row.version_number,
     expectationId: row.expectation_id,
     sourceId: row.source_id,
     fileName: row.file_name,
@@ -47,6 +50,14 @@ function mapArrival(row: ArrivalRow): SourceIngestionArrival {
     linkedReconciliationRunId: row.linked_reconciliation_run_id,
     linkedSettlementImportId: row.linked_settlement_import_id,
     evidence: row.evidence ?? {},
+    review: row.reviewed_at
+      ? {
+          reviewedAt: toIsoTimestamp(row.reviewed_at),
+          reviewedByUserId: row.reviewed_by_user_id,
+          reviewedByName: row.reviewed_by_name ?? "Unknown user",
+          reason: row.review_reason ?? "",
+        }
+      : null,
   };
 }
 
@@ -69,6 +80,7 @@ function mapExpectation(row: ExpectationRow): SourceIngestionExpectation {
     latestArrival: row.arrival_id
       ? mapArrival({
           id: row.arrival_id,
+          version_number: row.version_number ?? 1,
           expectation_id: row.id,
           source_id: row.source_id,
           file_name: row.file_name ?? "",
@@ -84,8 +96,26 @@ function mapExpectation(row: ExpectationRow): SourceIngestionExpectation {
           linked_reconciliation_run_id: row.linked_reconciliation_run_id ?? null,
           linked_settlement_import_id: row.linked_settlement_import_id ?? null,
           evidence: row.arrival_evidence ?? {},
+          reviewed_at: row.reviewed_at ?? null,
+          reviewed_by_user_id: row.reviewed_by_user_id ?? null,
+          reviewed_by_name: row.reviewed_by_name ?? null,
+          review_reason: row.review_reason ?? null,
         })
       : null,
+    arrivals: [],
+  };
+}
+
+function mapEvent(row: EventRow): SourceIngestionEvent {
+  return {
+    id: row.id,
+    sourceId: row.source_id,
+    expectationId: row.expectation_id,
+    arrivalId: row.arrival_id,
+    actorName: row.actor_name,
+    eventType: row.event_type,
+    details: row.details ?? {},
+    createdAt: toIsoTimestamp(row.created_at),
   };
 }
 
@@ -118,6 +148,7 @@ export async function listSourceIngestionWorkspace(
        source.transport_type,
        source.owner_team,
        arrival.id AS arrival_id,
+       arrival.version_number,
        arrival.file_name,
        arrival.file_hash,
        arrival.source_row_count,
@@ -130,7 +161,9 @@ export async function listSourceIngestionWorkspace(
        arrival.downstream_workflow,
        arrival.linked_reconciliation_run_id,
        arrival.linked_settlement_import_id,
-       arrival.evidence AS arrival_evidence
+       arrival.evidence AS arrival_evidence,
+       arrival.reviewed_at, arrival.reviewed_by_user_id,
+       arrival.reviewed_by_name, arrival.review_reason
      FROM source_ingestion_expectations expectation
      JOIN source_ingestion_sources source
        ON source.id = expectation.source_id
@@ -161,18 +194,28 @@ export async function listSourceIngestionWorkspace(
     [organizationId],
   );
 
+  const arrivals = await query<ArrivalRow>(
+    `SELECT arrival.* FROM source_ingestion_arrivals arrival
+     JOIN source_ingestion_expectations expectation
+       ON expectation.id = arrival.expectation_id
+      AND expectation.organization_id = arrival.organization_id
+     WHERE arrival.organization_id = $1
+       AND expectation.business_date = $2::date
+     ORDER BY arrival.expectation_id, arrival.version_number DESC`,
+    [organizationId, businessDate],
+  );
+  const snapshots = await listReadinessSnapshots(organizationId, businessDate);
+  const mappedExpectations = expectations.rows.map(mapExpectation);
+  for (const expectation of mappedExpectations) {
+    expectation.arrivals = arrivals.rows
+      .filter((arrival) => arrival.expectation_id === expectation.id)
+      .map(mapArrival);
+  }
+
   return {
-    expectations: expectations.rows.map(mapExpectation),
-    events: events.rows.map((row) => ({
-      id: row.id,
-      sourceId: row.source_id,
-      expectationId: row.expectation_id,
-      arrivalId: row.arrival_id,
-      actorName: row.actor_name,
-      eventType: row.event_type,
-      details: row.details ?? {},
-      createdAt: toIsoTimestamp(row.created_at),
-    })) satisfies SourceIngestionEvent[],
+    expectations: mappedExpectations,
+    events: events.rows.map(mapEvent) satisfies SourceIngestionEvent[],
+    latestSnapshot: snapshots[0] ?? null,
   };
 }
 
@@ -334,7 +377,7 @@ export async function findArrivalByHash(
   return result.rows[0]?.id ?? null;
 }
 
-export async function findLatestAcceptedArrival(
+export async function findLatestArrival(
   client: PoolClient,
   organizationId: string,
   expectationId: string,
@@ -344,12 +387,157 @@ export async function findLatestAcceptedArrival(
      FROM source_ingestion_arrivals
      WHERE organization_id = $1
        AND expectation_id = $2
-       AND validation_status = 'accepted'
      ORDER BY received_at DESC, created_at DESC
      LIMIT 1`,
     [organizationId, expectationId],
   );
   return result.rows[0] ?? null;
+}
+
+const arrivalColumns = `arrival.id, arrival.expectation_id, arrival.source_id,
+  arrival.version_number,
+  arrival.file_name, arrival.file_hash, arrival.source_row_count,
+  arrival.accepted_row_count, arrival.rejected_row_count, arrival.received_at,
+  arrival.supersedes_arrival_id, arrival.classification, arrival.validation_status,
+  arrival.downstream_workflow, arrival.linked_reconciliation_run_id,
+  arrival.linked_settlement_import_id, arrival.evidence, arrival.reviewed_at,
+  arrival.reviewed_by_user_id, arrival.reviewed_by_name, arrival.review_reason`;
+
+export async function getSourceIngestionVersion(
+  organizationId: string,
+  arrivalId: string,
+): Promise<SourceIngestionVersionDetail | null> {
+  const result = await query<ArrivalRow & SourceRow & {
+    business_date: Date | string; expected_arrival_at: Date | string;
+    grace_minutes: number; required_for_close: boolean;
+    expected_filename_pattern: string; status: SourceIngestionExpectation["status"];
+  }>(
+    `SELECT ${arrivalColumns}, source.source_key, source.display_name,
+       source.provider_id, source.source_kind, source.transport_type,
+       source.expected_frequency, source.owner_team, source.active,
+       source.evidence AS source_evidence, expectation.business_date,
+       expectation.expected_arrival_at, expectation.grace_minutes,
+       expectation.required_for_close, expectation.expected_filename_pattern,
+       expectation.status
+     FROM source_ingestion_arrivals arrival
+     JOIN source_ingestion_sources source ON source.id = arrival.source_id
+       AND source.organization_id = arrival.organization_id
+     JOIN source_ingestion_expectations expectation ON expectation.id = arrival.expectation_id
+       AND expectation.organization_id = arrival.organization_id
+     WHERE arrival.organization_id = $1 AND arrival.id = $2`,
+    [organizationId, arrivalId],
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  const [lineageResult, eventsResult] = await Promise.all([
+    query<ArrivalRow>(
+      `SELECT history.* FROM source_ingestion_arrivals history
+       JOIN source_ingestion_arrivals selected
+         ON selected.organization_id = history.organization_id
+        AND selected.expectation_id = history.expectation_id
+       WHERE selected.organization_id = $1 AND selected.id = $2
+       ORDER BY history.version_number DESC`,
+      [organizationId, arrivalId],
+    ),
+    query<EventRow>(
+      `SELECT id, source_id, expectation_id, arrival_id, actor_name, event_type,
+         details, created_at FROM source_ingestion_events
+       WHERE organization_id = $1 AND arrival_id = $2 ORDER BY created_at`,
+      [organizationId, arrivalId],
+    ),
+  ]);
+  const arrival = mapArrival(row);
+  return {
+    arrival,
+    source: mapSource({ ...row, evidence: (row as unknown as { source_evidence: Record<string, unknown> }).source_evidence }),
+    expectation: {
+      id: arrival.expectationId, sourceId: arrival.sourceId, sourceKey: row.source_key,
+      displayName: row.display_name, providerId: row.provider_id,
+      sourceKind: row.source_kind, transportType: row.transport_type,
+      ownerTeam: row.owner_team, businessDate: toDateString(row.business_date),
+      expectedArrivalAt: toIsoTimestamp(row.expected_arrival_at), graceMinutes: row.grace_minutes,
+      requiredForClose: row.required_for_close,
+      expectedFilenamePattern: row.expected_filename_pattern, status: row.status,
+      arrivals: lineageResult.rows.map(mapArrival),
+    },
+    lineage: lineageResult.rows.map(mapArrival),
+    events: eventsResult.rows.map(mapEvent),
+    acceptedSourceContract: arrival.validationStatus === "accepted" ? {
+      contractVersion: "accepted-source-v1",
+      arrivalId: arrival.id,
+      organizationScoped: true,
+      workflow: arrival.downstreamWorkflow,
+      fileHash: arrival.fileHash,
+      rowCount: arrival.acceptedRowCount,
+      acceptedAt: arrival.review?.reviewedAt ?? arrival.receivedAt,
+      acceptedByName: arrival.review?.reviewedByName ?? "Deterministic intake policy",
+      reason: arrival.review?.reason ?? "Passed deterministic source validation.",
+    } : null,
+  };
+}
+
+export async function getArrivalForReview(
+  client: PoolClient, organizationId: string, arrivalId: string,
+) {
+  const result = await client.query<ArrivalRow>(
+    `SELECT ${arrivalColumns} FROM source_ingestion_arrivals arrival
+     WHERE arrival.organization_id = $1 AND arrival.id = $2 FOR UPDATE`,
+    [organizationId, arrivalId],
+  );
+  return result.rows[0] ? mapArrival(result.rows[0]) : null;
+}
+
+export async function reviewArrival(client: PoolClient, input: {
+  organizationId: string; arrivalId: string; status: "accepted" | "rejected";
+  actorUserId: string; actorName: string; reason: string;
+}) {
+  const result = await client.query<ArrivalRow>(
+    `UPDATE source_ingestion_arrivals arrival SET validation_status = $3,
+       accepted_row_count = CASE WHEN $3 = 'accepted' THEN source_row_count ELSE 0 END,
+       rejected_row_count = CASE WHEN $3 = 'rejected' THEN source_row_count ELSE 0 END,
+       downstream_workflow = CASE WHEN $3 = 'rejected' THEN 'manual_review'
+         WHEN (SELECT source_kind FROM source_ingestion_sources
+               WHERE organization_id = $1 AND id = arrival.source_id) = 'settlement_statement'
+           THEN 'settlement_import'
+         WHEN (SELECT source_kind FROM source_ingestion_sources
+               WHERE organization_id = $1 AND id = arrival.source_id) = 'bank_statement'
+           THEN 'close_control'
+         ELSE 'reconciliation' END,
+       reviewed_at = NOW(), reviewed_by_user_id = $4,
+       reviewed_by_name = $5, review_reason = $6
+     WHERE organization_id = $1 AND id = $2 AND validation_status = 'needs_review'
+     RETURNING ${arrivalColumns}`,
+    [input.organizationId, input.arrivalId, input.status,
+      input.actorUserId, input.actorName, input.reason],
+  );
+  return result.rows[0] ? mapArrival(result.rows[0]) : null;
+}
+
+export async function insertReadinessSnapshot(client: PoolClient, input: {
+  organizationId: string; summary: import("./types").SourceReadinessSummary;
+  blockingExpectationIds: string[]; actorUserId: string; actorName: string;
+}) {
+  const s = input.summary;
+  const result = await client.query<ReadinessSnapshotRow>(
+    `INSERT INTO source_ingestion_readiness_snapshots (
+       organization_id, business_date, verdict, expected_files, accepted_files,
+       missing_files, late_files, quarantined_files, blocking_files,
+       optional_warnings, blocking_expectation_ids, created_by_user_id, created_by_name
+     ) VALUES ($1,$2::date,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+    [input.organizationId, s.businessDate, s.verdict, s.expectedFiles, s.acceptedFiles,
+      s.missingFiles, s.lateFiles, s.quarantinedFiles, s.blockingFiles,
+      s.optionalWarnings, JSON.stringify(input.blockingExpectationIds),
+      input.actorUserId, input.actorName],
+  );
+  return mapSnapshot(result.rows[0]);
+}
+
+export async function listReadinessSnapshots(organizationId: string, businessDate: string) {
+  const result = await query<ReadinessSnapshotRow>(
+    `SELECT * FROM source_ingestion_readiness_snapshots
+     WHERE organization_id = $1 AND business_date = $2::date
+     ORDER BY created_at DESC LIMIT 50`, [organizationId, businessDate]);
+  return result.rows.map(mapSnapshot);
 }
 
 export async function insertArrival(
@@ -372,18 +560,25 @@ export async function insertArrival(
     seedMarker?: string | null;
   },
 ) {
+  const version = await client.query<{ next_version: number }>(
+    `SELECT COALESCE(MAX(version_number), 0) + 1 AS next_version
+     FROM source_ingestion_arrivals
+     WHERE organization_id = $1 AND expectation_id = $2`,
+    [input.organizationId, input.expectationId],
+  );
   const result = await client.query<{ id: string }>(
     `INSERT INTO source_ingestion_arrivals (
-       organization_id, expectation_id, source_id, file_name, file_hash,
+       organization_id, expectation_id, source_id, version_number, file_name, file_hash,
        source_row_count, accepted_row_count, rejected_row_count, received_at,
        supersedes_arrival_id, classification, validation_status,
        downstream_workflow, evidence, seed_marker
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
      RETURNING id`,
     [
       input.organizationId,
       input.expectationId,
       input.sourceId,
+      version.rows[0].next_version,
       input.fileName,
       input.fileHash,
       input.sourceRowCount,
@@ -492,11 +687,16 @@ function toIsoTimestamp(value: Date | string) {
 }
 
 function toDateString(value: Date | string) {
-  return value instanceof Date ? value.toISOString().slice(0, 10) : value.slice(0, 10);
+  if (!(value instanceof Date)) return value.slice(0, 10);
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 type ArrivalRow = {
   id: string;
+  version_number: number;
   expectation_id: string;
   source_id: string;
   file_name: string;
@@ -512,6 +712,10 @@ type ArrivalRow = {
   linked_reconciliation_run_id: string | null;
   linked_settlement_import_id: string | null;
   evidence: SourceIngestionArrival["evidence"];
+  reviewed_at: Date | string | null;
+  reviewed_by_user_id: string | null;
+  reviewed_by_name: string | null;
+  review_reason: string | null;
 };
 
 type ExpectationRow = {
@@ -530,6 +734,7 @@ type ExpectationRow = {
   transport_type: SourceTransportType;
   owner_team: string;
   arrival_id?: string | null;
+  version_number?: number | null;
   file_name?: string | null;
   file_hash?: string | null;
   source_row_count?: number | null;
@@ -543,6 +748,10 @@ type ExpectationRow = {
   linked_reconciliation_run_id?: string | null;
   linked_settlement_import_id?: string | null;
   arrival_evidence?: SourceIngestionArrival["evidence"] | null;
+  reviewed_at?: Date | string | null;
+  reviewed_by_user_id?: string | null;
+  reviewed_by_name?: string | null;
+  review_reason?: string | null;
 };
 
 type EventRow = {
@@ -555,3 +764,39 @@ type EventRow = {
   details: Record<string, unknown>;
   created_at: Date | string;
 };
+
+type ReadinessSnapshotRow = {
+  id: string;
+  business_date: Date | string;
+  verdict: SourceReadinessSnapshot["verdict"];
+  expected_files: number;
+  accepted_files: number;
+  missing_files: number;
+  late_files: number;
+  quarantined_files: number;
+  blocking_files: number;
+  optional_warnings: number;
+  blocking_expectation_ids: string[];
+  created_by_user_id: string | null;
+  created_by_name: string;
+  created_at: Date | string;
+};
+
+function mapSnapshot(row: ReadinessSnapshotRow): SourceReadinessSnapshot {
+  return {
+    id: row.id,
+    businessDate: toDateString(row.business_date),
+    verdict: row.verdict,
+    expectedFiles: row.expected_files,
+    acceptedFiles: row.accepted_files,
+    missingFiles: row.missing_files,
+    lateFiles: row.late_files,
+    quarantinedFiles: row.quarantined_files,
+    blockingFiles: row.blocking_files,
+    optionalWarnings: row.optional_warnings,
+    blockingExpectationIds: row.blocking_expectation_ids,
+    createdByUserId: row.created_by_user_id,
+    createdByName: row.created_by_name,
+    createdAt: toIsoTimestamp(row.created_at),
+  };
+}

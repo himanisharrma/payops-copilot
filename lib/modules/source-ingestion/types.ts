@@ -74,10 +74,12 @@ export type SourceIngestionExpectation = {
   expectedFilenamePattern: string;
   status: SourceExpectationStatus;
   latestArrival: SourceIngestionArrival | null;
+  arrivals: SourceIngestionArrival[];
 };
 
 export type SourceIngestionArrival = {
   id: string;
+  versionNumber: number;
   expectationId: string;
   sourceId: string;
   fileName: string;
@@ -104,6 +106,31 @@ export type SourceIngestionArrival = {
     }>;
     [key: string]: unknown;
   };
+  review: {
+    reviewedAt: string;
+    reviewedByUserId: string | null;
+    reviewedByName: string;
+    reason: string;
+  } | null;
+};
+
+export type SourceIngestionVersionDetail = {
+  arrival: SourceIngestionArrival;
+  source: SourceIngestionSource;
+  expectation: Omit<SourceIngestionExpectation, "latestArrival">;
+  lineage: SourceIngestionArrival[];
+  events: SourceIngestionEvent[];
+  acceptedSourceContract: {
+    contractVersion: "accepted-source-v1";
+    arrivalId: string;
+    organizationScoped: true;
+    workflow: DownstreamWorkflow;
+    fileHash: string;
+    rowCount: number;
+    acceptedAt: string;
+    acceptedByName: string;
+    reason: string;
+  } | null;
 };
 
 export type SourceIngestionEvent = {
@@ -116,9 +143,11 @@ export type SourceIngestionEvent = {
     | "source_registered"
     | "expectation_scheduled"
     | "file_arrived"
+    | "file_accepted"
     | "file_rejected"
     | "expectation_waived"
-    | "control_refreshed";
+    | "control_refreshed"
+    | "readiness_snapshotted";
   details: Record<string, unknown>;
   createdAt: string;
 };
@@ -135,8 +164,17 @@ export type SourceReadinessSummary = {
   optionalWarnings: number;
 };
 
+export type SourceReadinessSnapshot = SourceReadinessSummary & {
+  id: string;
+  blockingExpectationIds: string[];
+  createdByUserId: string | null;
+  createdByName: string;
+  createdAt: string;
+};
+
 export type SourceIngestionWorkspace = {
   summary: SourceReadinessSummary;
   expectations: SourceIngestionExpectation[];
   events: SourceIngestionEvent[];
+  latestSnapshot: SourceReadinessSnapshot | null;
 };

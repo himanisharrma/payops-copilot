@@ -96,6 +96,7 @@ describe("source ingestion control plane", () => {
           linkedReconciliationRunId: null,
           linkedSettlementImportId: null,
           evidence: {},
+          review: null,
         },
       },
     ];
