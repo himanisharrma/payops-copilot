@@ -124,9 +124,10 @@ async function insertItem(
       reconciliation_status, severity, summary, evidence, transaction_at,
       transaction_timestamp_source, settlement_recorded_at, settlement_cycle,
       expected_settlement_at, settlement_policy_version,
-      settlement_calendar_version, settlement_timing_evidence
+      settlement_calendar_version, settlement_timing_evidence,
+      match_strategy, match_confidence
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24
     )
     RETURNING id`,
     [
@@ -154,6 +155,8 @@ async function insertItem(
       item.settlementTimingEvidence
         ? JSON.stringify(item.settlementTimingEvidence)
         : null,
+      item.matchStrategy,
+      item.matchConfidence,
     ],
   );
   return inserted.rows[0];
