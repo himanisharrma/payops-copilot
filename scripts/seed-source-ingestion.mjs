@@ -24,6 +24,11 @@ function businessDate(dayOffset) {
 
 async function deleteSeedData(organizationId) {
   await client.query(
+    `DELETE FROM source_ingestion_readiness_snapshots
+     WHERE organization_id = $1 AND seed_marker = $2`,
+    [organizationId, marker],
+  );
+  await client.query(
     `DELETE FROM source_ingestion_events
      WHERE organization_id = $1 AND details->>'seedMarker' = $2`,
     [organizationId, marker],
@@ -85,18 +90,25 @@ async function expectation(organizationId, sourceId, date, hour, required = true
 async function arrival(organizationId, expectationId, sourceId, options) {
   const content = options.content;
   const fileHash = hash(content);
+  const version = await client.query(
+    `SELECT COALESCE(MAX(version_number), 0) + 1 AS next_version
+     FROM source_ingestion_arrivals
+     WHERE organization_id = $1 AND expectation_id = $2`,
+    [organizationId, expectationId],
+  );
   const result = await client.query(
     `INSERT INTO source_ingestion_arrivals (
-       organization_id, expectation_id, source_id, file_name, file_hash,
+       organization_id, expectation_id, source_id, version_number, file_name, file_hash,
        source_row_count, accepted_row_count, rejected_row_count, received_at,
        supersedes_arrival_id, classification, validation_status,
        downstream_workflow, evidence, seed_marker
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
      RETURNING id`,
     [
       organizationId,
       expectationId,
       sourceId,
+      version.rows[0].next_version,
       options.fileName,
       fileHash,
       options.rows,
@@ -259,6 +271,36 @@ try {
        organization_id, actor_name, event_type, details
      ) VALUES ($1,'PayOps seed','control_refreshed',$2)`,
     [organizationId, JSON.stringify({ seedMarker: marker, fictional: true })],
+  );
+  const snapshotCounts = await client.query(
+    `SELECT COUNT(*)::int AS expected_files,
+       COUNT(*) FILTER (WHERE arrival.validation_status = 'accepted')::int AS accepted_files,
+       COUNT(*) FILTER (WHERE arrival.id IS NULL)::int AS missing_files,
+       COUNT(*) FILTER (WHERE expectation.status = 'late')::int AS late_files,
+       COUNT(*) FILTER (WHERE arrival.validation_status = 'needs_review')::int AS quarantined_files,
+       COUNT(*) FILTER (WHERE expectation.required_for_close AND COALESCE(arrival.validation_status, '') <> 'accepted')::int AS blocking_files,
+       COUNT(*) FILTER (WHERE NOT expectation.required_for_close AND COALESCE(arrival.validation_status, '') <> 'accepted')::int AS optional_warnings
+     FROM source_ingestion_expectations expectation
+     LEFT JOIN LATERAL (
+       SELECT validation_status, id FROM source_ingestion_arrivals candidate
+       WHERE candidate.organization_id = expectation.organization_id
+         AND candidate.expectation_id = expectation.id
+       ORDER BY candidate.version_number DESC LIMIT 1
+     ) arrival ON TRUE
+     WHERE expectation.organization_id = $1 AND expectation.business_date = $2::date`,
+    [organizationId, businessDate(0)],
+  );
+  const counts = snapshotCounts.rows[0];
+  await client.query(
+    `INSERT INTO source_ingestion_readiness_snapshots (
+       organization_id, business_date, verdict, expected_files, accepted_files,
+       missing_files, late_files, quarantined_files, blocking_files,
+       optional_warnings, blocking_expectation_ids, created_by_name, seed_marker
+     ) VALUES ($1,$2::date,$3,$4,$5,$6,$7,$8,$9,$10,'[]'::jsonb,'PayOps seed',$11)`,
+    [organizationId, businessDate(0), counts.blocking_files > 0 ? "blocked" : "ready",
+      counts.expected_files, counts.accepted_files, counts.missing_files,
+      counts.late_files, counts.quarantined_files, counts.blocking_files,
+      counts.optional_warnings, marker],
   );
   await client.query("COMMIT");
   console.log("Seeded source ingestion control-plane demo data.");

@@ -395,22 +395,26 @@ movement.
 **Boundary:** imported statement rows remain synthetic in the portfolio demo.
 This does not add live provider, bank, payout, or money-moving behavior.
 
-### In progress: Source Ingestion Control Plane
+### Implemented: Source Ingestion Control Plane v1.1
 
 The biggest remaining product gap is upstream of matching. Real merchant
 finance teams do not receive perfectly shaped files; provider, bank, refund,
 chargeback, and fee/tax files arrive late, duplicated, partial, malformed, or
 revised.
 
-This release adds the first control-plane slice:
+This release completes the first control-plane slice:
 
 - expected-file registry by provider, source type, merchant, and business day;
 - arrival SLA states: expected, received, late, missing, duplicate, revised,
   partial, malformed, quarantined, and accepted;
 - source versioning with hash, row count, control totals, detected adapter,
   schema profile, parse diagnostics, superseded-file link, and audit event;
-- quarantine review so bad files do not enter reconciliation until accepted;
-- daily readiness board answering whether recon and close can run today.
+- version dossiers and superseded/revised lineage;
+- audited accept/reject quarantine decisions so untrusted files cannot enter
+  downstream workflows;
+- an immutable accepted-source contract for downstream eligibility;
+- persisted daily readiness snapshots that record why recon and close were
+  ready or blocked at a point in time;
 - synthetic manual CSV intake only; no live provider, bank, email, SFTP, or API
   pull is claimed.
 

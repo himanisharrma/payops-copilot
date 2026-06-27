@@ -305,10 +305,12 @@ proposals use append-only events and maker/checker approval, but remain
 controlled decision records only; they do not mutate payouts, bank credits, or
 settlement money.
 
-The next architecture gap is upstream of reconciliation: source ingestion.
-Real merchant finance workflows need expected-file schedules, arrival SLAs,
-source versioning, schema profiling, control totals, and quarantine before a
-file is trusted enough to reconcile. After ingestion, the matching layer needs
+The upstream Source Ingestion Control Plane is now implemented with expected-file
+schedules, arrival SLAs, organization-scoped source versions, schema profiles,
+control totals, audited quarantine decisions, immutable accepted-source
+contracts, superseded lineage, and persisted readiness snapshots. Downstream
+workflows may trust only an accepted source version; an uploaded file alone is
+not a reconciliation contract. The next architecture gap is the matching layer, which needs
 to evolve beyond order/gateway-reference matching into layered confidence
 matching across payment, attempt, payout, UTR, bank, reversal, and partial
 refund/capture evidence. After that, PayOps needs an immutable ledger backbone

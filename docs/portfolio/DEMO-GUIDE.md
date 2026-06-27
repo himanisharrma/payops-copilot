@@ -37,23 +37,25 @@ Open **Control Room Demo Mode** at
 
 Use it as the portfolio landing path when the reviewer has little time:
 
-1. **Reconciliation run** - show that three synthetic reports become one
+1. **Source readiness** - open `/source-ingestion`, inspect a version dossier,
+   follow its lineage, and show why a quarantined file is blocked from recon.
+2. **Reconciliation run** - show that three synthetic reports become one
    deterministic ledger.
-2. **Merchant settlement statements** - show gross collected, deductions, net
+3. **Merchant settlement statements** - show gross collected, deductions, net
    payable, UTR, bank-credit evidence, and linked line-level cases.
-3. **Statement import desk** - show staged provider-style CSV rows, comparison
+4. **Statement import desk** - show staged provider-style CSV rows, comparison
    exceptions, maker/checker adjustment records, and evidence packet export.
-4. **Exception case** - show that actionable differences become owned work with
+5. **Exception case** - show that actionable differences become owned work with
    source evidence and SLA context.
-5. **Settlement deadline evidence** - show that expected dates come from a
+6. **Settlement deadline evidence** - show that expected dates come from a
    fictional settlement-cycle policy and India demo calendar.
-6. **Signed webhook evidence** - as an administrator, show accepted and rejected
+7. **Signed webhook evidence** - as an administrator, show accepted and rejected
    synthetic provider attempts without raw payload retention.
-7. **Insights dashboard** - show manager KPIs and drill-through into the
+8. **Insights dashboard** - show manager KPIs and drill-through into the
    operations queue.
-8. **Root-cause program verification** - show deterministic recurrence grouping
+9. **Root-cause program verification** - show deterministic recurrence grouping
    and two clean-run verification.
-9. **Close Control** - show maker/checker close readiness, residual exposure,
+10. **Close Control** - show maker/checker close readiness, residual exposure,
    and settlement payable impact.
 
 Recommended screenshots for portfolio review:
