@@ -200,6 +200,14 @@ export type ReconciliationStatus =
   | "duplicate"
   | "pending";
 
+export type MatchStrategy =
+  | "exact_order_id"
+  | "gateway_reference_fallback"
+  | "amount_date_window"
+  | "unmatched";
+
+export type MatchConfidence = "exact" | "high" | "medium" | "low" | "none";
+
 export type EvidenceSourceType = "orders" | "gateway" | "settlements";
 
 export type SourceEvidence = {
@@ -230,6 +238,8 @@ export type ReconciliationItem = {
   settlementCalendarVersion: string | null;
   settlementTimingEvidence: SettlementTimingEvidence | null;
   severity: "low" | "medium" | "high";
+  matchStrategy: MatchStrategy;
+  matchConfidence: MatchConfidence;
   summary: string;
   evidence: string[];
   sourceEvidence: SourceEvidence[];
