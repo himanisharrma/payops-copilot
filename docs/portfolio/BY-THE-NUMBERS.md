@@ -1,7 +1,7 @@
 # By the Numbers
 
-> Every implemented-project figure below was measured from the Statement Import
-> + Settlement Exception Desk working snapshot prepared on June 26, 2026. It
+> Every implemented-project figure below was measured from the Source Ingestion
+> v1.1 working snapshot prepared on June 27, 2026. It
 > is repository evidence, not a production-performance claim.
 
 ## Delivery
@@ -11,18 +11,18 @@
 | Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
 | Product milestones | 22 vertical slices | `BUILD-STORY.md` |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Statement Import + Settlement Exception Desk | seed marker `settlement-import-desk-v1` |
-| Latest architecture milestone | Settlement import staging and adjustment governance | migration `020` |
+| Latest product milestone | Source Ingestion Control Plane v1.1 | version dossiers, quarantine decisions, accepted-source contract, readiness snapshots |
+| Latest architecture milestone | Source acceptance and readiness evidence | migrations `021`–`025` |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 216 | `git ls-files --cached --others --exclude-standard` |
+| Repository files | 230 | `git ls-files --cached --others --exclude-standard` excluding local `gaps.md` |
 | TypeScript and TSX lines | 26,646 | repository source file list piped to `wc -l` |
-| Next.js API route files | 36 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 20 | `db/migrations/` |
-| Automated test cases | 104 | 84 unit/policy plus 20 PostgreSQL integration tests |
+| Next.js API route files | 39 | `find app/api -name route.ts` |
+| PostgreSQL migrations | 25 | `db/migrations/` |
+| Automated test cases | 109 | 87 unit/policy plus 22 PostgreSQL integration tests |
 | Demo CSV reports | 3 | `public/demo/` |
 | Product pages | 15 | Includes reviewer-focused `/demo-control-room`, merchant `/settlements`, and `/settlement-imports` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
@@ -46,6 +46,8 @@
 | Seeded imported statement rows | 15 | staged rows spanning clean, UTR, amount, payout, hold, deduction, and forward-deduction cases |
 | Seeded settlement import exceptions | 13 | all v1 exception classes represented with synthetic evidence |
 | Seeded adjustment proposals | 3 | proposed, approved, and rejected maker/checker scenarios |
+| Source ingestion versions | 2+ per revised expectation | ordered, organization-scoped version history with superseded lineage |
+| Source readiness snapshots | persisted | point-in-time ready/blocked evidence with actor attribution |
 | Source snapshots in the standard 10-order demo | 27 | 10 order, 10 gateway, and 7 settlement rows |
 
 ## Product surface
@@ -96,8 +98,8 @@ At the documentation snapshot:
 
 ```text
 npm run lint   -> pass
-npm test       -> 16 test files, 84 tests passing
-npm run test:integration -> 10 test files, 20 tests passing
+npm test       -> 17 test files, 87 tests passing
+npm run test:integration -> 11 test files, 22 tests passing
 npm run eval   -> 30 cases, 180 checks, 0 critical baseline failures
 npm run build  -> production compilation and TypeScript checks pass
 ```

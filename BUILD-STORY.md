@@ -498,6 +498,12 @@ reviewer-safe evidence packets, and route adjustment proposals through
 maker/checker approval. Split settlement still waits until the normal
 statement-import workflow is solid.
 
+Source Ingestion v1.1 now closes that first gap: analysts can inspect every
+source version, follow revised/superseded lineage, accept or reject quarantined
+files with attributed reasons, and persist the readiness state that allowed or
+blocked recon. The accepted-source contract is immutable and organization
+scoped; upload alone never makes a file financially authoritative.
+
 The sharper product lesson is that PayOps should not pretend to be a generic
 recon platform. The first credible ICP is merchant finance/payment operations:
 teams that need to prove whether providers settled correctly, explain

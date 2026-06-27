@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-104%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-109%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -39,7 +39,7 @@ a managed PostgreSQL `DATABASE_URL`, then run `npm run db:migrate` and
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
 | **Backend shape** | Modular monolith with thin routes, domain services, fourteen domain modules, and shared PostgreSQL infrastructure |
-| **Build evidence** | 22 product milestones, 36 API routes, 20 migrations, and 104 unit/integration tests at the Statement Import snapshot |
+| **Build evidence** | 23 product milestones, 39 API routes, 25 migrations, and 109 unit/integration tests |
 
 ## Why this exists
 
@@ -293,7 +293,7 @@ portfolio demo; they do not connect to providers, banks, or payout rails.
 npm run verify
 ```
 
-The verification command runs lint, 78 unit/policy tests, 18 PostgreSQL-backed
+The verification command runs lint, 87 unit/policy tests, 22 PostgreSQL-backed
 integration tests, a production build, and `git diff --check`. GitHub
 Actions runs the same command against a clean PostgreSQL 17 service.
 
@@ -366,11 +366,12 @@ constraints, and completion conditions; encode durable repository guidance in
 
 ## Roadmap
 
-- **In progress: Source Ingestion Control Plane.** Add `/source-ingestion`
-  with an expected-file registry, arrival SLA, file versioning, schema
-  profiling, control totals, quarantine, and a daily readiness board for
-  gateway, settlement, bank, refund, chargeback, and fee/tax files. V1 remains
-  synthetic manual intake, not live provider/email/SFTP/API ingestion.
+- **Implemented: Source Ingestion Control Plane v1.1.** `/source-ingestion`
+  now provides an expected-file registry, arrival SLA, version dossiers,
+  schema profiles, control totals, audited accept/reject quarantine decisions,
+  immutable accepted-source contracts, superseded lineage, and persisted daily
+  readiness snapshots. Intake remains synthetic and manual—not a live provider,
+  bank, email, SFTP, or API connection.
 - **Next: Matching Engine v2.** Add layered matching by order ID, gateway
   transaction ID, bank reference, UPI RRN/ARN, UTR, amount/date windows,
   many-to-one payouts, partial captures/refunds, duplicates, reversals, and
