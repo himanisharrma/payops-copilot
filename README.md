@@ -6,10 +6,13 @@
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
 
-> An evidence-first reconciliation and settlement-control workspace for Indian
-> mid-market merchant finance and payment-operations teams. Deterministic code
-> calculates the money; AI helps investigate exceptions; humans retain decision
-> authority.
+> A multi-PG settlement-exception desk for Indian mid-market merchant finance
+> and payment-operations teams. Deterministic code calculates the money;
+> humans investigate exceptions and remain accountable; AI assists with
+> classification and note-drafting under human approval.
+>
+> *Historical name: PayOps Copilot. User-facing surfaces now lead with PayOps;
+> the AI is a helper, not the headline.*
 
 ![PayOps root-cause control board](docs/portfolio/assets/root-cause-control-board.png)
 
@@ -154,6 +157,26 @@ mapping to thousands of transactions.
 
 The roadmap now treats those as the next foundation instead of jumping straight
 to more governance surfaces.
+
+## Honest open questions
+
+This is a portfolio MVP, not a validated business. Per the `gaps.md` review
+in the repo root, the following remain **unanswered**:
+
+- **Buyer.** Who signs the cheque? (Finance controller at a mid-market merchant
+  using 2–5 PGs is the working hypothesis. Not validated with a paying customer.)
+- **Replaced system.** What does PayOps replace today? (PG dashboards plus
+  Excel? In-house tooling? Cointab? Not validated.)
+- **ROI.** What measurable number changes? (Close-day duration, unreconciled
+  exposure, recovered under-settled rupees are candidates. No baseline.)
+- **Moat.** What compounds with each new customer? (Mapping library across
+  Razorpay / Cashfree / PayU / Paytm / banks? Bank-narration normalization?
+  Exception-resolution corpus? None of these yet exist on real data.)
+- **Distribution.** How does the first paying customer find PayOps? (No
+  motion validated.)
+
+The repo is upfront that this is a portfolio project. Treat any claim that
+implies these are solved as a bug to fix, not a feature.
 
 ## The product judgment
 
