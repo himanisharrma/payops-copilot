@@ -5,12 +5,15 @@ Treat it as an operating contract, not as product documentation.
 
 ## Product intent
 
-PayOps Copilot is currently focused on Indian mid-market merchant finance and
-payment-operations teams. It helps them prove whether payment providers
-settled the right amount, explain deductions, map UTRs to bank credits, and
-close payment books with evidence. It turns exceptions into organization-scoped
-cases with ownership, SLAs, evidence, AI-assisted investigations, human review,
-and audit history.
+PayOps is **exclusively** focused on Indian mid-market merchant finance and
+payment-operations teams — not aggregator escrow/nodal reconciliation, not
+marketplace split-settlement, not support ops, not BNPL ops, not generic
+"Indian payment ops." Those are out of scope until the merchant-finance wedge
+proves itself with real customer files. It helps merchant finance teams prove
+whether payment providers settled the right amount, explain deductions, map
+UTRs to bank credits, and close payment books with evidence. It turns
+exceptions into organization-scoped cases with ownership, SLAs, evidence,
+AI-assisted investigations, human review, and audit history.
 
 The product is a portfolio MVP. All demo data is synthetic. It must never imply
 that it connects to live payment providers or can move money.
@@ -56,10 +59,15 @@ begin at `/demo-control-room`, then inspect `/operations`, `/insights`, and
 
 ## Product direction
 
-The product direction is to deepen PayOps into a merchant settlement trust
-engine, not a generic aggregator/marketplace recon platform. The selected ICP
-is merchant finance/payment operations first. Aggregator escrow/nodal
-reconciliation and marketplace split settlement remain future expansion tracks.
+The product direction is to deepen PayOps into a **multi-PG settlement-exception
+desk for Indian merchants** — the single workflow that proves UTR / fee / GST /
+refund / chargeback / hold / bank-credit mismatches across 2–5 PGs before month
+close, and produces controller-ready evidence packets. This is the wedge from
+the `gaps.md` review. The selected ICP is merchant finance / payment operations
+**only**. Aggregator escrow/nodal reconciliation and marketplace split settlement
+are **not in scope** until merchant-finance proves a wedge with real customer
+files. Do not add aggregator-flavored or marketplace-flavored UI, copy, or
+schema. If a request implies broadening, surface the ICP boundary first.
 
 The important product distinction is:
 
@@ -149,6 +157,54 @@ roadmap return to Evidence Escalation Outbox, outbound escalation, or split
 settlement. Split settlement should eventually support platform/vendor shares,
 fee/tax splits, refund splits, and vendor settlement files, but it should not be
 the next foundation.
+
+## Stop building (until foundations land)
+
+Per the `gaps.md` review: PayOps already has more governance scaffolding than it
+has real ingestion or ledger truth. Adding more before Matching Engine v2 and
+Ledger Backbone v1 ship is overbuild, not progress.
+
+**Do not add:**
+
+- new dashboards, certificates, AI-review screens, control-room surfaces;
+- new evaluation harnesses, two-reviewer flows, or "trust" ledgers;
+- new portfolio-walkthrough surfaces or demo-mode pages;
+- AI features that are not measured against analyst minutes saved, recoveries
+  identified, false positives reduced, or close-duration reduced.
+
+**Do build:**
+
+- real ingestion connectors (email/SFTP/API) for actual provider exports;
+- the append-only ledger backbone (merchant payable, provider receivable,
+  bank cash, fee receivable, GST liability, refund/chargeback recovery,
+  hold/release, adjustment/write-off);
+- layered matching with confidence scoring (order ID → gateway ref → UTR →
+  bank narration → amount/date windows; many-to-one, partial, duplicate,
+  reversal-aware);
+- expanded exception taxonomy with financial exposure, owner, SLA, allowed
+  actions, evidence requirement, auto-close condition, escalation path;
+- the escalation loop (provider ticket, attached evidence, parsed reply,
+  promised ETA, SLA-breach escalation).
+
+Existing demo-flex surfaces (`/quality`, `/webhook-operations`,
+`/close-control`, `/root-causes`, `/demo-control-room`, `/insights`) stay —
+they're demoted in nav but functional. Don't delete; don't extend.
+
+## Brand and positioning
+
+- Product name in user-visible surfaces is **PayOps**, not "PayOps Copilot."
+  The "Copilot" framing is downgraded because the AI is not load-bearing.
+- The wedge tagline is "Multi-PG settlement-exception desk for Indian
+  merchant finance teams." Use this (or close variations) in hero, metadata,
+  and product brief copy. Do not lead with "AI," "Copilot," or "Indian
+  payment teams."
+- The historical name "PayOps Copilot" remains in repo/package name, Vercel
+  URL, BUILD-STORY.md, docs/portfolio/* titles, and README header. Do not
+  scrub it from history; only update forward-facing surfaces.
+- Open commercial questions (buyer with budget, system replaced, measurable
+  ROI, moat, distribution motion) are **unvalidated**. Do not write copy,
+  docs, or framing that implies they are proven. The portfolio MVP boundary
+  must stay honest.
 
 ## Non-negotiable boundaries
 

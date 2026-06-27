@@ -3,7 +3,7 @@ import Link from "next/link";
 const sections = [
   {
     title: "The user",
-    body: "A payment operations analyst at an Indian merchant or payment aggregator who currently compares several reports by hand.",
+    body: "A payment-ops analyst or finance manager at an Indian mid-market merchant using 2–5 PGs, who currently compares provider settlement reports, bank statements, and internal orders by hand.",
   },
   {
     title: "The problem",
@@ -24,15 +24,15 @@ export default function ProductBrief() {
     <main className="brief-page">
       <nav>
         <Link href="/">← Back to workspace</Link>
-        <span>PAYOPS COPILOT / PRODUCT BRIEF</span>
+        <span>PAYOPS / PRODUCT BRIEF</span>
       </nav>
       <header>
         <p className="eyebrow">PORTFOLIO PRODUCT · VERSION 0.1</p>
         <h1>Make payment exceptions obvious and auditable.</h1>
         <p>
-          PayOps Copilot is an evidence-first reconciliation workspace for
-          teams that need to understand why expected money and settled money
-          disagree.
+          PayOps is an evidence-first multi-PG settlement-exception desk for
+          Indian merchant finance teams that need to understand why expected
+          money and settled money disagree.
         </p>
       </header>
       <section>

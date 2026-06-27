@@ -53,12 +53,9 @@ export async function AppHeader({
     : [];
   return (
     <header className="topbar app-page-header">
-      <Link className="brand" href="/" aria-label="PayOps Copilot home">
+      <Link className="brand" href="/" aria-label="PayOps home">
         <span className="brand-mark">P</span>
-        <span>
-          PAYOPS
-          <small>COPILOT</small>
-        </span>
+        <span>PAYOPS</span>
       </Link>
       <nav className="product-nav" aria-label="Product navigation">
         <Link href="/" className="product-nav-link">
@@ -109,43 +106,43 @@ export async function AppHeader({
         </Link>
         <Link
           href="/insights"
-          className={`product-nav-link ${active === "insights" ? "active" : ""}`}
+          className={`product-nav-link secondary ${active === "insights" ? "active" : ""}`}
         >
           <ChartNoAxesCombined size={15} />
           Insights
         </Link>
         <Link
           href="/root-causes"
-          className={`product-nav-link ${active === "root-causes" ? "active" : ""}`}
+          className={`product-nav-link secondary ${active === "root-causes" ? "active" : ""}`}
         >
           <Waypoints size={15} />
           Root causes
         </Link>
         <Link
-          href="/demo-control-room"
-          className={`product-nav-link ${active === "demo" ? "active" : ""}`}
-        >
-          <Route size={15} />
-          Demo
-        </Link>
-        <Link
           href="/close-control"
-          className={`product-nav-link ${active === "close" ? "active" : ""}`}
+          className={`product-nav-link secondary ${active === "close" ? "active" : ""}`}
         >
           <BookCheck size={15} />
           Daily close
         </Link>
         <Link
           href="/quality"
-          className={`product-nav-link ${active === "quality" ? "active" : ""}`}
+          className={`product-nav-link secondary ${active === "quality" ? "active" : ""}`}
         >
           <FlaskConical size={15} />
           AI quality
         </Link>
+        <Link
+          href="/demo-control-room"
+          className={`product-nav-link secondary ${active === "demo" ? "active" : ""}`}
+        >
+          <Route size={15} />
+          Demo
+        </Link>
         {session?.user.role === "admin" && (
           <Link
             href="/webhook-operations"
-            className={`product-nav-link ${active === "webhooks" ? "active" : ""}`}
+            className={`product-nav-link secondary ${active === "webhooks" ? "active" : ""}`}
           >
             <ShieldCheck size={15} />
             Webhook trust
@@ -154,7 +151,7 @@ export async function AppHeader({
         {session?.user.role === "admin" && (
           <Link
             href="/audit"
-            className={`product-nav-link ${active === "audit" ? "active" : ""}`}
+            className={`product-nav-link secondary ${active === "audit" ? "active" : ""}`}
           >
             <FileClock size={15} />
             Audit

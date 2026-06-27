@@ -14,7 +14,7 @@ export default async function LoginPage({
       <section className="login-story">
         <Link className="brand" href="/">
           <span className="brand-mark">P</span>
-          <span>PAYOPS<small>COPILOT</small></span>
+          <span>PAYOPS</span>
         </Link>
         <div>
           <p className="eyebrow">SECURE OPERATIONS WORKSPACE</p>
