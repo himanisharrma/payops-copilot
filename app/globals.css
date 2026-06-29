@@ -8605,6 +8605,140 @@ button:disabled {
   color: #d8d1bf;
 }
 
+/* Slice 6b — per-PG receivable card. Sits in the settlement detail
+   drawer between .deduction-waterfall and .bank-evidence-card. The
+   wedge widget: "did this PG batch tie out?" answered visually via
+   status pill + algebraic breakdown. */
+.provider-receivable-card {
+  padding: 18px;
+  border: 1px solid var(--ink);
+  background: var(--paper-strong);
+  display: grid;
+  gap: 14px;
+}
+
+.provider-receivable-card.status-tied_out {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.provider-receivable-card.status-under_settled {
+  border-color: var(--orange-dark);
+  background: var(--red-soft);
+}
+
+.provider-receivable-card.status-over_settled {
+  border-color: var(--ink);
+  background: var(--paper-strong);
+}
+
+.provider-receivable-card.is-error {
+  border-style: dashed;
+}
+
+.provider-receivable-card header {
+  display: grid;
+  gap: 4px;
+}
+
+.provider-receivable-card header span {
+  font-family: var(--font-space-mono);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.provider-receivable-card header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.provider-receivable-card .status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  width: fit-content;
+  font-size: 12px;
+}
+
+.provider-receivable-card.status-tied_out .status-pill {
+  color: var(--green);
+}
+
+.provider-receivable-card.status-under_settled .status-pill {
+  color: var(--orange-dark);
+}
+
+.provider-receivable-card .receivable-waterfall {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  font-family: var(--font-space-mono);
+  font-size: 13px;
+}
+
+.provider-receivable-card .receivable-waterfall > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.provider-receivable-card .receivable-waterfall .row-minus dt {
+  color: var(--muted);
+}
+
+.provider-receivable-card .receivable-waterfall .row-total {
+  border-bottom: none;
+  border-top: 1px solid var(--ink);
+  margin-top: 4px;
+  padding-top: 8px;
+  font-weight: 700;
+}
+
+.provider-receivable-card .receivable-buckets {
+  list-style: none;
+  margin: 0;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  background: rgba(255, 253, 247, 0.7);
+  border: 1px solid var(--line);
+}
+
+.provider-receivable-card .receivable-buckets li {
+  display: grid;
+  gap: 4px;
+}
+
+.provider-receivable-card .receivable-buckets span {
+  font-family: var(--font-space-mono);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.provider-receivable-card .receivable-buckets strong {
+  font-size: 14px;
+}
+
+.provider-receivable-card .receivable-utrs {
+  margin: 0;
+  font-family: var(--font-space-mono);
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
 .bank-evidence-card {
   padding: 18px;
   border: 1px solid var(--ink);

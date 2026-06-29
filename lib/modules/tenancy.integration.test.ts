@@ -11,8 +11,10 @@ import {
   listCases,
   updateCase,
 } from "@/lib/modules/cases/repository";
+import { DomainError } from "@/lib/modules/errors";
 import {
   getBalance,
+  getProviderReceivableBreakdown,
   listTransactions,
   postCaptureEntries,
 } from "@/lib/modules/ledger/service";
@@ -251,6 +253,37 @@ describe("organization isolation", () => {
       }),
     );
     expect(crossedList.transactions).toHaveLength(0);
+
+    // Slice 6b: getProviderReceivableBreakdown crossed-org check.
+    // Seed a batch in tenant A; tenant B asking about that batch must
+    // throw 404 (not leak data from another org).
+    const batchA = await db.query<{ id: string }>(
+      `INSERT INTO merchant_settlement_batches (
+         organization_id, merchant_account_id, statement_reference,
+         provider_id, payment_mode, settlement_cycle, status,
+         expected_settlement_at,
+         gross_amount, deduction_amount, net_amount, bank_credit_amount,
+         variance_amount, utr_match_status, classification_evidence
+       ) VALUES (
+         $1,$2,$3,'razorpay_demo','UPI','T+1','credited',
+         NOW(),100,5,95,95,0,'matched','{"fixture":true}'
+       ) RETURNING id`,
+      [
+        tenantA.organizationId,
+        merchantA.rows[0].id,
+        `tenancy-batch-${randomUUID().slice(0, 8)}`,
+      ],
+    );
+    await expect(
+      transaction((client) =>
+        getProviderReceivableBreakdown(
+          client,
+          tenantB.organizationId,
+          merchantA.rows[0].id,
+          batchA.rows[0].id,
+        ),
+      ),
+    ).rejects.toThrow(DomainError);
   });
 
   it("rolls back a case mutation and its audit event together", async () => {

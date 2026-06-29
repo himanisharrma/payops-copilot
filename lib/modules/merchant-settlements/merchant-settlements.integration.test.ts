@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Actor } from "@/lib/access";
-import { db } from "@/lib/db";
+import { db, transaction } from "@/lib/db";
+import { getBalance, postCaptureEntries } from "@/lib/modules/ledger/service";
+import { ensureDefaultMerchantAccount } from "@/lib/modules/merchant-settlements/repository";
 import {
   getMerchantSettlement,
   loadMerchantSettlementWorkspace,
@@ -137,6 +139,105 @@ describe("merchant settlement statements", () => {
     expect(detail?.lines).toHaveLength(2);
     expect(detail?.bankCredits).toHaveLength(1);
     expect(detail?.events[0]).toMatchObject({ eventType: "batch_refreshed" });
+  });
+
+  // Slice 6b canary: ship-blocker if drift > ₹0.01. Asserts that after
+  // captures + settlement refresh, the per-PG provider_receivable
+  // balance ties out (PG paid us in full, ₹0 owed) and fee_expense
+  // matches the deductionAmount the existing arithmetic computes.
+  // If this drifts, Bridge 2 is posting the wrong amounts → DO NOT
+  // ship Slice 6b until fixed.
+  it("canary: ledger provider_receivable ties to zero + fee_expense matches deduction after refresh", async () => {
+    const tenant = await fixture("canary-tie");
+
+    // Simulate Bridge 1: post captures to ledger for the 2 seeded
+    // matched items (the fixture inserts items directly, bypassing
+    // createReconciliationRun where Bridge 1 actually fires).
+    const seededItems = await db.query<{
+      id: string;
+      order_id: string;
+      gateway_reference: string;
+      order_amount: string;
+      transaction_at: Date | null;
+    }>(
+      `SELECT id, order_id, gateway_reference,
+              order_amount::text AS order_amount, transaction_at
+         FROM reconciliation_items
+        WHERE organization_id = $1
+        ORDER BY transaction_at`,
+      [tenant.organizationId],
+    );
+    expect(seededItems.rowCount).toBe(2);
+
+    await transaction(async (client) => {
+      const merchantAccountId = await ensureDefaultMerchantAccount(
+        client,
+        tenant.organizationId,
+      );
+      await postCaptureEntries(
+        client,
+        tenant.organizationId,
+        seededItems.rows.map((row) => ({
+          sourceItemId: row.id,
+          merchantAccountId,
+          provider: "generic" as const,
+          grossAmount: Number(row.order_amount),
+          effectiveAt: row.transaction_at ?? new Date(),
+          externalRefs: {
+            orderId: row.order_id,
+            gatewayReference: row.gateway_reference,
+          },
+        })),
+        { id: tenant.actor.id, name: tenant.actor.name },
+      );
+    });
+
+    // Bridge 2 fires inside refreshMerchantSettlements.
+    await refreshMerchantSettlements(tenant.actor, {
+      now: new Date("2026-06-25T12:00:00Z"),
+    });
+
+    // Read ledger state for the merchant.
+    const merchantAccountId = await transaction((client) =>
+      ensureDefaultMerchantAccount(client, tenant.organizationId),
+    );
+    const balances = await transaction((client) =>
+      getBalance(
+        client,
+        tenant.organizationId,
+        merchantAccountId,
+        new Date("2026-06-26T00:00:00Z"),
+      ),
+    );
+
+    // For the seeded data (gross 1500, net 1455, deduction 45):
+    //   provider_receivable (generic) = 1500 captures - 45 fee
+    //     - 1455 bank credit = 0  ← PG tied out ✓
+    //   fee_expense (generic) = 45  ← deductions recognized
+    //   merchant_payable = 1500 captures - 1455 payout = 45  ← gap
+    //   escrow_cash = 1455 in - 1455 out = 0
+    const providerReceivable =
+      balances.find(
+        (row) =>
+          row.accountRole === "provider_receivable" &&
+          row.provider === "generic",
+      )?.balance ?? null;
+    const feeExpense =
+      balances.find(
+        (row) =>
+          row.accountRole === "fee_expense" && row.provider === "generic",
+      )?.balance ?? null;
+    const merchantPayable =
+      balances.find((row) => row.accountRole === "merchant_payable")?.balance ??
+      null;
+    const escrowCash =
+      balances.find((row) => row.accountRole === "escrow_cash")?.balance ??
+      null;
+
+    expect(providerReceivable).toBeCloseTo(0, 2);
+    expect(feeExpense).toBeCloseTo(45, 2);
+    expect(merchantPayable).toBeCloseTo(45, 2);
+    expect(escrowCash).toBeCloseTo(0, 2);
   });
 
   it("keeps list, detail, and refresh scoped to actor organization", async () => {

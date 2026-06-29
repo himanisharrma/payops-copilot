@@ -79,6 +79,7 @@ function mapStatement(detail: MerchantSettlementDetail): MerchantSettlementState
   const bankCredit = detail.bankCredits[0] ?? null;
   return {
     id: detail.id,
+    merchantAccountId: detail.merchant.id,
     merchantName: detail.merchant.name,
     merchantCode: detail.merchant.reference,
     provider: detail.providerId,

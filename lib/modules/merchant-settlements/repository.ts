@@ -167,6 +167,90 @@ export async function listRefreshCandidates(
   }));
 }
 
+// Slice 6b — read deductions + bank credits in the shape the ledger
+// service expects, after `replaceSettlementChildren` has written them.
+// Used by the Bridge 2 call in merchant-settlements/service.ts so the
+// ledger service stays decoupled from merchant-settlements internal
+// row shapes. The deduction `type` mirrors what `replaceSettlementChildren`
+// wrote — today's synthetic flow writes one `adjustment` row per batch;
+// real PG ingestion will write typed rows (mdr/gst/refund/chargeback/etc).
+export async function loadSettlementSourceForLedger(
+  client: PoolClient,
+  organizationId: string,
+  batchId: string,
+): Promise<{
+  deductions: Array<{
+    sourceDeductionId: string;
+    type:
+      | "mdr"
+      | "commission"
+      | "gst"
+      | "refund"
+      | "chargeback"
+      | "adjustment"
+      | "hold"
+      | "hold_release"
+      | "rounding"
+      | "rental"
+      | "subscription"
+      | "recovery";
+    amount: number;
+    taxAmount: number;
+  }>;
+  bankCredits: Array<{
+    sourceBankCreditId: string;
+    amount: number;
+    creditedAt: Date;
+  }>;
+}> {
+  const deductionRows = await client.query<{
+    id: string;
+    deduction_type:
+      | "mdr"
+      | "commission"
+      | "gst"
+      | "refund"
+      | "chargeback"
+      | "adjustment"
+      | "hold"
+      | "hold_release"
+      | "rounding"
+      | "rental"
+      | "subscription"
+      | "recovery";
+    amount: string;
+    tax_amount: string;
+  }>(
+    `SELECT id, deduction_type, amount::text, tax_amount::text
+       FROM merchant_settlement_deductions
+      WHERE organization_id = $1 AND batch_id = $2`,
+    [organizationId, batchId],
+  );
+  const creditRows = await client.query<{
+    id: string;
+    amount: string;
+    credited_at: Date;
+  }>(
+    `SELECT id, amount::text, credited_at
+       FROM merchant_settlement_bank_credits
+      WHERE organization_id = $1 AND batch_id = $2`,
+    [organizationId, batchId],
+  );
+  return {
+    deductions: deductionRows.rows.map((row) => ({
+      sourceDeductionId: row.id,
+      type: row.deduction_type,
+      amount: Number(row.amount),
+      taxAmount: Number(row.tax_amount),
+    })),
+    bankCredits: creditRows.rows.map((row) => ({
+      sourceBankCreditId: row.id,
+      amount: Number(row.amount),
+      creditedAt: row.credited_at,
+    })),
+  };
+}
+
 export async function ensureDefaultMerchantAccount(
   client: PoolClient,
   organizationId: string,

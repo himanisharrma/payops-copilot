@@ -74,7 +74,7 @@ export async function insertRefundAllocation(
     refundUtr: string | null;
     refundStatementReference: string | null;
   },
-): Promise<{ inserted: boolean }> {
+): Promise<{ inserted: boolean; id: string | null }> {
   const result = await client.query<{ id: string }>(
     `INSERT INTO reconciliation_refund_allocations (
        organization_id, parent_item_id, parent_run_id, refund_source_run_id,
@@ -102,7 +102,30 @@ export async function insertRefundAllocation(
       input.refundStatementReference,
     ],
   );
-  return { inserted: result.rowCount === 1 };
+  return {
+    inserted: result.rowCount === 1,
+    id: result.rows[0]?.id ?? null,
+  };
+}
+
+// Slice 6b — refund_allocations doesn't store provider directly; the
+// linkage is parent_item_id → reconciliation_items → run → provider_id.
+// Bridge 3 (refund netting → ledger) needs this for the per-PG card to
+// attribute the refund to the right provider_receivable account.
+export async function getProviderForAllocation(
+  client: PoolClient,
+  organizationId: string,
+  parentItemId: string,
+): Promise<string> {
+  const result = await client.query<{ provider_id: string | null }>(
+    `SELECT run.provider_id
+       FROM reconciliation_items item
+       JOIN reconciliation_runs run
+         ON run.id = item.run_id AND run.organization_id = item.organization_id
+      WHERE item.organization_id = $1 AND item.id = $2`,
+    [organizationId, parentItemId],
+  );
+  return result.rows[0]?.provider_id ?? "generic";
 }
 
 export async function sumAppliedAllocationsForParent(

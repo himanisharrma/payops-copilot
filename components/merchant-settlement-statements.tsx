@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   BadgeIndianRupee,
   Banknote,
+  CheckCircle2,
+  CircleAlert,
   FileCheck2,
   Landmark,
   Link2,
@@ -66,6 +69,7 @@ export type MerchantSettlementDeduction = {
 
 export type MerchantSettlementStatement = {
   id: string;
+  merchantAccountId: string;
   merchantName: string;
   merchantCode: string;
   provider: string;
@@ -176,6 +180,161 @@ function summarize(items: MerchantSettlementStatement[]) {
           : 1),
     }),
     { gross: 0, deductions: 0, net: 0, outstanding: 0, exceptions: 0 },
+  );
+}
+
+// Slice 6b — wedge widget. One card per opened settlement detail
+// drawer. Reads the per-PG receivable breakdown from the ledger via
+// GET /api/ledger/provider-receivable and renders the algebraic
+// opening + captures - fees - GST - refunds - bank credits = closing
+// proof for THIS batch's provider. Closing = ₹0 → tied out ✓
+type ProviderReceivableBreakdownDto = {
+  provider: string;
+  batchId: string;
+  batchEffectiveAt: string;
+  openingReceivable: number;
+  closingReceivable: number;
+  movements: {
+    mdr: number;
+    gst: number;
+    refundsNetted: number;
+    bankCredits: number;
+  };
+  status: "tied_out" | "under_settled" | "over_settled";
+  buckets: { inFlight: number; reconciled: number; disputed: number };
+  utrsInWindow: string[];
+};
+
+function ProviderReceivableCard({
+  merchantAccountId,
+  batchId,
+  providerLabel,
+}: {
+  merchantAccountId: string;
+  batchId: string;
+  providerLabel: string;
+}) {
+  type FetchState =
+    | { phase: "loading" }
+    | { phase: "ready"; data: ProviderReceivableBreakdownDto }
+    | { phase: "error"; error: string };
+  const [state, setState] = useState<FetchState>({ phase: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams({ merchantAccountId, batchId });
+    fetch(`/api/ledger/provider-receivable?${params}`)
+      .then(async (response) => {
+        const json = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            typeof json?.error === "string"
+              ? json.error
+              : "Could not load receivable.",
+          );
+        }
+        if (!cancelled) {
+          setState({ phase: "ready", data: json as ProviderReceivableBreakdownDto });
+        }
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setState({ phase: "error", error: err.message });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [merchantAccountId, batchId]);
+
+  if (state.phase === "loading") {
+    return (
+      <section className="provider-receivable-card" aria-busy="true">
+        <header>
+          <span>Per-PG receivable</span>
+          <h3>Loading…</h3>
+        </header>
+      </section>
+    );
+  }
+  if (state.phase === "error") {
+    return (
+      <section className="provider-receivable-card is-error">
+        <header>
+          <span>Per-PG receivable</span>
+          <h3>Could not load</h3>
+        </header>
+        <p>{state.error}</p>
+      </section>
+    );
+  }
+  const { data } = state;
+
+  const statusLabel =
+    data.status === "tied_out"
+      ? "Tied out"
+      : data.status === "under_settled"
+        ? "Under-settled — investigate"
+        : "Over-settled";
+  const statusIcon =
+    data.status === "tied_out" ? <CheckCircle2 size={16} /> : <CircleAlert size={16} />;
+
+  return (
+    <section
+      className={`provider-receivable-card status-${data.status}`}
+    >
+      <header>
+        <span>Per-PG receivable</span>
+        <h3>Receivable from {providerLabel}</h3>
+        <div className="status-pill">
+          {statusIcon}
+          <strong>{statusLabel}</strong>
+        </div>
+      </header>
+      <dl className="receivable-waterfall">
+        <div>
+          <dt>Opening receivable</dt>
+          <dd>{money(data.openingReceivable)}</dd>
+        </div>
+        <div className="row-minus">
+          <dt>− MDR</dt>
+          <dd>{money(data.movements.mdr)}</dd>
+        </div>
+        <div className="row-minus">
+          <dt>− GST</dt>
+          <dd>{money(data.movements.gst)}</dd>
+        </div>
+        <div className="row-minus">
+          <dt>− Refunds netted</dt>
+          <dd>{money(data.movements.refundsNetted)}</dd>
+        </div>
+        <div className="row-minus">
+          <dt>− Bank credit (UTR)</dt>
+          <dd>{money(data.movements.bankCredits)}</dd>
+        </div>
+        <div className="row-total">
+          <dt>= Closing receivable</dt>
+          <dd>{money(data.closingReceivable)}</dd>
+        </div>
+      </dl>
+      <ul className="receivable-buckets">
+        <li>
+          <span>In-flight</span>
+          <strong>{money(data.buckets.inFlight)}</strong>
+        </li>
+        <li>
+          <span>Reconciled</span>
+          <strong>{money(data.buckets.reconciled)}</strong>
+        </li>
+        <li>
+          <span>Disputed</span>
+          <strong>{money(data.buckets.disputed)}</strong>
+        </li>
+      </ul>
+      {data.utrsInWindow.length > 0 ? (
+        <p className="receivable-utrs">
+          UTRs in this batch: {data.utrsInWindow.join(", ")}
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -470,6 +629,12 @@ export function MerchantSettlementStatements({
                   <small>Deterministic arithmetic only</small>
                 </div>
               </section>
+
+              <ProviderReceivableCard
+                merchantAccountId={selected.merchantAccountId}
+                batchId={selected.id}
+                providerLabel={selected.providerLabel}
+              />
 
               <section className="bank-evidence-card">
                 <header>
