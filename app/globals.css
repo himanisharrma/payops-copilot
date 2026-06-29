@@ -5643,6 +5643,31 @@ button:disabled {
   font-size: 0.86rem;
 }
 
+/* Dark-band surfaces on /root-causes (KPI strip, filter bar,
+   fingerprint contract card, trailing-window widget): override the
+   inherited dark text — `var(--text)` was undefined and `var(--muted)`
+   is designed for cream backgrounds. Without these overrides the big
+   KPI numbers, the trailing-window value, the select-control labels,
+   and the descriptive small text all render dark-on-dark. */
+.root-cause-method strong,
+.root-cause-kpis strong,
+.root-cause-window strong {
+  color: #fffdf7;
+}
+
+.root-cause-method span,
+.root-cause-kpis span,
+.root-cause-filters label,
+.root-cause-window span,
+.root-cause-method small,
+.root-cause-kpis small {
+  color: rgba(236, 232, 219, 0.62);
+}
+
+.root-cause-filters select {
+  color: #ece8db;
+}
+
 .root-cause-error {
   margin: 0 36px 18px;
   padding: 12px 14px;
@@ -5701,10 +5726,11 @@ button:disabled {
   border-bottom: 1px solid var(--border);
   border-left: 1px solid var(--border);
   background: rgba(18, 20, 24, 0.72);
+  color: #ece8db;
 }
 
 .suggestion-card.promoted {
-  opacity: 0.68;
+  border-left: 3px solid #7ed6ae;
 }
 
 .suggestion-rank {
@@ -5724,7 +5750,7 @@ button:disabled {
 }
 
 .suggestion-heading > span {
-  color: var(--text);
+  color: inherit;
   font-size: 0.82rem;
   line-height: 1.5;
   text-transform: capitalize;
@@ -5754,13 +5780,14 @@ button:disabled {
 }
 
 .suggestion-metrics strong {
+  color: #fffdf7;
   font-size: 0.96rem;
   font-weight: 540;
 }
 
 .suggestion-metrics span {
   margin-top: 3px;
-  color: var(--muted);
+  color: rgba(236, 232, 219, 0.62);
   font-size: 0.64rem;
 }
 
@@ -5773,7 +5800,7 @@ button:disabled {
 
 .suggestion-card footer > span {
   margin-right: auto;
-  color: var(--muted);
+  color: rgba(236, 232, 219, 0.62);
   font-size: 0.66rem;
 }
 
@@ -6167,6 +6194,24 @@ button:disabled {
   border-left: 1px solid var(--border);
   background:
     linear-gradient(145deg, rgba(28, 30, 35, 0.96), rgba(15, 17, 20, 0.96));
+  /* Dark-gradient panel: set a default light body color and scope
+     `--muted` to an on-dark variant so all `var(--muted)` descendants
+     (program-facts span, program-plan p, recurrence-bars a,
+     verification-stop, program-history article span, etc.) render
+     legibly without enumerating each selector. */
+  color: #ece8db;
+  --muted: rgba(236, 232, 219, 0.62);
+}
+
+/* Section titles + key values pop brighter against the dark panel. */
+.program-detail > header h2,
+.program-facts strong,
+.program-trend h3,
+.program-verification h3,
+.program-history h3,
+.verification-stop strong,
+.program-history article strong {
+  color: #fffdf7;
 }
 
 .program-detail > header {
