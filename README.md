@@ -16,6 +16,8 @@
 
 ![PayOps root-cause control board](docs/portfolio/assets/root-cause-control-board.png)
 
+![Per-PG receivable card — Ledger Backbone v1 wedge widget. The card sits on the settlement detail drawer and shows opening + captures − fees − GST − refunds − bank credit = closing for one PG batch. Closing = ₹0 with the green ✓ pill means the batch tied out. Synthetic data only.](docs/portfolio/assets/per-pg-receivable-card.png)
+
 ## Portfolio reviewer quick-start
 
 | Item | Details |

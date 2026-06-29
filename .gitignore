@@ -7,3 +7,5 @@ coverage
 *.log
 .DS_Store
 .vercel
+.playwright-mcp
+tsconfig.tsbuildinfo
