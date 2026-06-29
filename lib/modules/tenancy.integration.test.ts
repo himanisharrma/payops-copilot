@@ -11,6 +11,11 @@ import {
   listCases,
   updateCase,
 } from "@/lib/modules/cases/repository";
+import {
+  getBalance,
+  listTransactions,
+  postCaptureEntries,
+} from "@/lib/modules/ledger/service";
 
 type TenantFixture = {
   organizationId: string;
@@ -171,6 +176,81 @@ describe("organization isolation", () => {
         [tenantA.organizationId, tenantB.itemId, tenantB.runId],
       ),
     ).rejects.toMatchObject({ code: "23503" });
+  });
+
+  it("scopes ledger balances and transactions to the posting organization only", async () => {
+    const tenantA = await createTenant("ledger-a");
+    const tenantB = await createTenant("ledger-b");
+    const merchantA = await db.query<{ id: string }>(
+      `INSERT INTO merchant_accounts (organization_id, merchant_reference, display_name)
+       VALUES ($1,$2,$3) RETURNING id`,
+      [tenantA.organizationId, `m-${randomUUID().slice(0, 6)}`, "Tenant A"],
+    );
+    const merchantB = await db.query<{ id: string }>(
+      `INSERT INTO merchant_accounts (organization_id, merchant_reference, display_name)
+       VALUES ($1,$2,$3) RETURNING id`,
+      [tenantB.organizationId, `m-${randomUUID().slice(0, 6)}`, "Tenant B"],
+    );
+
+    await transaction((client) =>
+      postCaptureEntries(
+        client,
+        tenantA.organizationId,
+        [
+          {
+            sourceItemId: randomUUID(),
+            merchantAccountId: merchantA.rows[0].id,
+            provider: "razorpay_demo",
+            grossAmount: 1500,
+            effectiveAt: new Date(),
+            externalRefs: { orderId: "ORD-A", gatewayReference: "PAY-A" },
+          },
+        ],
+        { id: tenantA.userId, name: "A Admin" },
+      ),
+    );
+    await transaction((client) =>
+      postCaptureEntries(
+        client,
+        tenantB.organizationId,
+        [
+          {
+            sourceItemId: randomUUID(),
+            merchantAccountId: merchantB.rows[0].id,
+            provider: "razorpay_demo",
+            grossAmount: 700,
+            effectiveAt: new Date(),
+            externalRefs: { orderId: "ORD-B", gatewayReference: "PAY-B" },
+          },
+        ],
+        { id: tenantB.userId, name: "B Admin" },
+      ),
+    );
+
+    // Crossed reads — tenant A's merchant id queried under tenant B's
+    // organization returns zero, NOT tenant A's data.
+    const crossedBalances = await transaction((client) =>
+      getBalance(
+        client,
+        tenantB.organizationId,
+        merchantA.rows[0].id,
+        new Date(),
+      ),
+    );
+    expect(
+      crossedBalances.find((row) => row.accountRole === "merchant_payable")
+        ?.balance ?? 0,
+    ).toBe(0);
+
+    const crossedList = await transaction((client) =>
+      listTransactions(client, tenantB.organizationId, {
+        merchantAccountId: merchantA.rows[0].id,
+        from: new Date("2026-01-01"),
+        to: new Date("2027-01-01"),
+        limit: 50,
+      }),
+    );
+    expect(crossedList.transactions).toHaveLength(0);
   });
 
   it("rolls back a case mutation and its audit event together", async () => {
