@@ -158,8 +158,22 @@ mutate operations data; viewers cannot. Audit access is admin-only.
   six-score human review, latency, token metadata, and audit attribution.
 - Separate refund and chargeback queues with lifecycle transitions, ownership,
   deadlines, evidence gates, notes, and timelines.
-- A modular monolith backend with thin API routes, domain services, thirteen
+- A modular monolith backend with thin API routes, domain services, nineteen
   repositories, and shared PostgreSQL infrastructure.
+- Layered matching engine (Matching Engine v2 Slices 1–5) with per-item
+  confidence, a 12-code reason taxonomy, manual match/unmatch overrides with
+  admin maker-checker, many-to-one payout sum checks, and refund netting
+  with cross-run parent linkage.
+- Append-only double-entry ledger (Ledger Backbone v1) with a six-account
+  chart per merchant (merchant payable, provider receivable, escrow cash,
+  fee expense, GST liability, refund payable), deterministic idempotency
+  keys, DB-level append-only enforcement, and reversal-by-new-transaction
+  corrections.
+- Per-PG receivable card on the settlement detail drawer answering "did
+  this batch tie out?" via `getProviderReceivableBreakdown`, with
+  Stripe-style 3-bucket decomposition (in-flight / reconciled / disputed).
+- Canary test enforcing ledger ↔ settlement-arithmetic consistency for
+  every seeded batch (drift > ₹0.01 = ship-blocker).
 
 ## Success metrics
 
@@ -194,14 +208,19 @@ For an AI Product Manager role, the artifact demonstrates:
 ## Current limits
 
 - No production payment-provider connection.
-- No automated daily source-ingestion control plane for late, missing,
-  malformed, partial, duplicated, or revised provider/bank files.
-- Matching is still MVP-level compared with real layered payment matching
-  across order, payment, attempt, payout, UTR, bank, ledger, and split
-  identifiers.
-- No immutable accounting ledger that can explain opening balance to closing
-  merchant payable across collections, fees, GST, refunds, chargebacks, holds,
-  releases, payouts, and write-offs.
+- No live / SFTP / email / API ingestion. Source ingestion control plane
+  exists (manual CSV intake with version contract + readiness snapshots) but
+  remains the next major wedge gap per `gaps.md` §P1.
+- Matching engine handles exact + amount/date window + many-to-one payout +
+  refund netting, but still lacks partial captures (multi-capture lifecycle)
+  and fuzzy windows.
+- Ledger Backbone v1 ships on synthetic data with six accounts; v1.1 will
+  add explicit `chargeback_receivable`, `hold`, and `adjustment_writeoff`
+  accounts (currently lumped into `fee_expense`), explicit auto-reverse on
+  source mutation, and multi-currency.
+- No outbound provider escalation outbox — controllers see exception
+  evidence but cannot raise structured provider tickets from inside PayOps
+  (per `gaps.md` §P5, the next foundation).
 - No live provider credentials or production export compatibility claim.
 - No production provider webhook compatibility, certified signature contract,
   managed secrets system, or provider reliability telemetry.

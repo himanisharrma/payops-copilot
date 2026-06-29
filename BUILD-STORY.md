@@ -31,7 +31,7 @@ There were no internal documents to import. That constraint was useful:
 - the project had to teach a non-payments reviewer while still feeling credible
   to someone who has run payment operations.
 
-## The twenty milestones
+## The twenty-two milestones
 
 The dates and commits below come directly from the repository history.
 
@@ -57,6 +57,8 @@ The dates and commits below come directly from the repository history.
 | June 22, 2026 | `4bdb6eb` + current release | Added provider-specific key rotation and webhook trust evidence |
 | June 22, 2026 | `e1302a1` + current release | Added deterministic daily reconciliation close and maker-checker control |
 | June 25, 2026 | current release | Added merchant settlement statements and the Statement Import + Settlement Exception Desk |
+| June 29, 2026 | `1f789b5` (PR #27) | Added Ledger Backbone v1 — append-only double-entry journal with a 6-account chart per merchant (merchant payable, provider receivable, escrow cash, fee expense, GST liability, refund payable), append-only DB trigger, and balance / transactions read APIs |
+| June 29, 2026 | `3ad0122` (PR #28) | Wired Ledger Backbone v1 bridges — reconciliation, merchant-settlements, refund-allocations services now post atomically; added `getProviderReceivableBreakdown` and per-PG receivable widget on the settlement detail drawer; canary test asserts ledger ties to settlement arithmetic |
 
 ### Milestone 1: Make the payment logic visible
 
@@ -369,6 +371,32 @@ Submission freezes a hashed snapshot; a different administrator approves the
 analyst-prepared version. Reopening records a reason without mutating the old
 certificate, so a corrected close becomes a new version rather than rewritten
 history.
+
+### Milestone 21: Make merchant balance provable from first principles
+
+Before this milestone the system could label a mismatch but could not tell a
+controller what the merchant was owed at a point in time, or explain every
+rupee of movement. Ledger Backbone v1 closes that gap with an append-only
+double-entry journal: every capture, fee, GST, refund, payout, and bank credit
+posts as a balanced pair (debits = credits) against a six-account chart
+scoped per merchant. Idempotency keys are deterministic from source events so
+refresh hooks are safe to re-run. A DB trigger blocks UPDATE on entries —
+corrections must post as new reversal transactions, never as silent edits.
+Industry pattern verified: Modern Treasury, Stripe Ledger, Square Books,
+TigerBeetle, and Juspay Hyperswitch all converged on the same shape.
+
+### Milestone 22: Make the wedge visible inside the existing workflow
+
+The ledger only matters if controllers see it where they already work. Three
+one-shot bridges hook the existing reconciliation, merchant-settlement, and
+refund-allocation flows into the ledger — every persisted event now posts
+atomically inside the existing transaction boundary. A per-PG receivable card
+sits inside the settlement detail drawer and answers the daily controller
+question: "did this Razorpay batch tie out?" Closing ≈ ₹0 = green tied-out;
+> ₹0 = amber investigate. A canary test asserts the ledger's
+`merchant_payable` balance ties to `calculateSettlementArithmetic.netAmount`
+on every seeded batch — drift > ₹0.01 is a ship-blocker. The wedge is now
+visible in one screen, with the algebra spelled out.
 
 ## The working workflow
 

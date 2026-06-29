@@ -1,30 +1,33 @@
 # By the Numbers
 
-> Every implemented-project figure below was measured from the Source Ingestion
-> v1.1 working snapshot prepared on June 27, 2026. It
-> is repository evidence, not a production-performance claim.
+> Every implemented-project figure below was measured from the **Ledger
+> Backbone v1** working snapshot prepared on **2026-06-29** (after Slices
+> 6a + 6b merged). It is repository evidence, not a production-performance
+> claim.
 
 ## Delivery
 
 | Metric | Value | Evidence |
 | --- | --- | --- |
-| Build window represented in Git | June 12-16, 2026 | `git log --reverse` |
-| Product milestones | 22 vertical slices | `BUILD-STORY.md` |
+| Build window represented in Git | June 12 – June 29, 2026 | `git log --reverse` |
+| Product milestones | 25 vertical slices | `BUILD-STORY.md` (twenty-two numbered milestones + three unnumbered architecture refactors) |
 | First milestone | Reconciliation MVP | commit `85b09d9` |
-| Latest product milestone | Source Ingestion Control Plane v1.1 | version dossiers, quarantine decisions, accepted-source contract, readiness snapshots |
-| Latest architecture milestone | Source acceptance and readiness evidence | migrations `021`–`025` |
+| Latest product milestone | Ledger Backbone v1 — bridges + per-PG receivable widget (Slice 6b) | commit `3ad0122`, PR #28 |
+| Latest architecture milestone | Append-only double-entry ledger + bridges from existing services | migration `032_ledger_backbone_v1.sql`, three bridges in reconciliation / merchant-settlements / refund-allocations services |
 
 ## Codebase snapshot
 
 | Metric | Value | Reproducible command or path |
 | --- | --- | --- |
-| Repository files | 230 | `git ls-files --cached --others --exclude-standard` excluding local `gaps.md` |
-| TypeScript and TSX lines | 26,646 | repository source file list piped to `wc -l` |
-| Next.js API route files | 39 | `find app/api -name route.ts` |
-| PostgreSQL migrations | 25 | `db/migrations/` |
-| Automated test cases | 109 | 87 unit/policy plus 22 PostgreSQL integration tests |
+| TypeScript and TSX lines | 36,690 | `find lib app components -name "*.ts" -o -name "*.tsx" \| xargs wc -l` |
+| Next.js API route files | 46 | `find app/api -name route.ts \| wc -l` |
+| PostgreSQL migrations | 32 | `ls db/migrations/ \| wc -l` |
+| Domain modules under `lib/modules/` | 19 | `ls -d lib/modules/*/ \| wc -l` |
+| Automated test cases | 186 | 132 unit/policy plus 54 PostgreSQL integration tests |
+| Ledger posting recipes | 6 | `lib/modules/ledger/posting-recipes.ts` (capture, fee, gst, bank_credit, payout, refund_netting) |
+| Ledger accounts per seeded merchant | 12 | 4 NULL-provider (merchant_payable / escrow_cash / gst_liability / refund_payable) + 4 provider_receivable + 4 fee_expense |
 | Demo CSV reports | 3 | `public/demo/` |
-| Product pages | 15 | Includes reviewer-focused `/demo-control-room`, merchant `/settlements`, and `/settlement-imports` |
+| Product pages | 16 | Includes reviewer-focused `/demo-control-room`, merchant `/settlements`, and `/settlement-imports` |
 | Synthetic AI evaluation cases | 30 | `evals/payment-investigations-v1.ts` |
 | Baseline automated checks | 180 | 30 cases x 6 evaluation dimensions |
 | Persisted scenario rows per run | 7 | one summary for each evaluation scenario |

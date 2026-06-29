@@ -38,7 +38,7 @@ API route -> domain service (validation, state policy, audit orchestration)
           -> lib/db.ts (shared pg pool, query helper, transaction boundary)
 ```
 
-Domains under `lib/modules/`: `reconciliation`, `cases`, `investigations`, `evaluations`, `payment-workflows`, `provider-events`, `source-ingestion`, `notifications`, `insights`, `settlement-control`, `close-control`, `remediation-programs`, `merchant-settlements`, `settlement-imports`, `audit`, `system`. Cross-domain calls go through public module exports — do not recreate a central repository, and do not put business orchestration in route handlers. Add a service when validation, state transitions, cross-repository coordination, or audit writes are needed.
+Domains under `lib/modules/`: `reconciliation`, `cases`, `investigations`, `evaluations`, `payment-workflows`, `provider-events`, `source-ingestion`, `notifications`, `insights`, `settlement-control`, `close-control`, `remediation-programs`, `merchant-settlements`, `settlement-imports`, `manual-matches`, `refund-allocations`, `ledger`, `audit`, `system`. Cross-domain calls go through public module exports — do not recreate a central repository, and do not put business orchestration in route handlers. Add a service when validation, state transitions, cross-repository coordination, or audit writes are needed.
 
 **Deterministic vs. AI split.** The product's central design rule is that financial truth comes from deterministic TypeScript and persisted source evidence — never from a model. `lib/reconciliation.ts` calculates matches and exceptions; `lib/ai-investigator.ts` produces structured Zod-validated investigation drafts that require human approval. AI may not edit financial records, resolve cases, or contact providers. If `OPENAI_API_KEY` is missing, AI paths fall back to a labeled deterministic evidence-rules path.
 
@@ -54,7 +54,7 @@ PayOps is a portfolio MVP for Indian mid-market merchant finance / payment-ops t
 
 All data is synthetic. It does not connect to live payment providers, banks, or payout rails, and cannot move money. Synthetic provider names (Razorpay-style, Cashfree-style, PayU-style), webhook contracts, settlement calendars, and close certificates are demo policies — do not imply real integration.
 
-The wedge (per `gaps.md` review) is a **multi-PG settlement-exception desk for Indian merchants**: prove UTR / fee / GST / refund / chargeback / hold / bank-credit mismatches across 2–5 PGs before month close, and produce controller-ready evidence packets. The roadmap to get there (see `AGENTS.md`) is Source Ingestion Control Plane (shipped) → Matching Engine v2 → Ledger Backbone v1, then escalation. No new governance / dashboard / certificate / AI-review surfaces until those foundations land — see "Do not add new governance surfaces" below.
+The wedge (per `gaps.md` review) is a **multi-PG settlement-exception desk for Indian merchants**: prove UTR / fee / GST / refund / chargeback / hold / bank-credit mismatches across 2–5 PGs before month close, and produce controller-ready evidence packets. The roadmap to get there (see `AGENTS.md`) is Source Ingestion Control Plane (shipped) → Matching Engine v2 (Slices 1–5 shipped) → Ledger Backbone v1 (Slices 6a + 6b shipped 2026-06-29) → **escalation (next)**. No new governance / dashboard / certificate / AI-review surfaces until escalation lands and real-file ingestion is credible — see "Do not add new governance surfaces" below.
 
 The "PayOps Copilot" name is historical (repo + Vercel URL still resolve through it). User-facing surfaces now lead with **PayOps**; "Copilot" framing is downgraded because the AI is not load-bearing.
 
@@ -151,7 +151,7 @@ These guardrails are working if:
 - clarifying questions arrive before implementation, not after a wrong turn.
 
 ### Do not add new governance surfaces
-No new dashboards, certificates, AI-review screens, control-room surfaces, evaluation harnesses, or "trust" ledgers until **Matching Engine v2** and **Ledger Backbone v1** ship against real (non-synthetic) files. Existing surfaces (`/quality`, `/webhook-operations`, `/close-control`, `/root-causes`, `/demo-control-room`, `/insights`) stay — they're demoted in nav but functional. Source: `gaps.md` §"What I would stop building." The repo already has more governance scaffolding than it has real ingestion or ledger truth; adding more before those foundations is overbuild, not progress.
+No new dashboards, certificates, AI-review screens, control-room surfaces, evaluation harnesses, or "trust" ledgers until escalation ships AND real-file (non-synthetic) ingestion is credible. Matching Engine v2 (Slices 1–5) and Ledger Backbone v1 (6a + 6b) shipped on synthetic data — the synthetic-data foundations are done, but real-file ingestion + escalation are still the unfilled wedge gaps per `gaps.md` §P1 / §P5. Existing surfaces (`/quality`, `/webhook-operations`, `/close-control`, `/root-causes`, `/demo-control-room`, `/insights`) stay — they're demoted in nav but functional. Source: `gaps.md` §"What I would stop building."
 
 If a request implies a new surface in that category, push back: name the foundation gap it's papering over, and propose extending an existing surface instead — or defer.
 

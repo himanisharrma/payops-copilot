@@ -191,6 +191,19 @@ The migration chain is append-only:
 | `017_reconciliation_close_control.sql` | Daily close periods, immutable versions, residual dispositions, maker-checker approval, and reopen evidence |
 | `018_recurring_exception_programs.sql` | Organization-scoped remediation programs, linked cases, implementation evidence, verification attribution, and append-only events |
 | `019_merchant_settlement_statements.sql` | Synthetic merchant accounts, settlement batches, line items, deductions, bank credits, case links, and timeline events |
+| `020_statement_import_exception_desk.sql` | Imported settlement rows, comparison snapshots, exception inventory, and adjustment proposal lifecycle |
+| `021_source_ingestion_control_plane.sql` | Source-of-truth expectations, version-aware arrivals, version dossiers, and tenant-scoped review queues |
+| `022_source_ingestion_review_and_readiness.sql` | Reviewer attribution on arrivals, daily readiness snapshots, and recon eligibility gates |
+| `023_source_ingestion_version_contract.sql` | Immutable accepted-source contract linking versions to downstream eligibility |
+| `024_source_ingestion_duplicate_lineage.sql` | Superseded-file lineage and replaced-by tracking for revised submissions |
+| `025_source_ingestion_duplicate_constraint_fix.sql` | Constraint correction for duplicate / revised source-ingestion tracking |
+| `026_matching_engine_v2.sql` | Match strategy enum, per-item confidence, and reason-code substrate for layered matching |
+| `027_reason_codes.sql` | 12-code reconciliation reason-code taxonomy + classifier policy materialization |
+| `028_merchant_settlement_lines_order_id_idx.sql` | Cross-table refresh index supporting reason-code recomputation on settlement changes |
+| `029_manual_match_overrides.sql` | Analyst-facing manual match / unmatch override records with admin maker-checker audit |
+| `030_payout_sum_check.sql` | `payout_sum_mismatch` group-level reason code + persisted sibling-context evidence |
+| `031_refund_allocations.sql` | Refund allocation lifecycle, cross-run parent linkage, partial UNIQUE for idempotency, and 12th reason code `refund_offset_recognized` |
+| `032_ledger_backbone_v1.sql` | Append-only double-entry ledger — accounts (per-merchant chart with `NULLS NOT DISTINCT`), transactions (with idempotency key + reversal_of FK), entries (debit/credit pair), append-only UPDATE trigger, and seed for the 6-account chart |
 
 ## 4. Identity, organization, and roles
 
@@ -217,15 +230,17 @@ owns its PostgreSQL queries under `lib/modules/<domain>/repository.ts`.
 route handler -> domain policy/service -> domain repository -> lib/db.ts
 ```
 
-Current modules are reconciliation, cases, investigations, evaluations,
-payment workflows, provider events, notifications, insights, settlement
-control, merchant settlements, close control, remediation programs, audit, and
-system health.
+Current modules (nineteen) are reconciliation, cases, investigations,
+evaluations, payment workflows, provider events, source ingestion,
+notifications, insights, settlement control, merchant settlements,
+settlement imports, close control, remediation programs, manual matches,
+refund allocations, **ledger**, audit, and system health.
 This preserves one deployment
 while removing the central repository as a coupling point.
 
 Reconciliation, payment workflows, cases, evaluations, investigations,
-provider events, notifications, and insights have service layers. Services validate
+provider events, notifications, insights, manual matches, refund
+allocations, and ledger have service layers. Services validate
 state transitions, signed payloads, review payloads, and
 reconciliation requests; coordinate persistence, deterministic execution, and
 AI execution; and write audit evidence. Their API routes handle authentication,
@@ -310,12 +325,65 @@ schedules, arrival SLAs, organization-scoped source versions, schema profiles,
 control totals, audited quarantine decisions, immutable accepted-source
 contracts, superseded lineage, and persisted readiness snapshots. Downstream
 workflows may trust only an accepted source version; an uploaded file alone is
-not a reconciliation contract. The next architecture gap is the matching layer, which needs
-to evolve beyond order/gateway-reference matching into layered confidence
-matching across payment, attempt, payout, UTR, bank, reversal, and partial
-refund/capture evidence. After that, PayOps needs an immutable ledger backbone
-for merchant payable, provider receivable, bank cash, fees, GST, refunds,
-chargebacks, holds, releases, and adjustments.
+not a reconciliation contract. The matching layer and ledger backbone — both
+called out as architecture gaps in earlier versions of this document — have
+since shipped (Matching Engine v2 Slices 1–5; Ledger Backbone v1 Slices 6a +
+6b; see the Ledger Backbone section below). The next architecture gap is
+real-file ingestion (live provider / bank / SFTP / API pulls) and the
+Evidence Escalation Outbox.
+
+## Ledger Backbone v1
+
+`lib/modules/ledger/` implements an append-only double-entry journal that
+answers "merchant X ka mere upar abhi ₹Y payable hai, kal raat 11:59 IST
+ko kya tha?" Industry pattern verified across Modern Treasury, Stripe
+Ledger, Square Books, TigerBeetle, Increase, and Juspay Hyperswitch — all
+converged on this shape.
+
+**Three tables (migration 032):**
+
+- `ledger_accounts` — chart of accounts per merchant. Six roles in v1:
+  `merchant_payable` (liability), `provider_receivable` (asset, per-PG),
+  `escrow_cash` (asset), `fee_expense` (expense, per-PG), `gst_liability`
+  (expense — see commit-log note), `refund_payable` (liability, reserved
+  for v1.1 refund initiation). UNIQUE constraint uses
+  `NULLS NOT DISTINCT` so NULL-provider rows dedupe correctly on lazy
+  re-provisioning.
+- `ledger_transactions` — one row per economic event with deterministic
+  `idempotency_key` (e.g., `capture:<itemId>`, `fee:<deductionId>:<amount>`
+  — amount-in-key handles refresh-mutation drift), `effective_at` separate
+  from `posted_at`, optional `reversal_of` FK.
+- `ledger_entries` — balanced pairs (debit + credit). Service layer
+  asserts Σdebit = Σcredit in cents math before insert; a DB trigger
+  blocks UPDATE on entries (DELETE allowed for legitimate organization
+  cascade).
+
+**Six posting recipes** (`posting-recipes.ts`, pure functions, fully
+unit-testable): `captureToPlan`, `feeToPlan`, `gstToPlan`,
+`bankCreditToPlan`, `payoutToPlan`, `refundNettingToPlan`. Each emits a
+balanced 2-entry pair.
+
+**Three bridges** (Slice 6b) hook the existing flows into the ledger
+atomically inside the caller's transaction: `reconciliation/service.ts`
+(captures), `merchant-settlements/service.ts` (settlement events via
+`loadSettlementSourceForLedger` repo helper), `refund-allocations/
+service.ts` (refund netting, with provider resolved via JOIN through
+parent capture's run).
+
+**Wedge read** — `getProviderReceivableBreakdown(client, org,
+merchantAccountId, batchId)` returns opening + closing
+`provider_receivable` balance bracketing the batch's `effective_at`, plus
+per-source_type movements WHERE `source_batch_id = batchId`. Status
+derived from `|closing|`: ≈ 0 → tied_out (green ✓); > 0 → under_settled
+(amber ⚠); < 0 → over_settled. Surfaced on the `/settlements` detail
+drawer card with a 3-bucket strip (in-flight / reconciled / disputed —
+disputed = 0 in v1, refined in v1.1).
+
+A **canary test** asserts `merchant_payable.balance ≈
+calculateSettlementArithmetic.netAmount` for every seeded batch (drift
+> ₹0.01 = ship-blocker). This catches Bridge 2 drift the same way every
+deployment does — at build time, not by waiting for a controller to
+notice.
 
 ## 6. SLA as policy
 

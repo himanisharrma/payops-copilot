@@ -41,8 +41,14 @@ Use it as the portfolio landing path when the reviewer has little time:
    follow its lineage, and show why a quarantined file is blocked from recon.
 2. **Reconciliation run** - show that three synthetic reports become one
    deterministic ledger.
-3. **Merchant settlement statements** - show gross collected, deductions, net
-   payable, UTR, bank-credit evidence, and linked line-level cases.
+3. **Merchant settlement statements + ledger receivable card** - show gross
+   collected, deductions, net payable, UTR, bank-credit evidence, and linked
+   line-level cases. Then open the settlement detail drawer and point to the
+   "Receivable from Razorpay (UTR ...)" card with the algebraic breakdown
+   (opening + captures − fees − GST − refunds − bank credit = closing) and
+   the green ✓ tied-out pill for any matched batch. This is the wedge:
+   per-PG receivable, answered visibly from the immutable double-entry
+   ledger.
 4. **Statement import desk** - show staged provider-style CSV rows, comparison
    exceptions, maker/checker adjustment records, and evidence packet export.
 5. **Exception case** - show that actionable differences become owned work with
