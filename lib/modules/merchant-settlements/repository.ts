@@ -594,6 +594,65 @@ function mapSettlementRow(row: SettlementRow): MerchantSettlementListItem {
   };
 }
 
+// Slice 5: load refund deductions for a set of statement_references so
+// the refund-allocation hook can recognize refunds that arrived via the
+// settlement-imports flow (not via the engine's CSV upload). Returns the
+// shape NormalizedRefundRow expects.
+export async function loadRefundCandidatesForStatements(
+  client: PoolClient,
+  organizationId: string,
+  statementReferences: string[],
+): Promise<
+  Array<{
+    orderId: string;
+    amount: number;
+    reference: string;
+    settlementAt: string | null;
+    transactionAt: string | null;
+    utr: string | null;
+    statementReference: string | null;
+  }>
+> {
+  if (statementReferences.length === 0) return [];
+  const result = await client.query<{
+    order_id: string;
+    amount: string;
+    id: string;
+    actual_settlement_at: Date | null;
+    transaction_at: Date | null;
+    utr: string | null;
+    statement_reference: string;
+  }>(
+    `SELECT line.order_id,
+            deduction.amount::text AS amount,
+            deduction.id::text AS id,
+            batch.actual_settlement_at,
+            line.transaction_at,
+            batch.utr,
+            batch.statement_reference
+       FROM merchant_settlement_deductions deduction
+       JOIN merchant_settlement_lines line
+         ON line.id = deduction.line_id
+        AND line.organization_id = deduction.organization_id
+       JOIN merchant_settlement_batches batch
+         ON batch.id = deduction.batch_id
+        AND batch.organization_id = deduction.organization_id
+      WHERE deduction.organization_id = $1
+        AND batch.statement_reference = ANY($2::text[])
+        AND deduction.deduction_type = 'refund'`,
+    [organizationId, statementReferences],
+  );
+  return result.rows.map((row) => ({
+    orderId: row.order_id,
+    amount: Number(row.amount),
+    reference: row.id,
+    settlementAt: row.actual_settlement_at?.toISOString() ?? null,
+    transactionAt: row.transaction_at?.toISOString() ?? null,
+    utr: row.utr,
+    statementReference: row.statement_reference,
+  }));
+}
+
 export function buildStatementReference(candidate: RefreshCandidate) {
   const date = candidate.expectedSettlementAt.toISOString().slice(0, 10);
   return [

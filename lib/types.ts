@@ -78,7 +78,8 @@ export type ProviderFieldMapping =
   | "fee"
   | "tax"
   | "utr"
-  | "statementReference";
+  | "statementReference"
+  | "transactionType";
 
 export type DataQualityIssue = {
   severity: "info" | "warning" | "error";
@@ -220,7 +221,8 @@ export type ReasonCode =
   | "chargeback_pending_recovery"
   | "refund_not_adjusted"
   | "unmatched_other"
-  | "payout_sum_mismatch";
+  | "payout_sum_mismatch"
+  | "refund_offset_recognized";
 
 export type EvidenceSourceType = "orders" | "gateway" | "settlements";
 
@@ -261,6 +263,22 @@ export type ReconciliationItem = {
   sourceEvidence: SourceEvidence[];
 };
 
+// Slice 5 (refund netting). A refund row is detected from the
+// settlements CSV via the `transactionType` adapter field and emitted
+// as a candidate on the engine result. The post-persist
+// `refreshRefundAllocations` hook links each candidate to its parent
+// capture item.
+export type NormalizedRefundRow = {
+  orderId: string;
+  amount: number;
+  reference: string;
+  settlementAt: string | null;
+  transactionAt: string | null;
+  utr: string | null;
+  statementReference: string | null;
+  rowNumber?: number;
+};
+
 export type ReconciliationResult = {
   id?: string;
   generatedAt: string;
@@ -275,6 +293,7 @@ export type ReconciliationResult = {
     matchRate: number;
   };
   items: ReconciliationItem[];
+  refundCandidates: NormalizedRefundRow[];
 };
 
 export type CaseStatus = "open" | "investigating" | "resolved";

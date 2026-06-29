@@ -4,6 +4,7 @@ import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import { DomainError } from "@/lib/modules/errors";
 import { refreshPayoutSumChecks } from "@/lib/modules/reconciliation/reason-codes";
 import { saveReconciliationRun } from "@/lib/modules/reconciliation/repository";
+import { refreshRefundAllocations } from "@/lib/modules/refund-allocations/service";
 import { providerIds } from "@/lib/provider-adapters";
 import { reconcilePayments } from "@/lib/reconciliation";
 import type {
@@ -91,6 +92,18 @@ export async function createReconciliationRun(
       payoutIds,
       "reconciliation_run_persisted",
       { id: actor.id, name: actor.name },
+    );
+
+    // Slice 5: refund netting runs AFTER the payout sum check so that
+    // payout_sum_mismatch (group-level) keeps precedence over the
+    // refund_offset_recognized stamp this hook produces.
+    await refreshRefundAllocations(
+      client,
+      actor.organizationId,
+      stored.refundCandidates,
+      "reconciliation_run_persisted",
+      { id: actor.id, name: actor.name },
+      stored.id,
     );
 
     await recordAuditEvent({
