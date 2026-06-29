@@ -130,18 +130,21 @@ Source Ingestion now includes version dossiers, audited quarantine decisions,
 an immutable accepted-source contract, superseded-file lineage, persisted daily
 readiness snapshots, and tenant/RBAC integration coverage.
 
-**Matching Engine v2** is in progress. Slices 1–4 are shipped: layered
+**Matching Engine v2** is in progress. Slices 1–5 are shipped: layered
 matching strategies + confidence (Slice 1), reason-code taxonomy + cross-table
 refresh hooks (Slices 2a/2b), an analyst-facing manual match / unmatch
-override layer with admin maker-checker on unmatches (Slice 3), and
-many-to-one payout sum checks (Slice 4). The engine stays per-item and
-stateless. Slice 4 stamps `payout_id` (provider statement_reference) on each
-item and `refreshPayoutSumChecks` verifies that `sum(items.settled_amount)`
-for each payout group ties to `SUM(merchant_settlement_bank_credits.amount)`
-for the matching batch; mismatches stamp `payout_sum_mismatch` (the 11th
-reason code) which takes precedence over per-item codes. Remaining: partial
-refunds/captures, fuzzy amount/date windows, duplicates and reversals beyond
-the existing simple cases.
+override layer with admin maker-checker on unmatches (Slice 3), many-to-one
+payout sum checks (Slice 4), and refund netting (Slice 5). The engine stays
+per-item and stateless; every layer is an immutable side artifact composed
+at read time. Slice 5 adds `transactionType` to `ProviderFieldMapping`,
+splits capture rows from refund rows in the settlement CSV, persists
+refunds in `reconciliation_refund_allocations` linked to their parent
+captures (cross-run linkage supported), and stamps the 12th reason code
+`refund_offset_recognized` when effective variance (engine settled + sum of
+allocated refunds − expected net) lands within ₹0.01. Precedence chain:
+per-item codes < `refund_offset_recognized` < `payout_sum_mismatch`;
+manual overrides are orthogonal. Remaining: partial captures (multi-capture
+lifecycle), fuzzy amount/date windows.
 
 After matching, build **Ledger Backbone v1** with immutable merchant payable,
 provider/acquirer receivable, bank cash, fee receivable, GST liability, refund

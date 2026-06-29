@@ -395,16 +395,19 @@ constraints, and completion conditions; encode durable repository guidance in
   immutable accepted-source contracts, superseded lineage, and persisted daily
   readiness snapshots. Intake remains synthetic and manual—not a live provider,
   bank, email, SFTP, or API connection.
-- **In progress: Matching Engine v2.** Slices 1–4 shipped — layered matching
-  strategies with `match_strategy` + `match_confidence` (Slice 1), an 11-code
+- **In progress: Matching Engine v2.** Slices 1–5 shipped — layered matching
+  strategies with `match_strategy` + `match_confidence` (Slice 1), a 12-code
   reason taxonomy with in-engine + cross-table refresh hooks (Slices 2a/2b),
   an analyst-facing manual match / unmatch override layer with admin
-  maker-checker on unmatches (Slice 3), and many-to-one payout sum checks
-  (Slice 4, this slice) that stamp `payout_id` on each item, verify
-  `sum(items.settled_amount) ≈ bank_credit.amount` for every payout group,
-  and flag `payout_sum_mismatch` with sibling-context summary text when the
-  bank under/over-paid relative to the provider's claim. Remaining: partial
-  captures/refunds, fuzzy amount/date windows.
+  maker-checker on unmatches (Slice 3), many-to-one payout sum checks
+  (Slice 4), and refund netting (Slice 5, this slice). The engine now
+  recognizes refund settlement rows via an explicit `transactionType`
+  column, persists them as immutable allocations linked to the parent
+  capture, and stamps `refund_offset_recognized` with refund-context
+  summary text when effective variance ties out. Cross-run linkage means
+  a March capture refunded in May still gets recognized retroactively.
+  Remaining: partial captures (multi-capture lifecycle), fuzzy amount/date
+  windows.
 - **Then: Ledger Backbone v1.** Add immutable merchant payable, provider
   receivable, bank cash, fee/GST, refund, chargeback, hold/release, and
   adjustment ledger entries that explain opening balance to closing payable.

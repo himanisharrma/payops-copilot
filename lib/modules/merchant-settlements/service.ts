@@ -9,6 +9,7 @@ import {
   lockMerchantSettlementRefresh,
   replaceSettlementChildren,
   buildStatementReference,
+  loadRefundCandidatesForStatements,
   upsertSettlementBatch,
   type MerchantSettlementRefreshClock,
 } from "@/lib/modules/merchant-settlements/repository";
@@ -22,6 +23,7 @@ import {
   refreshPayoutSumChecks,
   refreshReasonCodesForOrders,
 } from "@/lib/modules/reconciliation/reason-codes";
+import { refreshRefundAllocations } from "@/lib/modules/refund-allocations/service";
 import type { ProviderId } from "@/lib/types";
 
 const settlementStatuses: Array<MerchantSettlementStatus | "all"> = [
@@ -336,6 +338,22 @@ export async function refreshMerchantSettlements(
         client,
         actor.organizationId,
         Array.from(affectedPayoutIds),
+        "merchant_settlement_refresh",
+        { id: actor.id, name: actor.name },
+      );
+
+      // Slice 5: load refund deductions for the affected batches and
+      // run the refund-allocation hook AFTER the payout sum check so
+      // group-level payout_sum_mismatch keeps precedence.
+      const refundCandidates = await loadRefundCandidatesForStatements(
+        client,
+        actor.organizationId,
+        Array.from(affectedPayoutIds),
+      );
+      await refreshRefundAllocations(
+        client,
+        actor.organizationId,
+        refundCandidates,
         "merchant_settlement_refresh",
         { id: actor.id, name: actor.name },
       );

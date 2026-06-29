@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type {
   EvidenceSourceType,
+  NormalizedRefundRow,
   ProviderFieldMapping,
   RawRecord,
   ReconciliationItem,
@@ -97,6 +98,20 @@ function isSuccessful(status: string, successStatuses: string[]) {
   return successStatuses.includes(status.toLowerCase());
 }
 
+// Slice 5: normalize a provider's transaction-type column value into the
+// engine's canonical enum. Missing or unknown values default to
+// "settlement" so adapters that pre-date Slice 5 keep working unchanged.
+function normalizeTransactionType(
+  value: unknown,
+): "settlement" | "refund" | "chargeback" {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized === "refund" || normalized === "refunds") return "refund";
+  if (normalized === "chargeback" || normalized === "dispute") {
+    return "chargeback";
+  }
+  return "settlement";
+}
+
 export function reconcilePayments(
   request: ReconciliationRequest,
   now: string | Date = new Date(),
@@ -121,7 +136,7 @@ export function reconcilePayments(
     transactionAt: text(readProviderField(row, provider, "transactionAt")),
   }));
 
-  const settlementRows = settlements.map((row, index) => ({
+  const rawSettlementRows = settlements.map((row, index) => ({
     raw: row,
     rowNumber: index + 1,
     orderId: text(readProviderField(row, provider, "orderId")),
@@ -131,7 +146,31 @@ export function reconcilePayments(
     status: text(readProviderField(row, provider, "status")),
     settlementAt: text(readProviderField(row, provider, "settlementAt")),
     statementReference: text(readProviderField(row, provider, "statementReference")),
+    transactionType: normalizeTransactionType(
+      readProviderField(row, provider, "transactionType"),
+    ),
   }));
+
+  // Slice 5: split refund rows out of the per-item match. Captures feed
+  // into selectMatchOutcome; refunds become candidates that the
+  // post-persist refreshRefundAllocations hook links to their parents.
+  // chargeback rows pass through silently as unmatched_other — out of
+  // scope for Slice 5.
+  const settlementRows = rawSettlementRows.filter(
+    (row) => row.transactionType === "settlement",
+  );
+  const refundCandidates: NormalizedRefundRow[] = rawSettlementRows
+    .filter((row) => row.transactionType === "refund")
+    .map((row) => ({
+      orderId: row.orderId,
+      amount: Math.abs(row.settledAmount),
+      reference: row.reference,
+      settlementAt: row.settlementAt || null,
+      transactionAt: row.settlementAt || null,
+      utr: row.utr || null,
+      statementReference: row.statementReference || null,
+      rowNumber: row.rowNumber,
+    }));
 
   const orderCounts = new Map<string, number>();
   for (const row of gatewayRows) {
@@ -481,5 +520,6 @@ export function reconcilePayments(
       matchRate: items.length ? cents((matched.length / items.length) * 100) : 0,
     },
     items,
+    refundCandidates,
   };
 }
