@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import { db, transaction } from "@/lib/db";
 import {
   getBalance,
-  getBalanceWithFormula,
   listTransactions,
   postCaptureEntries,
   postRefundNettingEntries,
@@ -340,60 +339,6 @@ describe("ledger service — append-only DB trigger", () => {
         org,
       ]),
     ).rejects.toThrow(/ledger_entries is append-only/);
-  });
-});
-
-describe("ledger service — getBalanceWithFormula", () => {
-  it("composes opening + collections - mdr - gst - refund - payouts = closing across a window", async () => {
-    const org = await makeOrg("formula");
-    const merchant = await makeMerchant(org, "formula");
-    const dayStartUtc = new Date("2026-06-20T18:30:00Z"); // start of IST day 2026-06-21
-    const within = new Date("2026-06-21T05:00:00Z");
-    const asOf = new Date("2026-06-21T18:29:59Z");
-    const batchId = randomUUID();
-
-    await transaction((client) =>
-      postCaptureEntries(
-        client,
-        org,
-        [capture(merchant, 1000, within, "f1")],
-        ACTOR,
-      ),
-    );
-    await transaction((client) =>
-      postSettlementEntries(
-        client,
-        org,
-        {
-          batchId,
-          merchantAccountId: merchant,
-          provider: "razorpay_demo",
-          utr: "UTR-F",
-          effectiveAt: within,
-          netAmount: 976.4,
-          deductions: [
-            { sourceDeductionId: randomUUID(), type: "mdr", amount: 20, taxAmount: 0 },
-            { sourceDeductionId: randomUUID(), type: "gst", amount: 3.6, taxAmount: 0 },
-          ],
-          bankCredits: [
-            { sourceBankCreditId: randomUUID(), amount: 976.4, creditedAt: within },
-          ],
-        },
-        ACTOR,
-      ),
-    );
-
-    const { formula } = await transaction((client) =>
-      getBalanceWithFormula(client, org, merchant, asOf),
-    );
-    expect(formula.openingPayable).toBe(0);
-    expect(formula.collections).toBe(1000);
-    expect(formula.mdr).toBe(20);
-    expect(formula.gst).toBe(3.6);
-    expect(formula.payouts).toBe(976.4);
-    expect(formula.closingPayable).toBe(23.6);
-    // Sanity: this matches the lifecycle test's merchant_payable.
-    expect(dayStartUtc.toISOString()).toBe("2026-06-20T18:30:00.000Z");
   });
 });
 

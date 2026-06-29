@@ -361,41 +361,6 @@ export async function listTransactionsForMerchant(
   return { transactions, nextCursor };
 }
 
-// Window deltas per source_type. Each ledger_transaction has a balanced
-// pair so the debit-side amount is the canonical movement size; SUMming
-// either direction works. Used by getBalanceWithFormula to compose the
-// 8-term opening + ... = closing breakdown without dual-counting.
-export async function sumTransactionAmountsBySourceType(
-  client: PoolClient,
-  organizationId: string,
-  merchantAccountId: string,
-  from: Date,
-  to: Date,
-): Promise<Map<SourceType, number>> {
-  const result = await client.query<{ source_type: SourceType; total: string }>(
-    `SELECT t.source_type,
-            COALESCE(SUM(e.amount), 0)::text AS total
-       FROM ledger_transactions t
-       JOIN ledger_entries e
-         ON e.transaction_id = t.id AND e.organization_id = t.organization_id
-       JOIN ledger_accounts a
-         ON a.id = e.account_id AND a.organization_id = e.organization_id
-      WHERE t.organization_id = $1
-        AND a.merchant_account_id = $2
-        AND t.effective_at > $3
-        AND t.effective_at <= $4
-        AND e.direction = 'debit'
-        AND t.reversal_of IS NULL
-   GROUP BY t.source_type`,
-    [organizationId, merchantAccountId, from, to],
-  );
-  const map = new Map<SourceType, number>();
-  for (const row of result.rows) {
-    map.set(row.source_type, Number(row.total));
-  }
-  return map;
-}
-
 export async function loadTransactionWithEntries(
   client: PoolClient,
   organizationId: string,

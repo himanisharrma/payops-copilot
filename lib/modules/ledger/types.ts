@@ -73,19 +73,6 @@ export type BalanceRow = {
   balance: number;
 };
 
-export type FormulaBreakdown = {
-  openingPayable: number;
-  collections: number;
-  mdr: number;
-  gst: number;
-  refund: number;
-  chargeback: number;
-  holds: number;
-  releases: number;
-  payouts: number;
-  closingPayable: number;
-};
-
 export type PostResult = {
   transactionsPosted: number;
   transactionsSkippedIdempotent: number;

@@ -3,7 +3,6 @@ import {
   assertBalanced,
   bankCreditToPlan,
   captureToPlan,
-  composeFormula,
   feeToPlan,
   gstToPlan,
   payoutToPlan,
@@ -230,51 +229,3 @@ describe("idempotency-key determinism", () => {
   });
 });
 
-describe("composeFormula", () => {
-  it("closing = opening + collections - payouts (canonical merchant_payable identity)", () => {
-    const formula = composeFormula({
-      openingPayable: 1000,
-      balances: [],
-      windowDeltas: {
-        collections: 500,
-        mdr: 10,
-        gst: 1.8,
-        refund: 50,
-        chargeback: 0,
-        holds: 20,
-        releases: 5,
-        payouts: 400,
-      },
-    });
-    expect(formula.openingPayable).toBe(1000);
-    expect(formula.collections).toBe(500);
-    // MDR/GST/refund/holds/releases display as gap-explanation memos —
-    // they don't enter the closing math (they touch fee_expense /
-    // gst_liability / provider_receivable in v1, not merchant_payable).
-    expect(formula.mdr).toBe(10);
-    expect(formula.gst).toBe(1.8);
-    expect(formula.refund).toBe(50);
-    expect(formula.holds).toBe(20);
-    expect(formula.releases).toBe(5);
-    expect(formula.payouts).toBe(400);
-    expect(formula.closingPayable).toBe(1000 + 500 - 400);
-  });
-
-  it("rounds to 2 decimals (avoid float drift)", () => {
-    const formula = composeFormula({
-      openingPayable: 0.1,
-      balances: [],
-      windowDeltas: {
-        collections: 0.2,
-        mdr: 0,
-        gst: 0,
-        refund: 0,
-        chargeback: 0,
-        holds: 0,
-        releases: 0,
-        payouts: 0,
-      },
-    });
-    expect(formula.closingPayable).toBe(0.3);
-  });
-});

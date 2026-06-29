@@ -3,14 +3,17 @@ import { requireActor } from "@/lib/access";
 import { apiErrorResponse } from "@/lib/api-errors";
 import { transaction } from "@/lib/db";
 import { DomainError } from "@/lib/modules/errors";
-import { getBalanceWithFormula } from "@/lib/modules/ledger/service";
+import { getBalance } from "@/lib/modules/ledger/service";
 import { balanceQuerySchema } from "@/lib/modules/ledger/schema";
 
 // GET /api/ledger/balance?merchantAccountId=<uuid>&asOf=<iso?>
 //
 // Returns the merchant's chart-of-accounts balances as of the given
-// instant (defaults to now) plus the 8-term formula breakdown the
-// wedge widget renders. Admin + analyst only.
+// instant (defaults to now). The wedge per-PG-receivable breakdown
+// lives in a separate Slice 6b endpoint
+// (GET /api/ledger/provider-receivable) — this route returns the raw
+// per-account balances used by tooling and downstream consumers.
+// Admin + analyst only.
 export async function GET(request: NextRequest) {
   try {
     const actor = await requireActor(["admin", "analyst"]);
@@ -26,15 +29,15 @@ export async function GET(request: NextRequest) {
       );
     }
     const asOf = parsed.data.asOf ? new Date(parsed.data.asOf) : new Date();
-    const result = await transaction((client) =>
-      getBalanceWithFormula(
+    const balances = await transaction((client) =>
+      getBalance(
         client,
         actor.organizationId,
         parsed.data.merchantAccountId,
         asOf,
       ),
     );
-    return NextResponse.json({ asOf: asOf.toISOString(), ...result });
+    return NextResponse.json({ asOf: asOf.toISOString(), balances });
   } catch (error) {
     return apiErrorResponse(error, "Ledger balance could not be read.");
   }

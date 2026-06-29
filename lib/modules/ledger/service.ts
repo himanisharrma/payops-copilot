@@ -5,7 +5,6 @@ import {
   assertBalanced,
   bankCreditToPlan,
   captureToPlan,
-  composeFormula,
   feeToPlan,
   gstToPlan,
   payoutToPlan,
@@ -22,14 +21,12 @@ import {
   listTransactionsForMerchant,
   loadTransactionWithEntries,
   sumEntriesAsOf,
-  sumTransactionAmountsBySourceType,
 } from "./repository";
 import type {
   AccountRole,
   Actor,
   BalanceRow,
   CaptureSource,
-  FormulaBreakdown,
   LedgerAccount,
   LedgerTransaction,
   PostResult,
@@ -374,65 +371,6 @@ function applySign(
   const raw =
     type === "asset" || type === "expense" ? debit - credit : credit - debit;
   return Math.round(raw * 100) / 100;
-}
-
-// Compose the 8-term opening + ... = closing breakdown for the IST
-// calendar day that contains `asOf`.
-//
-// Approach: each source_type maps 1:1 onto a formula term, so we sum
-// transaction amounts grouped by source_type in the (start_of_day, asOf]
-// window. Reversals are excluded — their netting effect already shows up
-// as the (signed) opposite of the original. v1 maps chargeback to MDR
-// (until v1.1 splits chargeback_receivable out of fee_expense), and
-// holds/releases stay 0 (deferred to v1.1 with the `hold` account).
-export async function getBalanceWithFormula(
-  client: PoolClient,
-  organizationId: string,
-  merchantAccountId: string,
-  asOf: Date,
-): Promise<{ balances: BalanceRow[]; formula: FormulaBreakdown }> {
-  const startOfWindow = startOfIstDay(asOf);
-  const balances = await getBalance(client, organizationId, merchantAccountId, asOf);
-  const openingBalances = await getBalance(
-    client,
-    organizationId,
-    merchantAccountId,
-    startOfWindow,
-  );
-  const opening = openingBalances
-    .filter((row) => row.accountRole === "merchant_payable")
-    .reduce((sum, row) => sum + row.balance, 0);
-
-  const totals = await sumTransactionAmountsBySourceType(
-    client,
-    organizationId,
-    merchantAccountId,
-    startOfWindow,
-    asOf,
-  );
-  const formula = composeFormula({
-    openingPayable: opening,
-    balances,
-    windowDeltas: {
-      collections: totals.get("capture") ?? 0,
-      mdr: totals.get("fee") ?? 0,
-      gst: totals.get("gst") ?? 0,
-      refund: totals.get("refund_netting") ?? 0,
-      chargeback: 0,
-      holds: 0,
-      releases: 0,
-      payouts: totals.get("payout") ?? 0,
-    },
-  });
-  return { balances, formula };
-}
-
-function startOfIstDay(date: Date): Date {
-  // IST = UTC+5:30. Floor to the start of the same IST calendar day.
-  const offsetMs = 5.5 * 60 * 60 * 1000;
-  const istTime = date.getTime() + offsetMs;
-  const istStart = istTime - (istTime % (24 * 60 * 60 * 1000));
-  return new Date(istStart - offsetMs);
 }
 
 export async function listTransactions(
