@@ -361,6 +361,120 @@ export async function listTransactionsForMerchant(
   return { transactions, nextCursor };
 }
 
+// Slice 6b — read provider_receivable balance for ONE (merchant, provider)
+// at a point in time. Used by getProviderReceivableBreakdown to compute
+// opening (just before batch.effective_at) and closing (at
+// batch.effective_at). Sign convention applied here: asset = debit -
+// credit, so a positive balance = PG owes us; negative = we owe PG.
+export async function sumProviderReceivableAtTime(
+  client: PoolClient,
+  organizationId: string,
+  merchantAccountId: string,
+  provider: ProviderId,
+  asOf: Date,
+): Promise<number> {
+  const result = await client.query<{ debit: string; credit: string }>(
+    `SELECT
+       COALESCE(SUM(CASE WHEN e.direction = 'debit'  THEN e.amount END), 0)::text AS debit,
+       COALESCE(SUM(CASE WHEN e.direction = 'credit' THEN e.amount END), 0)::text AS credit
+       FROM ledger_accounts a
+       LEFT JOIN ledger_entries e
+         ON e.account_id = a.id
+        AND e.organization_id = a.organization_id
+       LEFT JOIN ledger_transactions t
+         ON t.id = e.transaction_id
+        AND t.organization_id = e.organization_id
+        AND t.effective_at <= $4
+      WHERE a.organization_id = $1
+        AND a.merchant_account_id = $2
+        AND a.account_role = 'provider_receivable'
+        AND a.provider = $3
+        AND (e.id IS NULL OR t.id IS NOT NULL)`,
+    [organizationId, merchantAccountId, provider, asOf],
+  );
+  const debit = Number(result.rows[0]?.debit ?? 0);
+  const credit = Number(result.rows[0]?.credit ?? 0);
+  // asset sign convention: debit - credit
+  return Math.round((debit - credit) * 100) / 100;
+}
+
+// Slice 6b — SUM amounts per source_type for entries belonging to ONE
+// batch, restricted to entries touching the provider_receivable
+// account. Each balanced pair has one provider_receivable entry per
+// economic event, so SUMming the absolute amount per source_type gives
+// the movement size per term in the formula (mdr / gst / bank_credit
+// / refund_netting). Reversals are excluded.
+export async function sumBatchProviderReceivableMovementsBySourceType(
+  client: PoolClient,
+  organizationId: string,
+  batchId: string,
+): Promise<Map<SourceType, number>> {
+  const result = await client.query<{ source_type: SourceType; total: string }>(
+    `SELECT t.source_type,
+            COALESCE(SUM(e.amount), 0)::text AS total
+       FROM ledger_transactions t
+       JOIN ledger_entries e
+         ON e.transaction_id = t.id AND e.organization_id = t.organization_id
+       JOIN ledger_accounts a
+         ON a.id = e.account_id AND a.organization_id = e.organization_id
+      WHERE t.organization_id = $1
+        AND t.source_batch_id = $2
+        AND a.account_role = 'provider_receivable'
+        AND t.reversal_of IS NULL
+   GROUP BY t.source_type`,
+    [organizationId, batchId],
+  );
+  const map = new Map<SourceType, number>();
+  for (const row of result.rows) {
+    map.set(row.source_type, Number(row.total));
+  }
+  return map;
+}
+
+// Slice 6b — collect distinct UTRs (from external_refs.utr) for entries
+// in a batch's window. Powers the "UTRs in this batch" memo on the
+// receivable card so controllers can drill into the underlying bank
+// credit / settlement evidence.
+export async function listBatchUtrs(
+  client: PoolClient,
+  organizationId: string,
+  batchId: string,
+): Promise<string[]> {
+  const result = await client.query<{ utr: string }>(
+    `SELECT DISTINCT t.external_refs->>'utr' AS utr
+       FROM ledger_transactions t
+      WHERE t.organization_id = $1
+        AND t.source_batch_id = $2
+        AND t.external_refs->>'utr' IS NOT NULL`,
+    [organizationId, batchId],
+  );
+  return result.rows.map((row) => row.utr).filter((utr): utr is string => Boolean(utr));
+}
+
+// Slice 6b — small read of batch's effective_at + provider for the
+// receivable breakdown lookup. Org-scoped; throws via service layer
+// if not found.
+export async function loadBatchMetadataForLedger(
+  client: PoolClient,
+  organizationId: string,
+  batchId: string,
+): Promise<{ effectiveAt: Date; provider: ProviderId } | null> {
+  const result = await client.query<{
+    effective_at: Date;
+    provider_id: ProviderId;
+  }>(
+    `SELECT
+       COALESCE(actual_settlement_at, expected_settlement_at) AS effective_at,
+       provider_id
+       FROM merchant_settlement_batches
+      WHERE organization_id = $1 AND id = $2`,
+    [organizationId, batchId],
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return { effectiveAt: row.effective_at, provider: row.provider_id };
+}
+
 export async function loadTransactionWithEntries(
   client: PoolClient,
   organizationId: string,

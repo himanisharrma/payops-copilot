@@ -23,6 +23,12 @@ export const reverseBodySchema = z.object({
     .min(8, "Provide a reversal reason of at least 8 characters."),
 });
 
+export const providerReceivableQuerySchema = z.object({
+  merchantAccountId: z.string().uuid(),
+  batchId: z.string().uuid(),
+});
+
 export type BalanceQuery = z.infer<typeof balanceQuerySchema>;
 export type TransactionsQuery = z.infer<typeof transactionsQuerySchema>;
 export type ReverseBody = z.infer<typeof reverseBodySchema>;
+export type ProviderReceivableQuery = z.infer<typeof providerReceivableQuerySchema>;

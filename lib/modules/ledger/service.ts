@@ -18,9 +18,13 @@ import {
   getAccountsForMerchant,
   insertLedgerEntries,
   insertLedgerTransaction,
+  listBatchUtrs,
   listTransactionsForMerchant,
+  loadBatchMetadataForLedger,
   loadTransactionWithEntries,
+  sumBatchProviderReceivableMovementsBySourceType,
   sumEntriesAsOf,
+  sumProviderReceivableAtTime,
 } from "./repository";
 import type {
   AccountRole,
@@ -31,6 +35,7 @@ import type {
   LedgerTransaction,
   PostResult,
   ProviderId,
+  ProviderReceivableBreakdown,
   RefundAllocationSource,
   SettlementSource,
 } from "./types";
@@ -371,6 +376,101 @@ function applySign(
   const raw =
     type === "asset" || type === "expense" ? debit - credit : credit - debit;
   return Math.round(raw * 100) / 100;
+}
+
+// Slice 6b — the wedge read. Returns one (merchant, provider) per-batch
+// receivable summary for the settlement-detail drawer card.
+//
+// Math:
+//   opening   = provider_receivable balance just before batch.effective_at
+//   closing   = provider_receivable balance at batch.effective_at
+//   movements = SUM amounts per source_type for entries with
+//               source_batch_id = batchId touching provider_receivable
+//   status:
+//     |closing| < ₹0.01 → tied_out  (✓ green: PG paid in full)
+//     closing > ₹0.01  → under_settled  (⚠ amber: PG still owes us)
+//     closing < -₹0.01 → over_settled   (ℹ blue: we received more than due)
+//
+// Buckets (v1 crude derivation; v1.1 refines via hold/chargeback
+// source_types):
+//   reconciled = bank_credits movement
+//   inFlight   = opening + captures (proxy: not yet credited)
+//   disputed   = 0  (chargebacks deferred to v1.1)
+export async function getProviderReceivableBreakdown(
+  client: PoolClient,
+  organizationId: string,
+  merchantAccountId: string,
+  batchId: string,
+): Promise<ProviderReceivableBreakdown> {
+  const meta = await loadBatchMetadataForLedger(client, organizationId, batchId);
+  if (!meta) {
+    throw new DomainError("Settlement batch not found.", 404);
+  }
+  // 1 ms before for a clean opening cut. The batch's own ledger
+  // transactions all carry effective_at = meta.effectiveAt, so this
+  // excludes them from opening and includes them in closing.
+  const justBefore = new Date(meta.effectiveAt.getTime() - 1);
+
+  const [opening, closing, movements, utrs] = await Promise.all([
+    sumProviderReceivableAtTime(
+      client,
+      organizationId,
+      merchantAccountId,
+      meta.provider,
+      justBefore,
+    ),
+    sumProviderReceivableAtTime(
+      client,
+      organizationId,
+      merchantAccountId,
+      meta.provider,
+      meta.effectiveAt,
+    ),
+    sumBatchProviderReceivableMovementsBySourceType(
+      client,
+      organizationId,
+      batchId,
+    ),
+    listBatchUtrs(client, organizationId, batchId),
+  ]);
+
+  const mdr = movements.get("fee") ?? 0;
+  const gst = movements.get("gst") ?? 0;
+  const refundsNetted = movements.get("refund_netting") ?? 0;
+  const bankCredits = movements.get("bank_credit") ?? 0;
+  const captures = movements.get("capture") ?? 0;
+
+  const status: ProviderReceivableBreakdown["status"] =
+    Math.abs(closing) < 0.01
+      ? "tied_out"
+      : closing > 0
+        ? "under_settled"
+        : "over_settled";
+
+  return {
+    provider: meta.provider,
+    batchId,
+    batchEffectiveAt: meta.effectiveAt.toISOString(),
+    openingReceivable: opening,
+    closingReceivable: closing,
+    movements: {
+      mdr: round(mdr),
+      gst: round(gst),
+      refundsNetted: round(refundsNetted),
+      bankCredits: round(bankCredits),
+    },
+    status,
+    buckets: {
+      reconciled: round(bankCredits),
+      inFlight: round(Math.max(0, opening + captures - bankCredits)),
+      disputed: 0,
+    },
+    utrsInWindow: utrs,
+  };
+}
+
+function round(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 export async function listTransactions(

@@ -1,11 +1,13 @@
 import type { Actor } from "@/lib/access";
 import { transaction } from "@/lib/db";
 import { recordAuditEvent } from "@/lib/modules/audit/repository";
+import { postSettlementEntries } from "@/lib/modules/ledger/service";
 import {
   ensureDefaultMerchantAccount,
   getMerchantSettlement,
   listRefreshCandidates,
   listMerchantSettlements,
+  loadSettlementSourceForLedger,
   lockMerchantSettlementRefresh,
   replaceSettlementChildren,
   buildStatementReference,
@@ -307,6 +309,32 @@ export async function refreshMerchantSettlements(
         utrMatchStatus: classification.status,
         classificationEvidence: classification.evidence,
       });
+
+      // Slice 6b — Bridge 2: re-read the deductions + bank credits we
+      // just wrote and post them to the ledger as fee/gst/bank_credit/
+      // payout entries. The provider_receivable account for this PG
+      // updates atomically inside the caller's transaction.
+      const ledgerSource = await loadSettlementSourceForLedger(
+        client,
+        actor.organizationId,
+        batch.id,
+      );
+      await postSettlementEntries(
+        client,
+        actor.organizationId,
+        {
+          batchId: batch.id,
+          merchantAccountId,
+          provider: candidate.providerId,
+          utr: candidate.utr,
+          effectiveAt:
+            candidate.actualSettlementAt ?? candidate.expectedSettlementAt,
+          netAmount: arithmetic.netAmount,
+          deductions: ledgerSource.deductions,
+          bankCredits: ledgerSource.bankCredits,
+        },
+        { id: actor.id, name: actor.name },
+      );
     }
 
     const affectedOrderIds = new Set<string>();

@@ -2,6 +2,9 @@ import type { Actor } from "@/lib/access";
 import { transaction } from "@/lib/db";
 import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import { DomainError } from "@/lib/modules/errors";
+import { postCaptureEntries } from "@/lib/modules/ledger/service";
+import type { ProviderId } from "@/lib/modules/ledger/types";
+import { ensureDefaultMerchantAccount } from "@/lib/modules/merchant-settlements/repository";
 import { refreshPayoutSumChecks } from "@/lib/modules/reconciliation/reason-codes";
 import { saveReconciliationRun } from "@/lib/modules/reconciliation/repository";
 import { refreshRefundAllocations } from "@/lib/modules/refund-allocations/service";
@@ -105,6 +108,53 @@ export async function createReconciliationRun(
       { id: actor.id, name: actor.name },
       stored.id,
     );
+
+    // Slice 6b — Bridge 1: post capture entries to the ledger for every
+    // matched / amount_mismatch item the engine wrote. Captures use
+    // orderAmount (gross), not settledAmount — fees + GST are
+    // recognized later via Bridge 2 (merchant-settlements). Items in
+    // 'missing_settlement' / 'gateway_missing' / 'duplicate' /
+    // 'pending' states represent un-settled (or un-known) captures, so
+    // they do NOT post yet — they'd produce phantom provider_receivable
+    // balance without a matched settlement to offset.
+    const captureRows = await client.query<{
+      id: string;
+      order_id: string;
+      gateway_reference: string;
+      order_amount: string;
+      transaction_at: Date | null;
+    }>(
+      `SELECT id, order_id, gateway_reference,
+              order_amount::text AS order_amount, transaction_at
+         FROM reconciliation_items
+        WHERE organization_id = $1
+          AND run_id = $2
+          AND reconciliation_status IN ('matched', 'amount_mismatch')`,
+      [actor.organizationId, stored.id],
+    );
+    if (captureRows.rowCount && captureRows.rowCount > 0) {
+      const merchantAccountId = await ensureDefaultMerchantAccount(
+        client,
+        actor.organizationId,
+      );
+      const provider = (input.providerId ?? "generic") as ProviderId;
+      await postCaptureEntries(
+        client,
+        actor.organizationId,
+        captureRows.rows.map((row) => ({
+          sourceItemId: row.id,
+          merchantAccountId,
+          provider,
+          grossAmount: Number(row.order_amount),
+          effectiveAt: row.transaction_at ?? new Date(),
+          externalRefs: {
+            orderId: row.order_id,
+            gatewayReference: row.gateway_reference,
+          },
+        })),
+        { id: actor.id, name: actor.name },
+      );
+    }
 
     await recordAuditEvent({
       organizationId: actor.organizationId,

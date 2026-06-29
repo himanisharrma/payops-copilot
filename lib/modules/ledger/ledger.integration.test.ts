@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { db, transaction } from "@/lib/db";
 import {
   getBalance,
+  getProviderReceivableBreakdown,
   listTransactions,
   postCaptureEntries,
   postRefundNettingEntries,
@@ -339,6 +340,159 @@ describe("ledger service — append-only DB trigger", () => {
         org,
       ]),
     ).rejects.toThrow(/ledger_entries is append-only/);
+  });
+});
+
+describe("ledger service — getProviderReceivableBreakdown", () => {
+  it("returns tied_out status + zero closing for a fully-settled batch", async () => {
+    const org = await makeOrg("recv-tied");
+    const merchant = await makeMerchant(org, "recv-tied");
+    // Realistic lifecycle: capture happens BEFORE settlement (T+1 cycle).
+    // Opening is read at `batchAt - 1ms`, so capture must precede it.
+    const captureAt = new Date("2026-06-20T10:00:00Z");
+    const batchAt = new Date("2026-06-21T12:30:00Z");
+    const batchId = randomUUID();
+    const settlementRef = `STMT-${randomUUID().slice(0, 8)}`;
+
+    // Need a merchant_settlement_batches row for the breakdown's batch
+    // metadata lookup (it reads provider_id + effective_at from there).
+    await db.query(
+      `INSERT INTO merchant_settlement_batches (
+         id, organization_id, merchant_account_id, statement_reference,
+         provider_id, payment_mode, settlement_cycle, status, utr,
+         expected_settlement_at, actual_settlement_at,
+         gross_amount, deduction_amount, net_amount, bank_credit_amount,
+         variance_amount, utr_match_status, classification_evidence
+       ) VALUES (
+         $1,$2,$3,$4,'razorpay_demo','UPI','T+1','credited','UTR-RECV',
+         $5,$5,1000,23.6,976.4,976.4,0,'matched','{"fixture":true}'
+       )`,
+      [batchId, org, merchant, settlementRef, batchAt],
+    );
+
+    // Post the full lifecycle for one capture (gross 1000) settled in
+    // this batch (MDR 20 + GST 3.6 + bank credit 976.40 = net 976.40).
+    await transaction((client) =>
+      postCaptureEntries(
+        client,
+        org,
+        [capture(merchant, 1000, captureAt, "recv-tied")],
+        ACTOR,
+      ),
+    );
+    await transaction((client) =>
+      postSettlementEntries(
+        client,
+        org,
+        {
+          batchId,
+          merchantAccountId: merchant,
+          provider: "razorpay_demo",
+          utr: "UTR-RECV",
+          effectiveAt: batchAt,
+          netAmount: 976.4,
+          deductions: [
+            { sourceDeductionId: randomUUID(), type: "mdr", amount: 20, taxAmount: 0 },
+            { sourceDeductionId: randomUUID(), type: "gst", amount: 3.6, taxAmount: 0 },
+          ],
+          bankCredits: [
+            { sourceBankCreditId: randomUUID(), amount: 976.4, creditedAt: batchAt },
+          ],
+        },
+        ACTOR,
+      ),
+    );
+
+    const breakdown = await transaction((client) =>
+      getProviderReceivableBreakdown(client, org, merchant, batchId),
+    );
+    expect(breakdown.provider).toBe("razorpay_demo");
+    expect(breakdown.openingReceivable).toBeCloseTo(1000, 2);
+    expect(breakdown.movements.mdr).toBeCloseTo(20, 2);
+    expect(breakdown.movements.gst).toBeCloseTo(3.6, 2);
+    expect(breakdown.movements.bankCredits).toBeCloseTo(976.4, 2);
+    expect(breakdown.movements.refundsNetted).toBe(0);
+    expect(breakdown.closingReceivable).toBeCloseTo(0, 2);
+    expect(breakdown.status).toBe("tied_out");
+    expect(breakdown.buckets.reconciled).toBeCloseTo(976.4, 2);
+    expect(breakdown.utrsInWindow).toContain("UTR-RECV");
+  });
+
+  it("returns under_settled status + positive closing when bank credit is short", async () => {
+    const org = await makeOrg("recv-short");
+    const merchant = await makeMerchant(org, "recv-short");
+    const at = new Date("2026-06-20T12:00:00Z");
+    const batchId = randomUUID();
+    const settlementRef = `STMT-${randomUUID().slice(0, 8)}`;
+
+    await db.query(
+      `INSERT INTO merchant_settlement_batches (
+         id, organization_id, merchant_account_id, statement_reference,
+         provider_id, payment_mode, settlement_cycle, status,
+         expected_settlement_at,
+         gross_amount, deduction_amount, net_amount, bank_credit_amount,
+         variance_amount, utr_match_status, classification_evidence
+       ) VALUES (
+         $1,$2,$3,$4,'cashfree_demo','UPI','T+1','partially_credited',
+         $5,1000,20,980,500,480,'amount_mismatch','{"fixture":true}'
+       )`,
+      [batchId, org, merchant, settlementRef, at],
+    );
+
+    await transaction((client) =>
+      postCaptureEntries(
+        client,
+        org,
+        [{
+          sourceItemId: randomUUID(),
+          merchantAccountId: merchant,
+          provider: "cashfree_demo" as const,
+          grossAmount: 1000,
+          effectiveAt: at,
+          externalRefs: { orderId: "ORD-SHORT", gatewayReference: "PAY-SHORT" },
+        }],
+        ACTOR,
+      ),
+    );
+    await transaction((client) =>
+      postSettlementEntries(
+        client,
+        org,
+        {
+          batchId,
+          merchantAccountId: merchant,
+          provider: "cashfree_demo",
+          utr: "UTR-SHORT",
+          effectiveAt: at,
+          netAmount: 980,
+          deductions: [
+            { sourceDeductionId: randomUUID(), type: "mdr", amount: 20, taxAmount: 0 },
+          ],
+          // Bank credit only ₹500 vs expected 980 → ₹480 still owed
+          bankCredits: [
+            { sourceBankCreditId: randomUUID(), amount: 500, creditedAt: at },
+          ],
+        },
+        ACTOR,
+      ),
+    );
+
+    const breakdown = await transaction((client) =>
+      getProviderReceivableBreakdown(client, org, merchant, batchId),
+    );
+    expect(breakdown.closingReceivable).toBeCloseTo(480, 2);
+    expect(breakdown.status).toBe("under_settled");
+  });
+
+  it("throws 404 DomainError for an unknown batch", async () => {
+    const org = await makeOrg("recv-404");
+    const merchant = await makeMerchant(org, "recv-404");
+    const unknownBatchId = randomUUID();
+    await expect(
+      transaction((client) =>
+        getProviderReceivableBreakdown(client, org, merchant, unknownBatchId),
+      ),
+    ).rejects.toThrow(/Settlement batch not found/);
   });
 });
 

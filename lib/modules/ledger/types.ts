@@ -136,3 +136,24 @@ export type RefundAllocationSource = {
 };
 
 export type Actor = { id: string | null; name: string };
+
+export type ProviderReceivableBreakdown = {
+  provider: ProviderId;
+  batchId: string;
+  batchEffectiveAt: string;
+  openingReceivable: number;
+  closingReceivable: number;
+  movements: {
+    mdr: number;
+    gst: number;
+    refundsNetted: number;
+    bankCredits: number;
+  };
+  status: "tied_out" | "under_settled" | "over_settled";
+  buckets: {
+    inFlight: number;
+    reconciled: number;
+    disputed: number;
+  };
+  utrsInWindow: string[];
+};

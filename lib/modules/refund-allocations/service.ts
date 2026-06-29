@@ -1,9 +1,13 @@
 import type { PoolClient } from "pg";
 import { recordAuditEvent } from "@/lib/modules/audit/repository";
+import { postRefundNettingEntries } from "@/lib/modules/ledger/service";
+import type { ProviderId as LedgerProviderId } from "@/lib/modules/ledger/types";
+import { ensureDefaultMerchantAccount } from "@/lib/modules/merchant-settlements/repository";
 import type { NormalizedRefundRow } from "@/lib/types";
 import {
   deriveRefundExternalReference,
   findParentCaptureForRefund,
+  getProviderForAllocation,
   insertRefundAllocation,
   stampRefundOffsetRecognized,
   sumAppliedAllocationsForParent,
@@ -94,7 +98,7 @@ export async function refreshRefundAllocations(
         settlementAt: candidate.settlementAt,
       });
 
-    const { inserted } = await insertRefundAllocation(client, {
+    const { inserted, id: allocationId } = await insertRefundAllocation(client, {
       organizationId,
       parentItemId: parent.id,
       parentRunId: parent.runId,
@@ -107,7 +111,48 @@ export async function refreshRefundAllocations(
       refundUtr: candidate.utr,
       refundStatementReference: candidate.statementReference,
     });
-    if (inserted) allocationsApplied += 1;
+    if (inserted) {
+      allocationsApplied += 1;
+      // Slice 6b — Bridge 3: post refund netting to the ledger. Provider
+      // attribution travels parent_item → run → provider_id (refund
+      // allocations don't store provider directly). The post is
+      // idempotent on `refund_netting:<allocationId>` so re-runs are
+      // safe; we only fire it when insertRefundAllocation actually
+      // wrote a new row (allocationId is non-null).
+      if (allocationId) {
+        const provider = (await getProviderForAllocation(
+          client,
+          organizationId,
+          parent.id,
+        )) as LedgerProviderId;
+        const merchantAccountId = await ensureDefaultMerchantAccount(
+          client,
+          organizationId,
+        );
+        await postRefundNettingEntries(
+          client,
+          organizationId,
+          [
+            {
+              allocationId,
+              merchantAccountId,
+              provider,
+              amount: candidate.amount,
+              effectiveAt: candidate.settlementAt
+                ? new Date(candidate.settlementAt)
+                : candidate.transactionAt
+                  ? new Date(candidate.transactionAt)
+                  : new Date(),
+              externalRefs: {
+                refundOrderId: candidate.orderId,
+                refundExternalReference: externalReference,
+              },
+            },
+          ],
+          actor,
+        );
+      }
+    }
 
     // Recompute regardless of whether THIS insert was new — idempotent
     // re-runs should still confirm the parent's reason code.
