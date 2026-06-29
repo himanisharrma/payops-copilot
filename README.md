@@ -1,7 +1,7 @@
 # PayOps Copilot
 
 ![Status](https://img.shields.io/badge/status-portfolio%20MVP-brightgreen)
-![Tests](https://img.shields.io/badge/tests-109%20passing-blue)
+![Tests](https://img.shields.io/badge/tests-186%20passing-blue)
 ![Stack](https://img.shields.io/badge/stack-Next.js%20%7C%20PostgreSQL%20%7C%20OpenAI-orange)
 ![Safety](https://img.shields.io/badge/data-synthetic%20only-informational)
 ![Built with](https://img.shields.io/badge/built%20with-Codex-blueviolet)
@@ -41,8 +41,8 @@ a managed PostgreSQL `DATABASE_URL`, then run `npm run db:migrate` and
 | **AI role** | Produce structured, evidence-grounded investigation drafts; never calculate settlement truth or initiate money movement |
 | **Human role** | Assign, investigate, approve or reject AI analysis, resolve, and remain accountable |
 | **Stack** | Next.js 16, React 19, PostgreSQL 17, Auth.js, OpenAI Responses API, Zod, Vitest |
-| **Backend shape** | Modular monolith with thin routes, domain services, fourteen domain modules, and shared PostgreSQL infrastructure |
-| **Build evidence** | 23 product milestones, 39 API routes, 25 migrations, and 109 unit/integration tests |
+| **Backend shape** | Modular monolith with thin routes, domain services, nineteen domain modules, and shared PostgreSQL infrastructure |
+| **Build evidence** | 25 product milestones, 46 API routes, 32 migrations, and 186 unit/integration tests |
 
 ## Why this exists
 
@@ -408,11 +408,21 @@ constraints, and completion conditions; encode durable repository guidance in
   a March capture refunded in May still gets recognized retroactively.
   Remaining: partial captures (multi-capture lifecycle), fuzzy amount/date
   windows.
-- **Then: Ledger Backbone v1.** Add immutable merchant payable, provider
-  receivable, bank cash, fee/GST, refund, chargeback, hold/release, and
-  adjustment ledger entries that explain opening balance to closing payable.
-- After those foundations, return to evidence escalation, configurable
-  calendars, provider-specific investigation tools, production controls, and
+- **Shipped: Ledger Backbone v1** (Slices 6a `1f789b5` + 6b `3ad0122`,
+  merged 2026-06-29). Append-only double-entry journal with six-account
+  chart per merchant (merchant payable, provider receivable, escrow cash,
+  fee expense, GST liability, refund payable). Three bridges in
+  reconciliation, merchant-settlements, and refund-allocations services
+  post entries atomically inside existing transactions. Per-PG receivable
+  card on the settlement detail drawer answers "did this batch tie out?"
+  Canary test asserts ledger ties to `calculateSettlementArithmetic` for
+  every seeded batch (drift > ₹0.01 = ship-blocker).
+  Remaining for v1.1: explicit chargeback / hold / adjustment account
+  splits, refresh-mutation reverse semantics, multi-currency.
+- **Next: Evidence Escalation Outbox.** Provider tickets with attached
+  evidence, parsed inbound replies, SLA-breach escalation.
+- After those foundations, return to configurable calendars,
+  provider-specific investigation tools, production controls, and
   eventually split settlement.
 - Do not claim live-provider accuracy, payout success, bank attestation, or AI
   model quality without production-grade source data and measured evidence.

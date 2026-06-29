@@ -24,6 +24,11 @@ API route (transport and request validation)
 | `settlement-control` | Yes | Yes | Idempotent overdue promotion, organization locking, and audit |
 | `close-control` | Yes | Yes | Daily scope readiness, materiality, immutable versions, residual dispositions, maker-checker approval, reopen policy, certificates, and audit |
 | `remediation-programs` | Yes | Yes | Deterministic recurrence detection, lifecycle, automatic case linking, clean-run verification, and audit evidence |
+| `merchant-settlements` | Yes | Yes | Merchant settlement batches, lines, deductions, bank credits, UTR classification, settlement arithmetic, and `loadSettlementSourceForLedger` helper for the ledger bridge |
+| `settlement-imports` | Yes | Yes | Imported settlement rows, comparison snapshots, exception inventory, adjustment proposal lifecycle, and evidence packet export |
+| `manual-matches` | Yes | Yes | Analyst-facing manual match / unmatch override records with admin maker-checker on unmatches and audit |
+| `refund-allocations` | Yes | Yes | Refund netting allocations linked to parent capture (cross-run), `refund_offset_recognized` stamping, and ledger bridge for refund netting |
+| `ledger` | Yes | Yes | Append-only double-entry journal — chart of accounts per merchant, posting recipes, balanced-pair guard, idempotency, getBalance / getProviderReceivableBreakdown / listTransactions / reverseTransaction |
 | `audit` | Yes | No | Organization-scoped writes and administrator reads |
 | `system` | Yes | No | Database health checks |
 

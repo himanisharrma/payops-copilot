@@ -130,51 +130,61 @@ Source Ingestion now includes version dossiers, audited quarantine decisions,
 an immutable accepted-source contract, superseded-file lineage, persisted daily
 readiness snapshots, and tenant/RBAC integration coverage.
 
-**Matching Engine v2** is in progress. Slices 1–5 are shipped: layered
-matching strategies + confidence (Slice 1), reason-code taxonomy + cross-table
-refresh hooks (Slices 2a/2b), an analyst-facing manual match / unmatch
-override layer with admin maker-checker on unmatches (Slice 3), many-to-one
-payout sum checks (Slice 4), and refund netting (Slice 5). The engine stays
-per-item and stateless; every layer is an immutable side artifact composed
-at read time. Slice 5 adds `transactionType` to `ProviderFieldMapping`,
-splits capture rows from refund rows in the settlement CSV, persists
-refunds in `reconciliation_refund_allocations` linked to their parent
-captures (cross-run linkage supported), and stamps the 12th reason code
+**Matching Engine v2** is fully shipped (Slices 1–5): layered matching
+strategies + confidence (Slice 1), reason-code taxonomy + cross-table refresh
+hooks (Slices 2a/2b), an analyst-facing manual match / unmatch override layer
+with admin maker-checker on unmatches (Slice 3), many-to-one payout sum
+checks (Slice 4), and refund netting (Slice 5). The engine stays per-item
+and stateless; every layer is an immutable side artifact composed at read
+time. Slice 5 adds `transactionType` to `ProviderFieldMapping`, splits
+capture rows from refund rows in the settlement CSV, persists refunds in
+`reconciliation_refund_allocations` linked to their parent captures
+(cross-run linkage supported), and stamps the 12th reason code
 `refund_offset_recognized` when effective variance (engine settled + sum of
 allocated refunds − expected net) lands within ₹0.01. Precedence chain:
 per-item codes < `refund_offset_recognized` < `payout_sum_mismatch`;
 manual overrides are orthogonal. Remaining: partial captures (multi-capture
 lifecycle), fuzzy amount/date windows.
 
-After matching, build **Ledger Backbone v1** with immutable merchant payable,
-provider/acquirer receivable, bank cash, fee receivable, GST liability, refund
-recovery, chargeback recovery, hold/release, and adjustment/write-off entries.
-It should produce an explainable balance:
+**Ledger Backbone v1** also shipped (Slices 6a `1f789b5` + 6b `3ad0122`,
+merged 2026-06-29). Append-only double-entry journal with a 6-account chart
+per merchant (merchant payable, provider receivable, escrow cash, fee
+expense, GST liability, refund payable). Three bridges — in
+reconciliation, merchant-settlements, and refund-allocations services —
+post entries atomically inside the existing transaction boundary; nothing
+in the engine layer changes. Per-PG receivable card on the settlement
+detail drawer answers "did this batch tie out?" via
+`getProviderReceivableBreakdown`. A canary test asserts ledger
+`merchant_payable` ties to `calculateSettlementArithmetic.netAmount` for
+every seeded batch (drift > ₹0.01 = ship-blocker). v1.1 will add explicit
+`chargeback_receivable` / `hold` / `adjustment_writeoff` accounts and
+auto-reverse on source mutation.
+
+The explainable balance the ledger produces:
 
 ```text
-opening balance
-+ collections
+opening receivable (per PG)
++ captures
 - fees
 - GST
-- refunds
-- chargebacks
-- holds
-+ releases
-- payouts
-= closing payable / exposure
+- refunds netted
+- bank credits
+= closing receivable (per PG, per batch)
 ```
 
-Only after ingestion, matching depth, and ledger truth are credible should the
-roadmap return to Evidence Escalation Outbox, outbound escalation, or split
-settlement. Split settlement should eventually support platform/vendor shares,
-fee/tax splits, refund splits, and vendor settlement files, but it should not be
-the next foundation.
+Only after escalation and real-file ingestion are credible should the
+roadmap return to additional governance surfaces or split settlement. Split
+settlement should eventually support platform/vendor shares, fee/tax
+splits, refund splits, and vendor settlement files, but it is not the next
+foundation. **Next: Evidence Escalation Outbox** — provider tickets with
+attached evidence, parsed inbound replies, SLA-breach escalation.
 
-## Stop building (until foundations land)
+## Stop building (until next foundation lands)
 
-Per the `gaps.md` review: PayOps already has more governance scaffolding than it
-has real ingestion or ledger truth. Adding more before Matching Engine v2 and
-Ledger Backbone v1 ship is overbuild, not progress.
+Per the `gaps.md` review: PayOps now has Matching Engine v2 + Ledger
+Backbone v1 on synthetic data. The remaining wedge gaps are real-file
+ingestion + escalation, not more governance scaffolding. Adding more
+dashboards before those land is overbuild, not progress.
 
 **Do not add:**
 

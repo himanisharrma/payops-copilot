@@ -418,41 +418,74 @@ This release completes the first control-plane slice:
 - synthetic manual CSV intake only; no live provider, bank, email, SFTP, or API
   pull is claimed.
 
-### Next: Matching Engine v2
+### Shipped: Matching Engine v2 (Slices 1–5)
 
-- Layer exact and ambiguous matching across order ID, gateway transaction ID,
-  bank reference, UPI RRN/ARN, UTR, amount/date windows, payout IDs, partial
-  captures/refunds, reversals, duplicates, and many-to-one bank credits.
-- Store confidence reasons and candidate alternatives instead of only final
-  matched/unmatched status.
-- Add review queues for ambiguous, duplicate, partial, and reversal-aware
-  matches.
+- Layered matching strategies with per-item confidence (Slice 1): exact
+  order ID → gateway reference fallback → amount/date window → unmatched.
+- 12-code reason-code taxonomy with in-engine classifier and cross-table
+  refresh hooks (Slices 2a/2b): timing_not_due, utr_missing, utr_duplicate,
+  fee_mismatch, gst_mismatch, hold_unexplained, payout_failed,
+  chargeback_pending_recovery, refund_not_adjusted, unmatched_other,
+  payout_sum_mismatch, refund_offset_recognized.
+- Analyst-facing manual match / unmatch override layer with admin
+  maker-checker on unmatches (Slice 3).
+- Many-to-one payout sum checks: when a payout's bank credit does not equal
+  the sum of its matched items, all sibling items stamp `payout_sum_mismatch`
+  with sibling-context summary (Slice 4).
+- Refund netting (Slice 5): refunds become append-only side-table allocations
+  linked to their parent capture across runs; `refund_offset_recognized`
+  stamps when effective variance ties out within ₹0.01.
+- Remaining: partial captures (multi-capture lifecycle), fuzzy amount/date
+  windows.
 
-### Then: Ledger Backbone v1
+### Shipped: Ledger Backbone v1 (Slices 6a + 6b, merged 2026-06-29)
 
-- Add immutable ledger entries for merchant payable, provider/acquirer
-  receivable, bank cash, fee receivable, GST liability, refund recovery,
-  chargeback recovery, holds/releases, and adjustment/write-offs.
-- Produce an auditable balance equation:
+- Append-only double-entry journal (Slice 6a `1f789b5`) with six-account
+  chart per merchant: merchant payable (liability), provider receivable
+  (asset, per-PG), escrow cash (asset), fee expense (expense, per-PG),
+  GST liability (expense — see note below), refund payable (liability,
+  reserved for v1.1 refund-initiation source).
+- DB-level append-only trigger blocks UPDATE on entries; corrections post
+  as new reversal transactions via `reverseTransaction`. Idempotency keys
+  are deterministic from source events; amount-in-key for fee/gst handles
+  refresh-mutation drift.
+- Three bridges (Slice 6b `3ad0122`) post atomically inside the existing
+  transaction boundary: reconciliation/service (captures),
+  merchant-settlements/service (settlement events), refund-allocations/
+  service (refund netting).
+- `getProviderReceivableBreakdown` service + per-PG receivable card on the
+  settlement detail drawer: opening receivable + captures − fees − GST −
+  refunds − bank credits = closing receivable. Closing ≈ 0 = tied out ✓;
+  > 0 = under-settled ⚠; < 0 = over-settled. Stripe-style 3-bucket strip
+  (in-flight / reconciled / disputed) derived from source_type.
+- Canary test asserts ledger `merchant_payable` ties to
+  `calculateSettlementArithmetic.netAmount` for every seeded batch — drift
+  > ₹0.01 = ship-blocker.
+- Note on `gst_liability`: account_role kept for vocabulary continuity but
+  account_type is `expense` — the wedge formula treats GST as a cost,
+  not as a payable to govt. v1.1 may split a true `gst_input_credit` asset.
+- Remaining for v1.1: explicit `chargeback_receivable` / `hold` /
+  `adjustment_writeoff` accounts (currently lumped into `fee_expense`),
+  auto-reverse on source mutation, multi-currency.
 
-```text
-opening balance
-+ collections
-- fees
-- GST
-- refunds
-- chargebacks
-- holds
-+ releases
-- payouts
-= closing payable / exposure
-```
+### Next: Evidence Escalation Outbox
+
+Per `gaps.md` §P5, the next foundation. Real controllers don't stop at
+"this batch under-settled by ₹6.40" — they need to raise a provider
+ticket, attach the evidence packet the ledger now produces, parse the
+inbound reply, and escalate on SLA breach.
+
+- Provider escalation tickets with structured queries and attached ledger
+  evidence (per-PG breakdown + UTRs + transaction feed).
+- Parsed inbound provider replies with promise tracking and ETA recording.
+- SLA-breach escalation to payment-ops leadership with audit trail.
 
 ### After that: deepen payment operations
 
-- Add a controlled escalation outbox for approved evidence packs.
-- Add configurable business calendars and outbound escalation notifications.
-- Add split settlement only after ingestion, matching, ledger truth, statement
+- Configurable business calendars.
+- Real-file ingestion (live provider, bank, email, SFTP, API pulls) — the
+  other big remaining wedge gap per `gaps.md` §P1.
+- Split settlement only after ingestion, matching, ledger truth, statement
   import, exception handling, and adjustment governance are stable.
 
 ### Then: production controls
