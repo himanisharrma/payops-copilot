@@ -2,6 +2,7 @@ import type { Actor } from "@/lib/access";
 import { transaction } from "@/lib/db";
 import { recordAuditEvent } from "@/lib/modules/audit/repository";
 import { DomainError } from "@/lib/modules/errors";
+import { refreshPayoutSumChecks } from "@/lib/modules/reconciliation/reason-codes";
 import { saveReconciliationRun } from "@/lib/modules/reconciliation/repository";
 import { providerIds } from "@/lib/provider-adapters";
 import { reconcilePayments } from "@/lib/reconciliation";
@@ -73,6 +74,24 @@ export async function createReconciliationRun(
       providerId: input.providerId ?? "generic",
       sourceFiles: input.sourceFiles ?? {},
     });
+
+    // Slice 4: post-persist sum check across all items that share a payout_id.
+    // Stamped items where the engine couldn't reach a settlement row (and thus
+    // have a null payoutId) are excluded — they don't belong to any group.
+    const payoutIds = Array.from(
+      new Set(
+        stored.items
+          .map((item) => item.payoutId)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    );
+    await refreshPayoutSumChecks(
+      client,
+      actor.organizationId,
+      payoutIds,
+      "reconciliation_run_persisted",
+      { id: actor.id, name: actor.name },
+    );
 
     await recordAuditEvent({
       organizationId: actor.organizationId,

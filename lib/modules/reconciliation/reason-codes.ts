@@ -273,6 +273,24 @@ export const REASON_CODE_POLICY: Record<ReasonCode, ReasonCodePolicy> = {
     autoCloseWhen: null,
     escalationPath: "manual_review",
   },
+  // Slice 4 (Matching Engine v2): group-level verdict applied by
+  // refreshPayoutSumChecks when sum(items.settled_amount) for a payout group
+  // diverges from the actual bank credit amount. Takes precedence over
+  // per-item codes — refreshReasonCodesForOrders must NOT overwrite this
+  // code (see the IS DISTINCT FROM guard on its UPDATE).
+  payout_sum_mismatch: {
+    exposureTier: "high",
+    ownerDefault: "treasury",
+    slaHours: 8,
+    allowedActions: ["raise_to_provider", "raise_to_bank"],
+    evidenceRequired: [
+      "merchant_settlement_batch",
+      "merchant_settlement_bank_credits",
+      "sum_of_settled_amount",
+    ],
+    autoCloseWhen: null,
+    escalationPath: "provider_settlement_ops",
+  },
 };
 
 // Service-layer hook: re-runs classifyWithContext against current
@@ -368,12 +386,15 @@ export async function refreshReasonCodesForOrders(
     };
     const next = classifyWithContext(item.reconciliation_status, ctx);
     if (next && next !== item.reason_code) {
-      await client.query(
+      // Precedence: Slice 4's group-level payout_sum_mismatch wins over
+      // per-item codes. Never overwrite it from this per-item refresh.
+      const result = await client.query(
         `UPDATE reconciliation_items SET reason_code = $1
-          WHERE id = $2 AND organization_id = $3`,
+          WHERE id = $2 AND organization_id = $3
+            AND reason_code IS DISTINCT FROM 'payout_sum_mismatch'`,
         [next, item.id, organizationId],
       );
-      changed += 1;
+      if (result.rowCount) changed += 1;
     }
   }
 
@@ -396,4 +417,212 @@ export async function refreshReasonCodesForOrders(
   );
 
   return { changed };
+}
+
+// Slice 4 (Matching Engine v2): many-to-one payout sum check.
+//
+// One bank credit / one UTR / one provider statement_reference aggregates many
+// payment items. After items are persisted, this hook verifies that
+// sum(items.settled_amount) for each payout group ties to the actual bank
+// credit total in merchant_settlement_bank_credits. On mismatch, every
+// settled item in the group is flagged `payout_sum_mismatch` and its summary
+// text rewritten to give the analyst sibling-item context without a new UI
+// surface.
+//
+// Architectural notes:
+// - Items are joined by (organization_id, payout_id), NOT by run_id. Payout
+//   groups can span multiple reconciliation runs (re-import scenarios).
+// - NULL settled_amount items (gateway_missing, pending, missing_settlement)
+//   are excluded from the sum AND not flagged — they have no money to
+//   contribute.
+// - Missing batch row OR missing bank-credit row(s) → defer silently. The
+//   check re-fires when settlement-imports lands the data via
+//   refreshMerchantSettlements.
+// - Bank credits fan out per batch (no UNIQUE on batch_id), so the sum is
+//   `SUM(amount) GROUP BY batch_id`.
+// - Manual override layer (Slice 3) is orthogonal: manual_match / unmatch
+//   does not change settled_amount, so the sum check is unaffected by
+//   override state.
+// - Precedence: payout_sum_mismatch wins over per-item codes. This function
+//   overwrites unconditionally on mismatch; refreshReasonCodesForOrders
+//   refuses to overwrite payout_sum_mismatch (see IS DISTINCT FROM guard
+//   above).
+export type PayoutSumRefreshTrigger =
+  | "reconciliation_run_persisted"
+  | "merchant_settlement_refresh";
+
+export type PayoutSumRefreshResult = {
+  groupsChecked: number;
+  groupsMismatched: number;
+  groupsDeferred: number;
+  itemsFlagged: number;
+  itemsCleared: number;
+};
+
+const PAYOUT_SUM_TOLERANCE_RUPEES = 0.01;
+
+export async function refreshPayoutSumChecks(
+  client: PoolClient,
+  organizationId: string,
+  payoutIds: string[],
+  trigger: PayoutSumRefreshTrigger,
+  actor: { id: string | null; name: string },
+): Promise<PayoutSumRefreshResult> {
+  if (payoutIds.length === 0) {
+    return {
+      groupsChecked: 0,
+      groupsMismatched: 0,
+      groupsDeferred: 0,
+      itemsFlagged: 0,
+      itemsCleared: 0,
+    };
+  }
+  const uniquePayoutIds = Array.from(new Set(payoutIds));
+
+  // FOR UPDATE serializes concurrent refreshes on the same payout group.
+  const items = await client.query<{
+    id: string;
+    payout_id: string;
+    reason_code: ReasonCode | null;
+    settled_amount: string | null;
+  }>(
+    `SELECT id, payout_id, reason_code, settled_amount::text
+       FROM reconciliation_items
+      WHERE organization_id = $1
+        AND payout_id = ANY($2::text[])
+      FOR UPDATE`,
+    [organizationId, uniquePayoutIds],
+  );
+
+  const batches = await client.query<{
+    id: string;
+    statement_reference: string;
+  }>(
+    `SELECT id, statement_reference
+       FROM merchant_settlement_batches
+      WHERE organization_id = $1
+        AND statement_reference = ANY($2::text[])`,
+    [organizationId, uniquePayoutIds],
+  );
+  const batchByPayoutId = new Map<string, string>();
+  for (const row of batches.rows) {
+    batchByPayoutId.set(row.statement_reference, row.id);
+  }
+
+  const batchIds = Array.from(batchByPayoutId.values());
+  const credits = batchIds.length
+    ? await client.query<{ batch_id: string; credited: string }>(
+        `SELECT batch_id, SUM(amount)::text AS credited
+           FROM merchant_settlement_bank_credits
+          WHERE organization_id = $1 AND batch_id = ANY($2::uuid[])
+          GROUP BY batch_id`,
+        [organizationId, batchIds],
+      )
+    : { rows: [] as Array<{ batch_id: string; credited: string }> };
+  const creditByBatchId = new Map<string, number>();
+  for (const row of credits.rows) {
+    creditByBatchId.set(row.batch_id, Number(row.credited));
+  }
+
+  const itemsByPayout = new Map<
+    string,
+    Array<{
+      id: string;
+      reasonCode: ReasonCode | null;
+      settledAmount: number | null;
+    }>
+  >();
+  for (const row of items.rows) {
+    const arr = itemsByPayout.get(row.payout_id) ?? [];
+    arr.push({
+      id: row.id,
+      reasonCode: row.reason_code,
+      settledAmount: row.settled_amount === null ? null : Number(row.settled_amount),
+    });
+    itemsByPayout.set(row.payout_id, arr);
+  }
+
+  let groupsChecked = 0;
+  let groupsMismatched = 0;
+  let groupsDeferred = 0;
+  let itemsFlagged = 0;
+  let itemsCleared = 0;
+
+  for (const payoutId of uniquePayoutIds) {
+    const group = itemsByPayout.get(payoutId) ?? [];
+    if (group.length === 0) continue;
+    const batchId = batchByPayoutId.get(payoutId);
+    if (!batchId) {
+      groupsDeferred += 1;
+      continue;
+    }
+    const credited = creditByBatchId.get(batchId);
+    if (credited === undefined) {
+      groupsDeferred += 1;
+      continue;
+    }
+    groupsChecked += 1;
+    const settledItems = group.filter((i) => i.settledAmount !== null);
+    const sum =
+      Math.round(
+        settledItems.reduce((acc, i) => acc + (i.settledAmount ?? 0), 0) * 100,
+      ) / 100;
+    const variance = Math.round((sum - credited) * 100) / 100;
+
+    if (Math.abs(variance) <= PAYOUT_SUM_TOLERANCE_RUPEES) {
+      // Group sums correctly. Clear any prior payout_sum_mismatch flags so
+      // refreshReasonCodesForOrders can re-stamp the right per-item code.
+      for (const item of group) {
+        if (item.reasonCode === "payout_sum_mismatch") {
+          const result = await client.query(
+            `UPDATE reconciliation_items SET reason_code = NULL
+              WHERE id = $1 AND organization_id = $2
+                AND reason_code = 'payout_sum_mismatch'`,
+            [item.id, organizationId],
+          );
+          if (result.rowCount) itemsCleared += 1;
+        }
+      }
+      continue;
+    }
+
+    groupsMismatched += 1;
+    const summary =
+      `Part of payout ${payoutId} — ${settledItems.length} items totalling ` +
+      `₹${sum.toFixed(2)} against bank credit of ₹${credited.toFixed(2)}. ` +
+      `Variance ₹${variance.toFixed(2)}.`;
+    for (const item of settledItems) {
+      const result = await client.query(
+        `UPDATE reconciliation_items
+            SET reason_code = 'payout_sum_mismatch',
+                summary = $3
+          WHERE id = $1 AND organization_id = $2`,
+        [item.id, organizationId, summary],
+      );
+      if (result.rowCount) itemsFlagged += 1;
+    }
+  }
+
+  const result: PayoutSumRefreshResult = {
+    groupsChecked,
+    groupsMismatched,
+    groupsDeferred,
+    itemsFlagged,
+    itemsCleared,
+  };
+
+  await recordAuditEvent(
+    {
+      organizationId,
+      actorUserId: actor.id,
+      actorName: actor.name,
+      action: "reason_code.payout_sum_recomputed",
+      entityType: "organization",
+      entityId: organizationId,
+      details: { trigger, payoutIds: uniquePayoutIds, ...result },
+    },
+    client,
+  );
+
+  return result;
 }

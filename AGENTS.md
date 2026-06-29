@@ -130,13 +130,16 @@ Source Ingestion now includes version dossiers, audited quarantine decisions,
 an immutable accepted-source contract, superseded-file lineage, persisted daily
 readiness snapshots, and tenant/RBAC integration coverage.
 
-**Matching Engine v2** is in progress. Slices 1–3 are shipped: layered
+**Matching Engine v2** is in progress. Slices 1–4 are shipped: layered
 matching strategies + confidence (Slice 1), reason-code taxonomy + cross-table
-refresh hooks (Slices 2a/2b), and an analyst-facing manual match / unmatch
-override layer with admin maker-checker on unmatches (Slice 3). The
-deterministic engine row is preserved; manual overrides live in their own
-`manual_match_proposals` + `manual_match_events` tables and surface on the
-operations case panel via LEFT JOIN. Remaining: many-to-one payouts, partial
+refresh hooks (Slices 2a/2b), an analyst-facing manual match / unmatch
+override layer with admin maker-checker on unmatches (Slice 3), and
+many-to-one payout sum checks (Slice 4). The engine stays per-item and
+stateless. Slice 4 stamps `payout_id` (provider statement_reference) on each
+item and `refreshPayoutSumChecks` verifies that `sum(items.settled_amount)`
+for each payout group ties to `SUM(merchant_settlement_bank_credits.amount)`
+for the matching batch; mismatches stamp `payout_sum_mismatch` (the 11th
+reason code) which takes precedence over per-item codes. Remaining: partial
 refunds/captures, fuzzy amount/date windows, duplicates and reversals beyond
 the existing simple cases.
 

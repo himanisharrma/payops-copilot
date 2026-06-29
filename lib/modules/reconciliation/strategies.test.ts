@@ -34,6 +34,7 @@ function settlement(overrides: Partial<NormalizedSettlementRow> = {}): Normalize
     utr: "UTR-1",
     status: "credited",
     settlementAt: "2026-06-26T18:00:00.000Z",
+    statementReference: "",
     ...overrides,
   };
 }
