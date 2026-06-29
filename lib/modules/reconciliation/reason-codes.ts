@@ -291,6 +291,22 @@ export const REASON_CODE_POLICY: Record<ReasonCode, ReasonCodePolicy> = {
     autoCloseWhen: null,
     escalationPath: "provider_settlement_ops",
   },
+  // Slice 5 (Matching Engine v2): stamped by refreshRefundAllocations
+  // when refund settlement rows net the engine's apparent variance
+  // back to within ±₹0.01 of the expected net. Engine `variance`
+  // column stays as the engine wrote it; the new reason code + summary
+  // text communicate the effective story. Takes precedence over
+  // per-item codes (utr_missing, fee_mismatch, etc.) but loses to
+  // payout_sum_mismatch (group-level wins).
+  refund_offset_recognized: {
+    exposureTier: "informational",
+    ownerDefault: "finance",
+    slaHours: 24,
+    allowedActions: ["raise_to_provider"],
+    evidenceRequired: ["payment_workflow", "refund_allocations"],
+    autoCloseWhen: "abs(effective_variance) <= 0.01",
+    escalationPath: "finance_review",
+  },
 };
 
 // Service-layer hook: re-runs classifyWithContext against current
@@ -386,12 +402,14 @@ export async function refreshReasonCodesForOrders(
     };
     const next = classifyWithContext(item.reconciliation_status, ctx);
     if (next && next !== item.reason_code) {
-      // Precedence: Slice 4's group-level payout_sum_mismatch wins over
-      // per-item codes. Never overwrite it from this per-item refresh.
+      // Precedence: Slice 4's group-level payout_sum_mismatch and
+      // Slice 5's refund_offset_recognized both win over per-item
+      // codes. Never overwrite either from this per-item refresh.
       const result = await client.query(
         `UPDATE reconciliation_items SET reason_code = $1
           WHERE id = $2 AND organization_id = $3
-            AND reason_code IS DISTINCT FROM 'payout_sum_mismatch'`,
+            AND reason_code IS DISTINCT FROM 'payout_sum_mismatch'
+            AND reason_code IS DISTINCT FROM 'refund_offset_recognized'`,
         [next, item.id, organizationId],
       );
       if (result.rowCount) changed += 1;

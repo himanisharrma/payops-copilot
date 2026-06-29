@@ -24,6 +24,7 @@ const ALL_CODES: ReasonCode[] = [
   "refund_not_adjusted",
   "unmatched_other",
   "payout_sum_mismatch",
+  "refund_offset_recognized",
 ];
 
 function gateway(overrides: Partial<NormalizedGatewayRow> = {}): NormalizedGatewayRow {
@@ -252,10 +253,20 @@ describe("REASON_CODE_POLICY", () => {
       expect.arrayContaining(["raise_to_provider", "raise_to_bank"]),
     );
   });
+
+  it("classifies refund_offset_recognized as informational finance auto-close", () => {
+    const policy = REASON_CODE_POLICY.refund_offset_recognized;
+    expect(policy.exposureTier).toBe("informational");
+    expect(policy.ownerDefault).toBe("finance");
+    expect(policy.autoCloseWhen).toContain("effective_variance");
+    expect(policy.evidenceRequired).toEqual(
+      expect.arrayContaining(["payment_workflow", "refund_allocations"]),
+    );
+  });
 });
 
-describe("classifyInEngine never returns the group-level code", () => {
-  it("payout_sum_mismatch is only assigned by refreshPayoutSumChecks", () => {
+describe("classifyInEngine never returns post-persist group/refund codes", () => {
+  it("payout_sum_mismatch and refund_offset_recognized are only assigned by post-persist hooks", () => {
     const candidates = [
       classifyInEngine({
         status: "matched",
@@ -302,6 +313,7 @@ describe("classifyInEngine never returns the group-level code", () => {
     ];
     for (const code of candidates) {
       expect(code).not.toBe("payout_sum_mismatch");
+      expect(code).not.toBe("refund_offset_recognized");
     }
   });
 });

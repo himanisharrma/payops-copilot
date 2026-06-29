@@ -194,4 +194,81 @@ describe("reconcilePayments", () => {
     );
     expect(result.items[0].status).toBe("pending");
   });
+
+  it("Slice 5: defaults missing transactionType to 'settlement' and emits no refund candidates", () => {
+    const result = reconcilePayments({
+      orders: [
+        { order_id: "ORD-A", amount: 1000, payment_mode: "UPI" },
+      ],
+      gateway: [
+        {
+          merchant_order_id: "ORD-A",
+          payment_id: "PAY-A",
+          transaction_amount: 1000,
+          txn_status: "captured",
+          mdr: 10,
+          gst: 1.8,
+        },
+      ],
+      // No `txn_type` column — adapter defaults to "settlement".
+      settlements: [
+        {
+          orderid: "ORD-A",
+          gateway_reference: "PAY-A",
+          net_settlement: 988.2,
+          settlement_utr: "UTR-A",
+        },
+      ],
+    });
+
+    expect(result.items[0].status).toBe("matched");
+    expect(result.refundCandidates).toEqual([]);
+  });
+
+  it("Slice 5: splits capture and refund rows; the per-item loop only sees captures", () => {
+    const result = reconcilePayments({
+      orders: [
+        { order_id: "ORD-B", amount: 1000, payment_mode: "UPI" },
+      ],
+      gateway: [
+        {
+          merchant_order_id: "ORD-B",
+          payment_id: "PAY-B",
+          transaction_amount: 1000,
+          txn_status: "captured",
+          mdr: 10,
+          gst: 1.8,
+        },
+      ],
+      // Refund row deliberately placed FIRST to exercise the
+      // "first-row-wins" bug fix — the per-item loop must filter it
+      // out before findByExactOrderId runs.
+      settlements: [
+        {
+          orderid: "ORD-B",
+          gateway_reference: "REFUND-B",
+          net_settlement: 300,
+          settlement_utr: "UTR-B-REFUND",
+          txn_type: "refund",
+        },
+        {
+          orderid: "ORD-B",
+          gateway_reference: "PAY-B",
+          net_settlement: 988.2,
+          settlement_utr: "UTR-B",
+          txn_type: "settlement",
+        },
+      ],
+    });
+
+    expect(result.items[0].status).toBe("matched");
+    expect(result.items[0].matchStrategy).toBe("exact_order_id");
+    expect(result.refundCandidates).toHaveLength(1);
+    expect(result.refundCandidates[0]).toMatchObject({
+      orderId: "ORD-B",
+      amount: 300,
+      reference: "REFUND-B",
+      utr: "UTR-B-REFUND",
+    });
+  });
 });

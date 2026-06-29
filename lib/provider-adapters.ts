@@ -73,6 +73,7 @@ export const providerAdapters = [
         "settlement_batch_id",
         "payout_reference",
       ],
+      transactionType: ["txn_type", "transaction_type", "record_type"],
     },
   },
   {
@@ -99,6 +100,7 @@ export const providerAdapters = [
       tax: ["tax", "gst"],
       utr: ["utr", "settlement_utr", "bank_reference"],
       statementReference: ["settlement_id", "settlement_batch_id"],
+      transactionType: ["type", "transaction_type"],
     },
   },
   {
@@ -125,6 +127,7 @@ export const providerAdapters = [
       tax: ["service_tax", "gst", "tax"],
       utr: ["utr", "bank_reference", "transfer_utr"],
       statementReference: ["settlement_id", "settlement_batch_id"],
+      transactionType: ["transaction_type", "event_type"],
     },
   },
   {
@@ -151,6 +154,7 @@ export const providerAdapters = [
       tax: ["gst", "tax", "fee_tax"],
       utr: ["utr", "bank_ref_num", "bank_reference"],
       statementReference: ["settlement_id", "settlement_batch_id"],
+      transactionType: ["transaction_type", "txn_type"],
     },
   },
 ] as const satisfies ProviderAdapter[];
