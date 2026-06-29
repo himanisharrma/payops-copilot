@@ -3877,6 +3877,46 @@ button:disabled {
   padding: 17px 19px;
 }
 
+.manual-override-section {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.manual-override-record {
+  border-left: 3px solid var(--orange-dark);
+}
+
+.manual-override-decision {
+  border-left: 3px solid var(--orange-dark);
+}
+
+.manual-override-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.manual-override-decision-actions {
+  flex-wrap: wrap;
+}
+
+.case-engine-verdict {
+  color: var(--muted);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.case-engine-verdict span {
+  color: var(--orange-dark);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-right: 8px;
+}
+
 .case-resolution-record > div {
   align-items: center;
   color: var(--green);

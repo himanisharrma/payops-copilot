@@ -21,6 +21,8 @@ export default async function OperationsPage({
       <AppHeader active="operations" />
       <OperationsInbox
         canEdit={session.user.role !== "viewer"}
+        role={session.user.role}
+        userId={session.user.id}
         initialFilters={parseOperationsFilters(params)}
       />
     </main>

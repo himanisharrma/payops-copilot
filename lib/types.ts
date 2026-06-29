@@ -319,6 +319,25 @@ export type OperationsCase = {
   updatedAt: string;
   latestInvestigation: AIInvestigation | null;
   providerEvents?: NormalizedProviderEvent[];
+  itemId: string;
+  engineMatchStrategy: MatchStrategy | null;
+  engineMatchConfidence: MatchConfidence | null;
+  engineReasonCode: ReasonCode | null;
+  manualOverride: ManualOverrideSummary | null;
+};
+
+export type ManualOverrideSummary = {
+  id: string;
+  proposalType: "manual_match" | "manual_unmatch";
+  status: "applied" | "proposed" | "approved" | "rejected" | "withdrawn";
+  reason: string;
+  proposedByUserId: string | null;
+  proposedByName: string;
+  proposedAt: string;
+  decidedByUserId: string | null;
+  decidedByName: string | null;
+  decisionReason: string | null;
+  decidedAt: string | null;
 };
 
 export type OperationsCaseComment = {

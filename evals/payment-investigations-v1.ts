@@ -109,6 +109,12 @@ export const paymentInvestigationDataset: EvaluationCase[] = seeds.map(
         createdAt,
         updatedAt: createdAt,
         latestInvestigation: null,
+        itemId: `eval-item-${String(index + 1).padStart(3, "0")}`,
+        engineMatchStrategy:
+          seed.status === "matched" ? "exact_order_id" : "unmatched",
+        engineMatchConfidence: seed.status === "matched" ? "high" : "none",
+        engineReasonCode: null,
+        manualOverride: null,
       },
     };
   },
