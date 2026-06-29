@@ -5701,10 +5701,11 @@ button:disabled {
   border-bottom: 1px solid var(--border);
   border-left: 1px solid var(--border);
   background: rgba(18, 20, 24, 0.72);
+  color: #ece8db;
 }
 
 .suggestion-card.promoted {
-  opacity: 0.68;
+  border-left: 3px solid #7ed6ae;
 }
 
 .suggestion-rank {
@@ -5724,7 +5725,7 @@ button:disabled {
 }
 
 .suggestion-heading > span {
-  color: var(--text);
+  color: inherit;
   font-size: 0.82rem;
   line-height: 1.5;
   text-transform: capitalize;
@@ -5754,13 +5755,14 @@ button:disabled {
 }
 
 .suggestion-metrics strong {
+  color: #fffdf7;
   font-size: 0.96rem;
   font-weight: 540;
 }
 
 .suggestion-metrics span {
   margin-top: 3px;
-  color: var(--muted);
+  color: rgba(236, 232, 219, 0.62);
   font-size: 0.64rem;
 }
 
@@ -5773,7 +5775,7 @@ button:disabled {
 
 .suggestion-card footer > span {
   margin-right: auto;
-  color: var(--muted);
+  color: rgba(236, 232, 219, 0.62);
   font-size: 0.66rem;
 }
 
