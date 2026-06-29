@@ -128,11 +128,17 @@ messy daily files that real merchant finance teams depend on:
 
 Source Ingestion now includes version dossiers, audited quarantine decisions,
 an immutable accepted-source contract, superseded-file lineage, persisted daily
-readiness snapshots, and tenant/RBAC integration coverage. Next, build
-**Matching Engine v2** with layered exact/ambiguous
-matching across order ID, gateway transaction ID, bank reference, UPI RRN/ARN,
-UTR, amount/date windows, many-to-one payouts, partial refunds/captures,
-duplicates, reversals, and confidence reasons.
+readiness snapshots, and tenant/RBAC integration coverage.
+
+**Matching Engine v2** is in progress. Slices 1–3 are shipped: layered
+matching strategies + confidence (Slice 1), reason-code taxonomy + cross-table
+refresh hooks (Slices 2a/2b), and an analyst-facing manual match / unmatch
+override layer with admin maker-checker on unmatches (Slice 3). The
+deterministic engine row is preserved; manual overrides live in their own
+`manual_match_proposals` + `manual_match_events` tables and surface on the
+operations case panel via LEFT JOIN. Remaining: many-to-one payouts, partial
+refunds/captures, fuzzy amount/date windows, duplicates and reversals beyond
+the existing simple cases.
 
 After matching, build **Ledger Backbone v1** with immutable merchant payable,
 provider/acquirer receivable, bank cash, fee receivable, GST liability, refund

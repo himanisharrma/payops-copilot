@@ -27,6 +27,14 @@ import {
   CaseResolutionControl,
   CaseResolutionRecord,
 } from "@/components/cases/case-resolution-control";
+import {
+  CaseEngineVerdict,
+  CaseManualOverrideRecord,
+  CaseManualUnmatchDecision,
+  CaseMatchControl,
+  type ManualOverrideKind,
+} from "@/components/cases/case-match-control";
+import type { AppRole } from "@/lib/access";
 import { ProviderEventTimeline } from "@/components/ui/provider-event-timeline";
 import { SourceEvidenceLedger } from "@/components/ui/source-evidence-ledger";
 import { formatSlaDistance, getSlaStatus, SLA_HOURS } from "@/lib/sla";
@@ -37,10 +45,30 @@ import {
 } from "@/lib/settlement-calendar";
 import type {
   CaseStatus,
+  ManualOverrideSummary,
   OperationsCase,
   OperationsCaseComment,
   OperationsFilters,
 } from "@/lib/types";
+import type { ManualMatchProposal } from "@/lib/modules/manual-matches/types";
+
+function mapProposalToSummary(
+  proposal: ManualMatchProposal,
+): ManualOverrideSummary {
+  return {
+    id: proposal.id,
+    proposalType: proposal.proposalType,
+    status: proposal.status,
+    reason: proposal.reason,
+    proposedByUserId: proposal.proposedByUserId,
+    proposedByName: proposal.proposedByName,
+    proposedAt: proposal.createdAt,
+    decidedByUserId: proposal.decidedByUserId,
+    decidedByName: proposal.decidedByName,
+    decisionReason: proposal.decisionReason,
+    decidedAt: proposal.decidedAt,
+  };
+}
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -80,9 +108,13 @@ const transactionSourceLabels = {
 
 export function OperationsInbox({
   canEdit,
+  role,
+  userId,
   initialFilters,
 }: {
   canEdit: boolean;
+  role: AppRole;
+  userId: string;
   initialFilters: OperationsFilters;
 }) {
   const router = useRouter();
@@ -129,6 +161,14 @@ export function OperationsInbox({
   const [pendingResolution, setPendingResolution] = useState(false);
   const [resolutionReason, setResolutionReason] = useState("");
   const [evidenceConfirmed, setEvidenceConfirmed] = useState(false);
+  const [pendingOverrideKind, setPendingOverrideKind] =
+    useState<ManualOverrideKind | null>(null);
+  const [overrideReason, setOverrideReason] = useState("");
+  const [overrideEvidenceConfirmed, setOverrideEvidenceConfirmed] =
+    useState(false);
+  const [overrideSaving, setOverrideSaving] = useState(false);
+  const [decisionReason, setDecisionReason] = useState("");
+  const [decisionSaving, setDecisionSaving] = useState(false);
   const [error, setError] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkOwner, setBulkOwner] = useState("");
@@ -236,12 +276,97 @@ export function OperationsInbox({
     setEvidenceConfirmed(false);
   }
 
+  function clearOverrideDraft() {
+    setPendingOverrideKind(null);
+    setOverrideReason("");
+    setOverrideEvidenceConfirmed(false);
+    setDecisionReason("");
+  }
+
   function selectCase(paymentCase: OperationsCase | null) {
     setSelected(paymentCase);
     setComments([]);
     setCommentBody("");
     replaceFilters({ caseId: paymentCase?.id ?? null });
     clearResolutionDraft();
+    clearOverrideDraft();
+  }
+
+  async function submitManualOverride(kind: ManualOverrideKind) {
+    if (!selected || !canEdit) return;
+    setOverrideSaving(true);
+    setError("");
+    try {
+      const endpoint =
+        kind === "match" ? "manual-match" : "manual-unmatch";
+      const response = await fetch(
+        `/api/reconciliation-items/${selected.itemId}/${endpoint}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            reason: overrideReason,
+            evidenceConfirmed: overrideEvidenceConfirmed,
+          }),
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      const override = mapProposalToSummary(payload.proposal);
+      const next = { ...selected, manualOverride: override };
+      setSelected(next);
+      setCases((current) =>
+        current.map((item) => (item.id === selected.id ? next : item)),
+      );
+      clearOverrideDraft();
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Manual override failed.",
+      );
+    } finally {
+      setOverrideSaving(false);
+    }
+  }
+
+  async function submitDecision(action: "approve" | "reject" | "withdraw") {
+    if (!selected?.manualOverride) return;
+    setDecisionSaving(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/manual-match-proposals/${selected.manualOverride.id}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(
+            action === "withdraw"
+              ? { action }
+              : { action, decisionReason },
+          ),
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      const proposal = payload.proposal;
+      const liveStatuses = new Set(["proposed", "applied", "approved"]);
+      const next = {
+        ...selected,
+        manualOverride: liveStatuses.has(proposal.status)
+          ? mapProposalToSummary(proposal)
+          : null,
+      };
+      setSelected(next);
+      setCases((current) =>
+        current.map((item) => (item.id === selected.id ? next : item)),
+      );
+      clearOverrideDraft();
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Decision could not be recorded.",
+      );
+    } finally {
+      setDecisionSaving(false);
+    }
   }
 
   function toggleSelection(caseId: string) {
@@ -1143,6 +1268,82 @@ export function OperationsInbox({
                   formatDateTime={formatDateTime}
                 />
               )}
+
+              <section className="manual-override-section">
+                <CaseEngineVerdict
+                  matchStrategy={selected.engineMatchStrategy}
+                  matchConfidence={selected.engineMatchConfidence}
+                  reasonCode={selected.engineReasonCode}
+                />
+                {selected.manualOverride ? (
+                  <CaseManualOverrideRecord
+                    override={selected.manualOverride}
+                    formatDateTime={formatDateTime}
+                  />
+                ) : null}
+                {selected.manualOverride?.status === "proposed"
+                  && role === "admin"
+                  && selected.manualOverride.proposedByUserId !== userId ? (
+                    <CaseManualUnmatchDecision
+                      saving={decisionSaving}
+                      decisionReason={decisionReason}
+                      onDecisionReasonChange={setDecisionReason}
+                      onApprove={() => submitDecision("approve")}
+                      onReject={() => submitDecision("reject")}
+                      onWithdraw={() => submitDecision("withdraw")}
+                      showWithdraw={false}
+                    />
+                  ) : null}
+                {selected.manualOverride?.status === "proposed"
+                  && selected.manualOverride.proposedByUserId === userId ? (
+                    <CaseManualUnmatchDecision
+                      saving={decisionSaving}
+                      decisionReason={decisionReason}
+                      onDecisionReasonChange={setDecisionReason}
+                      onApprove={() => submitDecision("approve")}
+                      onReject={() => submitDecision("reject")}
+                      onWithdraw={() => submitDecision("withdraw")}
+                      showWithdraw={true}
+                    />
+                  ) : null}
+                {!selected.manualOverride
+                  && canEdit
+                  && selected.status !== "resolved"
+                  && pendingOverrideKind === null ? (
+                    <div className="manual-override-actions">
+                      {selected.reconciliationStatus !== "matched" ? (
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => setPendingOverrideKind("match")}
+                        >
+                          Manual match
+                        </button>
+                      ) : null}
+                      {selected.reconciliationStatus === "matched" ? (
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => setPendingOverrideKind("unmatch")}
+                        >
+                          Manual unmatch
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                {pendingOverrideKind ? (
+                  <CaseMatchControl
+                    kind={pendingOverrideKind}
+                    saving={overrideSaving}
+                    reason={overrideReason}
+                    evidenceConfirmed={overrideEvidenceConfirmed}
+                    onReasonChange={setOverrideReason}
+                    onEvidenceConfirmedChange={setOverrideEvidenceConfirmed}
+                    onCancel={clearOverrideDraft}
+                    onSubmit={() => submitManualOverride(pendingOverrideKind)}
+                  />
+                ) : null}
+              </section>
 
               <div className="case-evidence">
                 <p>EVIDENCE</p>

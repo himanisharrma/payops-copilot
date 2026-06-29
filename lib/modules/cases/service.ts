@@ -8,6 +8,7 @@ import {
   updateCase,
 } from "@/lib/modules/cases/repository";
 import { DomainError } from "@/lib/modules/errors";
+import { hasPendingUnmatchForItem } from "@/lib/modules/manual-matches/repository";
 import type { CaseStatus, OperationsCase } from "@/lib/types";
 
 export type CasePatch = {
@@ -138,6 +139,20 @@ export async function changeCase(id: string, input: unknown, actor: Actor) {
     const existing = await getCase(id, actor.organizationId, client);
     if (!existing) throw new DomainError("Case not found.", 404);
     validateCaseResolution(existing, input);
+
+    if (input.status === "resolved") {
+      const pendingUnmatch = await hasPendingUnmatchForItem(
+        client,
+        actor.organizationId,
+        existing.itemId,
+      );
+      if (pendingUnmatch) {
+        throw new DomainError(
+          "Resolve the pending manual unmatch decision before closing the case.",
+          409,
+        );
+      }
+    }
 
     const updated = await updateCase(client, id, actor.organizationId, {
       ...input,

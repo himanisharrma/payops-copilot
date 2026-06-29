@@ -13,8 +13,12 @@ import {
 import type {
   AIInvestigation,
   CaseStatus,
+  ManualOverrideSummary,
+  MatchConfidence,
+  MatchStrategy,
   OperationsCase,
   OperationsCaseComment,
+  ReasonCode,
   SourceEvidence,
 } from "@/lib/types";
 
@@ -71,6 +75,21 @@ export async function listCases(
     feedback_notes: string | null;
     investigation_created_at: Date | null;
     investigation_updated_at: Date | null;
+    item_id: string;
+    engine_match_strategy: MatchStrategy | null;
+    engine_match_confidence: MatchConfidence | null;
+    engine_reason_code: ReasonCode | null;
+    manual_override_id: string | null;
+    manual_override_proposal_type: ManualOverrideSummary["proposalType"] | null;
+    manual_override_status: ManualOverrideSummary["status"] | null;
+    manual_override_reason: string | null;
+    manual_override_proposed_by_user_id: string | null;
+    manual_override_proposed_by_name: string | null;
+    manual_override_created_at: Date | null;
+    manual_override_decided_by_user_id: string | null;
+    manual_override_decided_by_name: string | null;
+    manual_override_decision_reason: string | null;
+    manual_override_decided_at: Date | null;
   }>(
     `SELECT c.*, r.name AS run_name, r.provider_id, i.order_id, i.gateway_reference,
        i.payment_mode, i.order_amount, i.variance, i.settled_amount,
@@ -79,6 +98,21 @@ export async function listCases(
        i.settlement_recorded_at, i.settlement_cycle,
        i.expected_settlement_at, i.settlement_timing_evidence,
        i.summary, i.evidence, evidence.source_evidence,
+       i.id AS item_id,
+       i.match_strategy AS engine_match_strategy,
+       i.match_confidence AS engine_match_confidence,
+       i.reason_code AS engine_reason_code,
+       override.id AS manual_override_id,
+       override.proposal_type AS manual_override_proposal_type,
+       override.status AS manual_override_status,
+       override.reason AS manual_override_reason,
+       override.proposed_by_user_id AS manual_override_proposed_by_user_id,
+       override.proposed_by_name AS manual_override_proposed_by_name,
+       override.created_at AS manual_override_created_at,
+       override.decided_by_user_id AS manual_override_decided_by_user_id,
+       override.decided_by_name AS manual_override_decided_by_name,
+       override.decision_reason AS manual_override_decision_reason,
+       override.decided_at AS manual_override_decided_at,
        ai.id AS investigation_id, ai.provider AS investigation_provider,
        ai.model AS investigation_model,
        ai.prompt_version AS investigation_prompt_version,
@@ -114,6 +148,17 @@ export async function listCases(
        FROM reconciliation_source_evidence
        WHERE item_id = i.id AND organization_id = c.organization_id
      ) evidence ON TRUE
+     LEFT JOIN LATERAL (
+       SELECT id, proposal_type, status, reason,
+         proposed_by_user_id, proposed_by_name, created_at,
+         decided_by_user_id, decided_by_name, decision_reason, decided_at
+       FROM manual_match_proposals
+       WHERE organization_id = c.organization_id
+         AND item_id = i.id
+         AND status IN ('proposed', 'applied', 'approved')
+       ORDER BY created_at DESC
+       LIMIT 1
+     ) override ON TRUE
      LEFT JOIN LATERAL (
        SELECT * FROM ai_investigations
        WHERE case_id = c.id
@@ -219,6 +264,25 @@ export async function listCases(
             providerEvent.paymentReference === row.gateway_reference,
         ),
       ),
+      itemId: row.item_id,
+      engineMatchStrategy: row.engine_match_strategy,
+      engineMatchConfidence: row.engine_match_confidence,
+      engineReasonCode: row.engine_reason_code,
+      manualOverride: row.manual_override_id
+        ? {
+            id: row.manual_override_id,
+            proposalType: row.manual_override_proposal_type!,
+            status: row.manual_override_status!,
+            reason: row.manual_override_reason!,
+            proposedByUserId: row.manual_override_proposed_by_user_id,
+            proposedByName: row.manual_override_proposed_by_name!,
+            proposedAt: row.manual_override_created_at!.toISOString(),
+            decidedByUserId: row.manual_override_decided_by_user_id,
+            decidedByName: row.manual_override_decided_by_name,
+            decisionReason: row.manual_override_decision_reason,
+            decidedAt: row.manual_override_decided_at?.toISOString() ?? null,
+          }
+        : null,
     };
   });
 }
