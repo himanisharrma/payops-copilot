@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { auth, signIn } from "@/auth";
+import { auth } from "@/auth";
+import { login } from "./actions";
 
 export default async function LoginPage({
   searchParams,
@@ -23,19 +24,16 @@ export default async function LoginPage({
         </div>
       </section>
       <section className="login-panel">
-        <form
-          action={async (formData) => {
-            "use server";
-            await signIn("credentials", {
-              email: formData.get("email"),
-              password: formData.get("password"),
-              redirectTo: "/",
-            });
-          }}
-        >
+        <form action={login}>
           <p className="eyebrow">WELCOME BACK</p>
           <h2>Sign in to PayOps</h2>
-          {error && <div className="error-banner">Invalid email or password.</div>}
+          {error && (
+            <div className="error-banner" role="alert">
+              {error === "credentials" || error === "CredentialsSignin"
+                ? "Invalid email or password. Please try again."
+                : "Sign-in is temporarily unavailable. Please try again shortly."}
+            </div>
+          )}
           <label>EMAIL<input name="email" type="email" required defaultValue="admin@payops.local" /></label>
           <label>PASSWORD<input name="password" type="password" required defaultValue="PayOpsDemo123!" /></label>
           <button className="primary-button" type="submit">Sign in</button>
