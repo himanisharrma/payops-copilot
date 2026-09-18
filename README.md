@@ -34,6 +34,11 @@ and no OpenAI key, so AI paths fall back to deterministic evidence rules. Attach
 a managed PostgreSQL `DATABASE_URL`, then run `npm run db:migrate` and
 `npm run db:seed` before using the full live workspace.
 
+Login distinguishes invalid credentials from authentication-service failures and
+keeps both on the sign-in form. If sign-in reports temporary unavailability, inspect
+the Vercel runtime logs and verify the production database connection, migrations,
+and seeded users. The local PostgreSQL fallback is only usable on a developer machine.
+
 ## The headline
 
 | | |
